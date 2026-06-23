@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.zw008/vmware-debug",
+  "title": "VMware Debug",
+  "description": "VMware diagnostic brain: read-only incident correlation (timeline, spikes, ranked root-cause hypotheses) and next-check routing across the VMware skill family — 2 MCP tools.",
+  "repository": {
+    "url": "https://github.com/zw008/VMware-Debug",
+    "source": "github"
+  },
+  "version": "1.6.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "vmware-debug",
+      "version": "1.6.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
