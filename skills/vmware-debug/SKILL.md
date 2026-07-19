@@ -113,6 +113,18 @@ a recommended plan.
 See `references/event-envelope.md`. The agent normalises each source's events into this
 shape; debug stays source-agnostic and has no dependency on the other packages.
 
+## Read-Only Mode
+
+Both tools here are reads, so read-only mode withholds nothing — but
+`VMWARE_DEBUG_READ_ONLY=true` or the family-wide `VMWARE_READ_ONLY=true` still applies, and
+the gate verifies at start-up that zero write tools are exposed rather than taking this
+document's word for it. Debug has no config file, so the env vars are the only switch. The
+same family variable withholds write tools across every companion skill, so a whole-estate
+audit posture is one setting — and when you route a fix to vmware-aiops or vmware-pilot and
+the tool is missing from *their* `list_tools()`, that is the lockdown, not a fault. Do not
+retry or hunt for another route: name the blocked operation and say an operator must clear
+the switch and restart that server.
+
 ## CLI Quick Reference
 
 ```bash

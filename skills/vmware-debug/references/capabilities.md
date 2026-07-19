@@ -7,6 +7,11 @@ Read-only, offline incident correlation. No network, no credentials, no writes.
 | `incident_timeline` | `{event_count, window, spikes:[{start,end,count,zscore}], hypotheses:[{category, score, summary, evidence_count, first_seen, last_seen, sample_text, suggested_check}], next_checks:[...]}` | 300–2000 (scales with hypotheses) |
 | `list_symptom_categories` | `{items: [{category, example_keywords, suggested_check}], returned, limit, total, truncated, hint}` | ~400 |
 
+> Read-only mode (`VMWARE_DEBUG_READ_ONLY=true` or the family-wide `VMWARE_READ_ONLY=true`;
+> debug has no config file) removes nothing from this table — both tools are `[READ]`, and
+> the gate proves that at start-up rather than trusting the marker. Classification comes
+> from the `[READ]`/`[WRITE]` docstring marker — see README.
+
 `list_symptom_categories` returns the family list envelope — read the rows from
 `items`. It has no `limit` parameter, which is exactly why the envelope matters:
 `truncated: false` states that this is every category there is, rather than

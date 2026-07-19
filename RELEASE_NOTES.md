@@ -1,3 +1,24 @@
+## v1.8.1 (2026-07-19) — read-only mode reaches the surfaces that teach it
+
+v1.8.0 put read-only mode in the code and documented it in the README only.
+Every other layer was empty, and each serves a different reader: SKILL.md is what
+the agent loads, setup-guide is what an operator reads while configuring, `doctor`
+is where they verify it took. The gap had two concrete costs.
+
+An agent read SKILL.md, called a write tool the gate had withheld, and got nothing
+back — with no way to learn that the absence was a deliberate lockdown rather than
+a fault. It reads as a broken tool, so the model retries or hunts for a workaround.
+
+An operator who set the switch had no way to confirm it. The only signal was a line
+in the MCP server's start-up log.
+
+### Added — the feature is now documented where each reader looks
+
+SKILL.md, setup-guide and capabilities now cover read-only mode. Both tools here
+are reads, so nothing is withheld — the gate instead verifies that at start-up
+rather than taking this documentation's word for it. Env vars are the only switch;
+this package has no config file.
+
 ## v1.8.0 (2026-07-18) — read-only mode, working policy defaults, declared environments
 
 Family release driven by [VMware-AIops#31](https://github.com/zw008/VMware-AIops/issues/31),
