@@ -19,7 +19,7 @@ installer:
   package: vmware-debug
 allowed-tools:
   - Bash
-metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"primaryEnv":"NONE"}}
+metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["VMWARE_READ_ONLY","VMWARE_DEBUG_READ_ONLY","VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"primaryEnv":"NONE","homepage":"https://github.com/zw008/VMware-Debug","os":["macos","linux"]}}
 ---
 
 # VMware Debug
@@ -107,6 +107,8 @@ a recommended plan.
 | `incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
 | `list_symptom_categories` | [READ] List recognised symptom categories + what to check for each |
 
+**List envelope** (output of `list_symptom_categories`): `{items, returned, limit, total, truncated, hint}` — read the rows from `items`. `truncated` is always `false` here, which is the point: it states that the catalogue is complete instead of leaving you to infer it.
+
 **Event envelope** (input to `incident_timeline`): `{ts, source, severity, entity, text, fields}`.
 See `references/event-envelope.md`. The agent normalises each source's events into this
 shape; debug stays source-agnostic and has no dependency on the other packages.
@@ -131,7 +133,9 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 
 Read-only by construction: no write tools, no network, nothing executed. Remediation
 is always routed to aiops/pilot, where the double-confirm / approval / audit gates live
-(audit DB `~/.vmware/audit.db`). See `references/setup-guide.md`.
+(audit DB `~/.vmware/audit.db`). Policy rules scope by environment; debug has no config
+and no connection to declare one about, so it reports a constant `local` — nothing here
+touches a remote VMware estate. See `references/setup-guide.md`.
 
 ## License
 

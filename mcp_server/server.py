@@ -12,15 +12,72 @@ import sys
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
+from vmware_policy import apply_read_only_gate, set_environment_resolver
 
 from vmware_debug.mcp import tools as t
+
+#: Names withheld by the most recent :func:`build_server` call. The gate runs
+#: inside the factory (this server has no module-level instance), so the result
+#: is recorded here for startup logging and tests.
+WITHHELD_WRITE_TOOLS: list[str] = []
+
+
+# ---------------------------------------------------------------------------
+# Environment declaration
+# ---------------------------------------------------------------------------
+
+#: What this skill reports as the environment of everything it touches.
+#:
+#: Policy rules scope by environment, and the baseline treats a target that
+#: declares none as unknown — today that warns on state-changing operations,
+#: and the next major release refuses them. Every other skill answers this from
+#: its own config, where an operator labels each target ``production`` /
+#: ``staging`` / ``lab``.
+#:
+#: vmware-debug has no such config and no connection to declare one about: its
+#: tools are pure correlation over event dicts the calling agent has already
+#: fetched with other skills' read tools. There is no network access, no
+#: writes, and in fact no @vmware_tool-decorated operation above read risk — so
+#: nothing here is gated under either setting today. Requiring a declaration it
+#: has no place to make would leave it permanently blocked for no gain.
+#:
+#: The constant is registered anyway so that the answer is explicit and stays
+#: true if this skill ever grows a tool that writes to a local store.
+LOCAL_ENVIRONMENT = "local"
+
+#: Client-facing behaviour hints, matching the rest of the family. Both tools
+#: are [READ]: pure correlation over dicts the caller already fetched, with the
+#: same answer every time. These drive MCP client UI (e.g. whether a call needs
+#: a confirmation prompt); the read-only gate classifies independently, from
+#: the [READ]/[WRITE] docstring marker.
+#:
+#: ``openWorldHint`` is False rather than the family's usual True: this skill
+#: has no network access at all, which is exactly the closed world the hint
+#: describes. Copying True would contradict both docstrings below.
+_READ = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
+
+def _environment_for(target: Optional[str]) -> str:
+    """Report the environment for policy scoping. Always ``local`` — see above."""
+    return LOCAL_ENVIRONMENT
+
+
+# Registered at import time rather than inside build_server(): the resolver is
+# process-global state in vmware_policy, not per-server-instance, and every
+# build_server() call would otherwise re-register the same constant.
+set_environment_resolver(_environment_for)
 
 
 def build_server() -> FastMCP:
     """Construct and configure the MCP server."""
     server = FastMCP("vmware-debug")
 
-    @server.tool(name="incident_timeline")
+    @server.tool(name="incident_timeline", annotations=_READ)
     def _incident_timeline_impl(
         events: list[dict],
         bin_seconds: Optional[float] = None,
@@ -51,14 +108,29 @@ def build_server() -> FastMCP:
         A malformed event raises ValueError naming its index."""
         return t.incident_timeline(events, bin_seconds, z_threshold, top_n)
 
-    @server.tool(name="list_symptom_categories")
-    def _list_symptom_categories_impl() -> list[dict]:
+    @server.tool(name="list_symptom_categories", annotations=_READ)
+    def _list_symptom_categories_impl() -> dict:
         """[READ] List the symptom categories vmware-debug recognises and, for
         each, example keywords and the suggested next check (which skill/tool to
         run). Takes no parameters. Use this when you don't yet know what to look
         at — it turns "something's wrong" into concrete investigation steps.
-        Read-only; no network access."""
+        Returns the family list envelope {items, returned, limit, total,
+        truncated, hint}; each item is {category, example_keywords,
+        suggested_check}. The routing table is a fixed constant, so truncated is
+        always false and total is exact — this is every category there is, not a
+        page of them. Read-only; no network access."""
         return t.list_symptom_categories()
+
+    # Applied after every tool above has registered and before the server is
+    # handed out. The [READ]/[WRITE] docstring marker is what the gate reads
+    # first, so the readOnlyHint annotations above inform client UI without
+    # changing this classification; both tools are [READ] and nothing is
+    # withheld. Wired anyway so that stays provable, and so the gate is already
+    # in place the day this skill grows a write tool.
+    global WITHHELD_WRITE_TOOLS  # noqa: PLW0603 — factory has no module instance
+    WITHHELD_WRITE_TOOLS = apply_read_only_gate(
+        server, "vmware-debug", config_flag=None
+    )
 
     return server
 

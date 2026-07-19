@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from vmware_policy import paginated
+
 from vmware_debug.envelope import normalize_events
 from vmware_debug.ops.timeline import category_routing
 from vmware_debug.ops.timeline import incident_timeline as _incident_timeline
@@ -28,6 +30,12 @@ def incident_timeline(
     )
 
 
-def list_symptom_categories() -> list[dict]:
-    """List the symptom categories debug recognises and what to check for each."""
-    return category_routing()
+def list_symptom_categories() -> dict:
+    """List the symptom categories debug recognises and what to check for each.
+
+    Returns the family list envelope; `items` holds the categories. The routing
+    table is a fixed, in-process constant, so `total` is the real count and
+    `truncated` is always False — there is no page two to go looking for.
+    """
+    categories = category_routing()
+    return paginated(categories, total=len(categories))

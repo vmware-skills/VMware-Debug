@@ -39,5 +39,12 @@ routes fixes to (vmware-aiops, vmware-pilot).
    to vmware-aiops / vmware-pilot, where confirmation/approval/audit live.
 5. **No cross-skill coupling** — events arrive as plain dicts (the event
    envelope); debug imports no other skill package at runtime.
-6. **Static analysis** — `uvx bandit -r vmware_debug/ mcp_server/` (release bar:
+6. **Environment scoping** — policy rules scope by environment, and skills that
+   connect to a VMware estate declare `environment:` (`production` / `staging` /
+   `lab`) per target in their own `config.yaml`; a target that declares none is
+   treated as unknown, and state-changing operations against it currently log a
+   warning — the next major release will refuse them. debug has no config and
+   no connection to declare one about, so it reports a constant `local`. Since
+   it ships no operation above read risk, nothing here is gated either way.
+7. **Static analysis** — `uvx bandit -r vmware_debug/ mcp_server/` (release bar:
    0 Medium+).

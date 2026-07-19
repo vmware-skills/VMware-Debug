@@ -5,7 +5,13 @@ Read-only, offline incident correlation. No network, no credentials, no writes.
 | Tool | What it returns | Typical response tokens |
 |---|---|---|
 | `incident_timeline` | `{event_count, window, spikes:[{start,end,count,zscore}], hypotheses:[{category, score, summary, evidence_count, first_seen, last_seen, sample_text, suggested_check}], next_checks:[...]}` | 300–2000 (scales with hypotheses) |
-| `list_symptom_categories` | `[{category, example_keywords, suggested_check}]` | ~400 |
+| `list_symptom_categories` | `{items: [{category, example_keywords, suggested_check}], returned, limit, total, truncated, hint}` | ~400 |
+
+`list_symptom_categories` returns the family list envelope — read the rows from
+`items`. It has no `limit` parameter, which is exactly why the envelope matters:
+`truncated: false` states that this is every category there is, rather than
+leaving a model to guess whether it is holding page one. The catalogue is a
+fixed in-process constant, so `total` is a real count and `limit` is `null`.
 
 ## Correlation engine
 

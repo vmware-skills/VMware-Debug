@@ -40,7 +40,7 @@ def categories() -> None:
     table.add_column("category", style="cyan")
     table.add_column("example keywords")
     table.add_column("suggested check", style="green")
-    for c in list_symptom_categories():
+    for c in list_symptom_categories()["items"]:
         table.add_row(c["category"], ", ".join(c["example_keywords"]), c["suggested_check"])
     console.print(table)
 
