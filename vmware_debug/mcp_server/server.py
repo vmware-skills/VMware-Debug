@@ -137,11 +137,19 @@ def build_server() -> FastMCP:
 
 def main() -> None:
     """Entry point for `vmware-debug-mcp` (stdio transport)."""
-    if sys.version_info < (3, 11):
+    # Floor is 3.10, matching `requires-python` and the other eleven skills.
+    # This guard used to demand 3.11 on the grounds that FastMCP schema
+    # reflection was unreliable on 3.10 (踩坑 #33). That was the symptom; the
+    # cause was PEP 604 `X | None` in the server's own signatures, fixed by
+    # converting them to `Optional[X]`. 3.10 was then verified end to end on
+    # 2026-07-19 — every tool's schema built, zero failures, pydantic 2.13.4 —
+    # so the stricter floor was rejecting a version that works.
+    if sys.version_info < (3, 10):
         sys.exit(
-            "vmware-debug-mcp requires Python >= 3.11 (FastMCP schema reflection "
-            "is unreliable on 3.10). Reinstall under 3.11+: "
-            "uv tool install --python 3.11 vmware-debug"
+            "vmware-debug-mcp requires Python >= 3.10 "
+            f"(got {sys.version_info.major}.{sys.version_info.minor}). "
+            "Reinstall on a newer interpreter: "
+            "uv tool install --python 3.12 --force vmware-debug"
         )
     build_server().run()
 

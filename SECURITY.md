@@ -38,7 +38,7 @@ anything based on event content.
 ## Static Analysis
 
 ```bash
-uvx bandit -r vmware_debug/ mcp_server/
+uvx bandit -r vmware_debug/
 ```
 
 Release bar: 0 Medium-or-higher severity findings.

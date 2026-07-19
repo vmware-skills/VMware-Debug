@@ -24,7 +24,7 @@ import asyncio
 import pytest
 from vmware_policy import apply_read_only_gate
 
-from mcp_server import server as server_module
+from vmware_debug.mcp_server import server as server_module
 
 EXPECTED_TOOLS = {"incident_timeline", "list_symptom_categories"}
 
@@ -144,7 +144,7 @@ def test_build_server_actually_applies_the_gate(monkeypatch):
     trivially true of a gate that never runs — and a grep for the symbol found
     the unused import. Only observing the factory invoke it closes that gap.
     """
-    import mcp_server.server as server
+    import vmware_debug.mcp_server.server as server
 
     calls = []
     real = server.apply_read_only_gate

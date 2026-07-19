@@ -76,7 +76,7 @@ def triage(
 @app.command()
 def mcp() -> None:
     """Start the stdio MCP server (no network access; proxy-safe)."""
-    from mcp_server.server import main as _main
+    from vmware_debug.mcp_server.server import main as _main
 
     _main()
 

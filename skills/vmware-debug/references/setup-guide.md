@@ -86,5 +86,5 @@ came from.
    warning — the next major release will refuse them. debug has no config and
    no connection to declare one about, so it reports a constant `local`. Since
    it ships no operation above read risk, nothing here is gated either way.
-7. **Static analysis** — `uvx bandit -r vmware_debug/ mcp_server/` (release bar:
+7. **Static analysis** — `uvx bandit -r vmware_debug/` (release bar:
    0 Medium+).

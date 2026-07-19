@@ -26,7 +26,7 @@ import importlib
 import pytest
 
 import vmware_policy.environment as env_mod
-from mcp_server import server
+from vmware_debug.mcp_server import server
 from vmware_policy.environment import resolve_environment, set_environment_resolver
 
 
@@ -90,7 +90,7 @@ class TestConstantResolverIsRegistered:
         importlib.reload(server)
 
         assert env_mod._resolver is not None, (
-            "mcp_server.server must call set_environment_resolver() at import."
+            "vmware_debug.mcp_server.server must call set_environment_resolver() at import."
         )
         assert env_mod._resolver is server._environment_for
 

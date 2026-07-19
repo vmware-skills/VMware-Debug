@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vmware-debug"
-version = "1.8.1"
+version = "1.8.2"
 description = "VMware diagnostic brain — read-only incident triage, log/event correlation, and root-cause routing across the VMware skill family"
 readme = "README.md"
 license = "MIT"
@@ -26,10 +26,10 @@ dependencies = [
 
 [project.scripts]
 vmware-debug = "vmware_debug.cli:app"
-vmware-debug-mcp = "mcp_server.server:main"
+vmware-debug-mcp = "vmware_debug.mcp_server.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["vmware_debug", "mcp_server"]
+packages = ["vmware_debug"]
 
 [dependency-groups]
 dev = [

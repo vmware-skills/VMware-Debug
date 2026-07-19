@@ -9,7 +9,7 @@ import asyncio
 import json
 from pathlib import Path
 
-from mcp_server.server import build_server
+from vmware_debug.mcp_server.server import build_server
 from vmware_debug.envelope import Event
 from vmware_debug.ops.timeline import category_routing, incident_timeline, known_categories
 

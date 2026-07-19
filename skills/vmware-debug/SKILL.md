@@ -123,7 +123,7 @@ same family variable withholds write tools across every companion skill, so a wh
 audit posture is one setting — and when you route a fix to vmware-aiops or vmware-pilot and
 the tool is missing from *their* `list_tools()`, that is the lockdown, not a fault. Do not
 retry or hunt for another route: name the blocked operation and say an operator must clear
-the switch and restart that server.
+the switch and restart that server. Running with local or small models? See [`references/agent-guardrails.md`](references/agent-guardrails.md).
 
 ## CLI Quick Reference
 
