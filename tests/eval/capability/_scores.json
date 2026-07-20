@@ -1,0 +1,207 @@
+{
+  "_comment": "Capability eval scores. Regenerate with: pytest -m capability. These are tracked trends, not pass/fail gates \u2014 see _scoring.py.",
+  "scores": {
+    "entity_reachability_full": {
+      "detail": {
+        "broken_chains": [],
+        "entry_points": [
+          "incident_timeline",
+          "list_symptom_categories"
+        ],
+        "reachable_on_surface": 0,
+        "reachable_only_via_description": 0,
+        "required_entity_params": 0,
+        "required_params_classified": "0/1",
+        "tool_count": 2
+      },
+      "maximum": 1,
+      "pct": 100.0,
+      "unit": "required entity params",
+      "value": 1
+    },
+    "entity_reachability_read_only": {
+      "detail": {
+        "broken_chains": [],
+        "entry_points": [
+          "incident_timeline",
+          "list_symptom_categories"
+        ],
+        "reachable_on_surface": 0,
+        "reachable_only_via_description": 0,
+        "required_entity_params": 0,
+        "required_params_classified": "0/1",
+        "tool_count": 2
+      },
+      "maximum": 1,
+      "pct": 100.0,
+      "unit": "required entity params",
+      "value": 1
+    },
+    "entry_point_availability": {
+      "detail": {
+        "full_entry_points": 2,
+        "read_only_entry_points": 2
+      },
+      "maximum": 2,
+      "pct": 100.0,
+      "unit": "entry points",
+      "value": 2
+    },
+    "error_actionability": {
+      "detail": {
+        "dead_end_count": 6,
+        "dead_end_errors": [
+          {
+            "message": "unparseable timestamp: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "envelope.py:118"
+          },
+          {
+            "message": "unparseable timestamp: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "envelope.py:95"
+          },
+          {
+            "message": "event has no timestamp field: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "envelope.py:138"
+          },
+          {
+            "message": "implausible epoch timestamp: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "envelope.py:102"
+          },
+          {
+            "message": "empty timestamp",
+            "missing": [
+              "names_artifact",
+              "names_input",
+              "states_remedy"
+            ],
+            "where": "envelope.py:107"
+          },
+          {
+            "message": "event[{}] could not be normalised: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "envelope.py:172"
+          }
+        ],
+        "per_dimension_pct": {
+          "names_artifact": 0.0,
+          "names_input": 85.7,
+          "states_remedy": 14.3
+        },
+        "raise_sites": 7
+      },
+      "maximum": 21,
+      "pct": 33.3,
+      "unit": "points",
+      "value": 7
+    },
+    "manifest_context_headroom": {
+      "detail": {
+        "heaviest_tools": {
+          "incident_timeline": 329,
+          "list_symptom_categories": 117
+        },
+        "manifest_tokens": 446,
+        "mean_tokens_per_tool": 223.0,
+        "reference_context": 16384,
+        "tool_count": 2
+      },
+      "maximum": 16384,
+      "pct": 97.3,
+      "unit": "tokens",
+      "value": 15938
+    },
+    "parameter_documentation_coverage": {
+      "detail": {
+        "undocumented_by_tool": {}
+      },
+      "maximum": 4,
+      "pct": 100.0,
+      "unit": "parameters",
+      "value": 4
+    },
+    "per_tool_token_discipline": {
+      "detail": {
+        "ceiling": 350,
+        "over_ceiling": {}
+      },
+      "maximum": 2,
+      "pct": 100.0,
+      "unit": "tools",
+      "value": 2
+    },
+    "read_only_manifest_saving": {
+      "detail": {
+        "full_manifest_tokens": 446,
+        "full_tool_count": 2,
+        "gated_manifest_tokens": 446,
+        "gated_tool_count": 2,
+        "withheld_tools": []
+      },
+      "maximum": 446,
+      "pct": 0.0,
+      "unit": "tokens",
+      "value": 0
+    },
+    "read_write_marker_coverage": {
+      "detail": {
+        "unmarked": []
+      },
+      "maximum": 2,
+      "pct": 100.0,
+      "unit": "points",
+      "value": 2
+    },
+    "teaching_error_rate": {
+      "detail": {},
+      "maximum": 7,
+      "pct": 0.0,
+      "unit": "messages",
+      "value": 0
+    },
+    "tool_description_quality": {
+      "detail": {
+        "per_dimension_pct": {
+          "args": 100.0,
+          "gotcha": 100.0,
+          "marker": 100.0,
+          "next_hop": 0.0,
+          "what": 100.0,
+          "when": 50.0
+        },
+        "tools_graded": 2,
+        "weakest_tools": {
+          "incident_timeline": [
+            "next_hop",
+            "when"
+          ],
+          "list_symptom_categories": [
+            "next_hop"
+          ]
+        }
+      },
+      "maximum": 12,
+      "pct": 75.0,
+      "unit": "points",
+      "value": 9
+    }
+  }
+}
