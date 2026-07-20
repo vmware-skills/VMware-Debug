@@ -57,6 +57,37 @@ _SEVERITY_ALIASES: dict[str, str] = {
 }
 
 
+#: Characters of a rejected value's repr that fit in a rejection message.
+#:
+#: Small on purpose. These messages nest — ``normalize_events`` wraps
+#: ``normalize_event``'s text to add the entry index — so two remedies and the
+#: evidence share one 500-char budget at the MCP wrapper. Unbounded, a single
+#: vCenter event repr (~430 characters) pushed both remedies past the cap and
+#: the agent received a truncated dict dump with no next step.
+#:
+#: Short evidence costs little here: the caller passed these events in, so it
+#: can read ``events[i]`` itself. The index is the load-bearing part; the repr
+#: only confirms which entry is meant. Keeping it short also keeps whatever the
+#: source skill put in the event — a username, a task URL — from being echoed
+#: back wholesale through the one path that reaches the agent verbatim.
+#:
+#: 60 is the largest value at which the worst composed message — the batch
+#: wrapper around the no-timestamp rejection, the longest pair in this module —
+#: still lands under the 500-char cap complete, marker included. Raising it
+#: would put the cut back inside the evidence, where it is invisible.
+_MAX_VALUE_REPR = 60
+
+
+def _short_repr(value: object, limit: int = _MAX_VALUE_REPR) -> str:
+    """Repr ``value``, truncated to ``limit`` with a visible marker.
+
+    The marker matters: ``sanitize()`` truncates silently, so a cut message
+    reads as a complete one.
+    """
+    text = repr(value)
+    return text if len(text) <= limit else text[:limit] + "…(truncated)"
+
+
 @dataclass(frozen=True)
 class Event:
     """One normalised observation on the incident timeline."""
@@ -131,12 +162,26 @@ def parse_timestamp(raw: object) -> float:
         except ValueError:
             pass
         # Then a numeric epoch string, subject to the same plausibility floor.
-        return parse_timestamp(float(text))
+        # float() must not be called bare: its own ValueError ("could not
+        # convert string to float: 'not-a-time'") is on the MCP allowlist by
+        # type, so it would reach the agent as-is — bypassing all four authored
+        # messages here and arriving with a diagnosis but no remedy.
+        try:
+            numeric = float(text)
+        except ValueError as exc:
+            raise ValueError(
+                "unparseable timestamp: 'ts' is a string that is neither "
+                "ISO-8601 nor numeric. Use ISO-8601, epoch seconds, or epoch "
+                "millis — e.g. '2026-07-20T14:03:00Z' or 1784908980. Copy 'ts' "
+                "from the source event as the producing skill returned it. "
+                f"Got: {_short_repr(text)}"
+            ) from exc
+        return parse_timestamp(numeric)
     raise ValueError(
-        f"unparseable timestamp: {raw!r} (type {type(raw).__name__}). 'ts' must be "
+        f"unparseable timestamp of type {type(raw).__name__}. 'ts' must be "
         "an ISO-8601 string, epoch seconds, or epoch millis — e.g. "
         "'2026-07-20T14:03:00Z' or 1784908980. Convert that value before passing "
-        "the event to incident_timeline."
+        f"the event to incident_timeline. Got: {_short_repr(raw)}"
     )
 
 
@@ -157,12 +202,17 @@ def normalize_event(raw: dict, source: str | None = None) -> Event:
     """
     ts_raw = _first(raw, "ts", "timestamp", "time", "createTime", "startTimeUTC")
     if ts_raw is None:
+        # Remedy before evidence: `raw` is a whole caller-supplied event, the
+        # one part of this message whose length this code does not control.
+        # No "re-run incident_timeline" here — normalize_events always wraps
+        # this text and says it, and saying it twice is what pushed the
+        # composed message past the cap.
         raise ValueError(
-            f"event has no timestamp field: {raw!r} — expected one of "
+            "event has no timestamp field — expected one of "
             "ts/timestamp/time/createTime/startTimeUTC. Add 'ts' (ISO-8601, epoch "
             "seconds, or epoch millis) from the event as vmware-monitor / "
-            "vmware-aria / vmware-log-insight returned it, then re-run "
-            "incident_timeline."
+            "vmware-aria / vmware-log-insight returned it. "
+            f"Offending event: {_short_repr(raw)}"
         )
 
     src = source or _first(raw, "source", "skill") or "unknown"
@@ -197,10 +247,14 @@ def normalize_events(raw_events: list[dict], source: str | None = None) -> list[
         try:
             out.append(normalize_event(raw, source))
         except (ValueError, AttributeError, TypeError) as exc:
+            # This message nests the one above, so both remedies compete for the
+            # same 500-char cap. Keep this layer to what it uniquely adds — the
+            # index and the stops-at-first-bad-event caveat — and let the inner
+            # message (which already ends in bounded evidence) trail, so a cut
+            # takes evidence rather than instructions.
             raise ValueError(
-                f"event[{i}] could not be normalised: {exc} "
-                f"Correct or remove entry {i} of the events list and re-run "
-                "incident_timeline — normalisation stops at the first bad event, "
-                "so later entries are still unchecked."
+                f"event[{i}] could not be normalised — fix or remove that entry "
+                "and call incident_timeline again. Normalisation stops at the "
+                f"first bad event, so later entries are unchecked. Cause: {exc}"
             ) from exc
     return out

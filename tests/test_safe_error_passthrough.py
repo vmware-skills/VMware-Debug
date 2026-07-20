@@ -22,6 +22,9 @@ this skill had authored it.
 
 from __future__ import annotations
 
+import pytest
+
+from vmware_debug.envelope import normalize_events
 from vmware_debug.mcp_server.server import _safe_error
 
 TEACHING = (
@@ -82,3 +85,109 @@ def test_message_is_truncated():
     out = _safe_error(ValueError("x" * 900), "incident_timeline")
     assert len(out) <= 500
     assert len(out) > 300
+
+
+# ---------------------------------------------------------------------------
+# The cap is only a guard if the messages fit inside it
+# ---------------------------------------------------------------------------
+#
+# Passing the allowlist is not the same as arriving intact. Every rejection here
+# nests — normalize_events wraps normalize_event's text to add the entry index —
+# so two remedies and the evidence share one 500-char budget. The rejections
+# used to interpolate the whole caller-supplied event *before* the remedy, so a
+# real vCenter event (~430 characters on its own) pushed every instruction past
+# the cut. The agent received a truncated dict dump and no next step, through
+# the one path designed to teach it something.
+#
+# This is asserted mechanically rather than described in a comment, because the
+# budget is the kind of fact that drifts the moment someone adds a clause.
+
+_FAT_EVENT = {
+    "eventTypeId": "vim.event.VmPoweredOffEvent",
+    "chainId": 90210,
+    "userName": "CORP\\svc-vcops",
+    "datacenter": "DC-Frankfurt-01",
+    "computeResource": "Prod-Cluster-A",
+    "host": "esx-047.corp.example.com",
+    "vm": "web-prod-014",
+    "fullFormattedMessage": "web-prod-014 on esx-047 in DC-Frankfurt-01 is powered off",
+    "severity": "info",
+    "key": 4471182,
+}
+
+#: Every way an event can be rejected: name -> (the 'ts' value that triggers
+#: it, a fragment of the *inner* remedy that has to survive the cap).
+#:
+#: The fragment must be inner-specific. Asserting on "incident_timeline" alone
+#: proves nothing: the batch wrapper says it in the first sentence, so that
+#: assertion passes even when the entire inner remedy has been truncated away —
+#: which is the exact failure these tests exist to catch. ``...`` means "omit
+#: 'ts' entirely".
+_REJECTIONS = {
+    "missing": (..., "Add 'ts'"),
+    "non_numeric_string": ("not-a-time", "Copy 'ts' from the source event"),
+    "empty_string": ("   ", "Copy 'ts' from the source event"),
+    "bool": (True, "a bool is not a time"),
+    "bare_year": ("2020", "Set 'ts' to full epoch"),
+    "wrong_type": ({"nested": ["a"] * 400}, "Convert that value"),
+    "pathological_string": ("n" * 3000, "Copy 'ts' from the source event"),
+}
+
+
+def _reject(ts) -> str:
+    """Return what the agent would see for one rejection, cap applied."""
+    event = dict(_FAT_EVENT) if ts is ... else {**_FAT_EVENT, "ts": ts}
+    with pytest.raises(ValueError) as exc:
+        normalize_events([event])
+    return _safe_error(exc.value, "incident_timeline")
+
+
+def test_every_rejection_survives_the_cap_with_its_remedy():
+    for name, (ts, inner_remedy) in _REJECTIONS.items():
+        out = _reject(ts)
+        assert len(out) <= 500, name
+        # The remedy is what the agent acts on; it must never be the part cut.
+        assert inner_remedy in out, f"{name}: inner remedy lost to truncation"
+        assert "event[0]" in out, f"{name}: caller cannot tell which entry"
+
+
+def test_no_rejection_is_silently_truncated():
+    """A cut that announces itself, or no cut at all — never an invisible one.
+
+    ``sanitize()`` truncates without an ellipsis, so a clipped message reads as
+    a complete one. Bounding the evidence ourselves is what keeps the composed
+    message under the cap, which is what keeps the cut visible.
+    """
+    for name, (ts, _) in _REJECTIONS.items():
+        out = _reject(ts)
+        assert len(out) < 500, f"{name}: sat exactly on the cap — assume it was cut"
+
+
+def test_a_credential_bearing_event_is_not_echoed_whole():
+    """The events came from other skills' read tools; they can carry secrets.
+
+    This is the allowlisted path, so whatever the message interpolates reaches
+    the agent verbatim. Bounding the repr is what keeps that to a fragment.
+    """
+    event = {**_FAT_EVENT, "task": "https://admin:hunter2@vc.internal/api/task-42"}
+    del event["eventTypeId"]  # keep 'task' out of the surviving prefix
+    with pytest.raises(ValueError) as exc:
+        normalize_events([event])
+    out = _safe_error(exc.value, "incident_timeline")
+    assert "hunter2" not in out
+
+
+def test_a_non_numeric_timestamp_gets_an_authored_message():
+    """Regression: a bare ``float()`` let its own ValueError out.
+
+    ``parse_timestamp`` fell through to ``float(text)`` for anything that was
+    not ISO-8601. For 'not-a-time' that raised Python's own ValueError —
+    ``could not convert string to float: 'not-a-time'`` — which is on the
+    allowlist by type, so it reached the agent having bypassed all four
+    authored messages in this module: a diagnosis with no remedy, in a wrapper
+    whose entire purpose is to attach one.
+    """
+    out = _reject("not-a-time")
+    assert "could not convert string to float" not in out
+    assert "ISO-8601" in out and "epoch" in out, "must state the accepted formats"
+    assert "'not-a-time'" in out, "must still name the value it rejected"
