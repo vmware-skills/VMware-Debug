@@ -133,26 +133,27 @@ def build_server() -> FastMCP:
     ) -> dict:
         """[READ] Correlate already-fetched VMware events into one incident view.
 
-        WHEN: after you've pulled events for an incident from the data-source
-        skills (vmware-monitor event_list/alarm_list, vmware-aria alerts/anomaly,
-        vmware-log-insight log_search/log_aggregate, vmware-nsx) — feed them all
-        here to find what correlates and where to look next. This tool does NOT
-        fetch anything itself; it has no vCenter/network access.
+        WHEN: use this after you've pulled events for an incident from the
+        data-source skills (vmware-monitor get_events/get_alarms, vmware-aria
+        list_alerts/list_anomalies, vmware-log-insight log_search/log_aggregate,
+        vmware-nsx) — feed them here to find what correlates and where to look
+        next. Not sure which events to pull? Run list_symptom_categories
+        first. This tool does NOT fetch anything itself.
 
-        INPUT: events = list of event envelopes, each {ts, source, severity,
-        entity, text, fields} (ts may be ISO-8601, epoch seconds, or millis;
-        severity is normalised). Optional: bin_seconds (time-bin width; auto if
+        INPUT: events = event envelopes, each {ts, source, severity, entity,
+        text, fields} (ts may be ISO-8601, epoch seconds or millis; severity
+        is normalised). Optional: bin_seconds (time-bin width; auto if
         omitted), z_threshold (spike sensitivity, default 2.0), top_n (max
         hypotheses, default 5).
 
-        RETURNS: {event_count, window, spikes (anomalous time bins), hypotheses
-        (ranked root-cause candidates, each with a suggested_check), next_checks
-        (concrete ideas for what to investigate next, including which skill/tool
-        to run)}.
+        RETURNS: {event_count, window, spikes (anomalous bins), hypotheses
+        (ranked root-cause candidates, each with a suggested_check),
+        next_checks (what to investigate next, including which skill/tool)}.
 
-        GOTCHAS: read-only and stateless — nothing is executed. Remediation is
-        routed to vmware-aiops (single fix) or vmware-pilot (multi-step, gated).
-        A malformed event returns {error, hint} naming the offending index."""
+        GOTCHAS: read-only, stateless, no network — nothing is executed.
+        Remediation routes to vmware-aiops (single fix) or vmware-pilot
+        (multi-step). A malformed event returns {error, hint} naming the
+        offending index."""
         try:
             return t.incident_timeline(events, bin_seconds, z_threshold, top_n)
         except Exception as exc:
@@ -167,15 +168,16 @@ def build_server() -> FastMCP:
 
     @server.tool(name="list_symptom_categories", annotations=_READ)
     def _list_symptom_categories_impl() -> dict:
-        """[READ] List the symptom categories vmware-debug recognises and, for
-        each, example keywords and the suggested next check (which skill/tool to
-        run). Takes no parameters. Use this when you don't yet know what to look
+        """[READ] List the symptom categories vmware-debug recognises, each with
+        example keywords and a suggested next check (which skill/tool to run).
+        Takes no parameters. Use this when you don't yet know what to look
         at — it turns "something's wrong" into concrete investigation steps.
-        Returns the family list envelope {items, returned, limit, total,
-        truncated, hint}; each item is {category, example_keywords,
-        suggested_check}. The routing table is a fixed constant, so truncated is
-        always false and total is exact — this is every category there is, not a
-        page of them. Read-only; no network access."""
+        Then gather the events those checks name and pass them to
+        incident_timeline. Returns the family list envelope {items, returned,
+        limit, total, truncated, hint}; each item is {category,
+        example_keywords, suggested_check}. The routing table is a fixed
+        constant, so truncated is always false and total exact —
+        this is every category, not a page. Read-only; no network access."""
         return t.list_symptom_categories()
 
     # Applied after every tool above has registered and before the server is

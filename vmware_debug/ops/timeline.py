@@ -254,7 +254,7 @@ def incident_timeline(
             "hypotheses": [],
             "next_checks": [
                 "No events supplied. Pull a starting set: vmware-monitor "
-                "event_list / alarm_list for the affected entity, then "
+                "get_events / get_alarms for the affected entity, then "
                 "vmware-log-insight log_search around the reported time."
             ],
         }
