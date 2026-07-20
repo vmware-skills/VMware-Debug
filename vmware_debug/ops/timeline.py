@@ -116,7 +116,11 @@ def bin_events(events: list[Event], bin_seconds: float) -> list[Bucket]:
     if not events:
         return []
     if bin_seconds <= 0:
-        raise ValueError("bin_seconds must be positive")
+        raise ValueError(
+            f"bin_seconds must be positive (got {bin_seconds!r}). Pass a width in "
+            "seconds — e.g. bin_seconds=60 for one-minute bins — or omit it so "
+            "incident_timeline derives one from the event window."
+        )
     ordered = build_timeline(events)
     start = ordered[0].ts
     end = ordered[-1].ts

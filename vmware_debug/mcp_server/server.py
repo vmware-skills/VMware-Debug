@@ -8,13 +8,16 @@ reflects these at registration and ``X | None`` crashes on Python 3.10 + older
 mcp/pydantic (CLAUDE.md 踩坑 #33).
 """
 
+import logging
 import sys
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
-from vmware_policy import apply_read_only_gate, set_environment_resolver
+from vmware_policy import apply_read_only_gate, sanitize, set_environment_resolver
 
 from vmware_debug.mcp import tools as t
+
+logger = logging.getLogger("mcp_server")
 
 #: Names withheld by the most recent :func:`build_server` call. The gate runs
 #: inside the factory (this server has no module-level instance), so the result
@@ -62,6 +65,50 @@ _READ = {
 }
 
 
+#: Recovery step attached to every incident_timeline failure. Hoisted to a
+#: constant so the wording stays in one place rather than drifting per call site.
+_TIMELINE_ERROR_HINT = (
+    "incident_timeline correlates events you have already fetched with other "
+    "skills' read tools — it fetches nothing itself, so a rejected event has to be "
+    "corrected in the 'events' argument you pass. 'error' names the offending "
+    "entry and the expected form; fix it and call incident_timeline again. Run "
+    "list_symptom_categories if you need to know which skill to pull events from."
+)
+
+#: Exception types this skill raises on purpose, whose text it authors and
+#: therefore trusts to reach the agent verbatim. ``ValueError`` is the whole
+#: list because it is the whole vocabulary: every rejection here comes from
+#: ``envelope.py`` or ``ops/timeline.py`` refusing a malformed event, and each
+#: one names the offending entry and the expected form.
+#:
+#: ``RuntimeError`` is deliberately absent. It is Python's generic catch-all, so
+#: allowing it through would pass any library's raw text as if this skill had
+#: written it.
+_TEACHING_ERRORS = (ValueError,)
+
+
+def _safe_error(exc: Exception, tool: str) -> str:
+    """Return an agent-safe error string; log full detail server-side only.
+
+    This skill fetches nothing, so its own messages are safe by construction —
+    but the events it is handed came from other skills' read tools, and an
+    unplanned exception raised while walking them can quote whatever they
+    contain. A vCenter task URL with credentials in it is a value this tool can
+    be handed; it is not a value it should hand back. Full traceback goes to the
+    server log, and the agent sees only a control-char-stripped, length-capped
+    message.
+
+    500 rather than the family's usual 300: these messages interpolate a repr of
+    the rejected event before reaching the remedy, and a modest four-field event
+    already puts the sentence at ~425 characters. Capping at 300 would reliably
+    truncate the one part the model needs.
+    """
+    logger.error("Tool %s failed", tool, exc_info=True)
+    if isinstance(exc, _TEACHING_ERRORS):
+        return sanitize(str(exc), 500)
+    return f"{type(exc).__name__}: operation failed."
+
+
 def _environment_for(target: Optional[str]) -> str:
     """Report the environment for policy scoping. Always ``local`` — see above."""
     return LOCAL_ENVIRONMENT
@@ -105,8 +152,18 @@ def build_server() -> FastMCP:
 
         GOTCHAS: read-only and stateless — nothing is executed. Remediation is
         routed to vmware-aiops (single fix) or vmware-pilot (multi-step, gated).
-        A malformed event raises ValueError naming its index."""
-        return t.incident_timeline(events, bin_seconds, z_threshold, top_n)
+        A malformed event returns {error, hint} naming the offending index."""
+        try:
+            return t.incident_timeline(events, bin_seconds, z_threshold, top_n)
+        except Exception as exc:
+            # Returned rather than raised, matching the rest of the family: the
+            # caller gets a payload it can act on instead of a protocol fault,
+            # and `hint` carries the recovery step the bare exception lacks.
+            # No `items` key — a failed call must never read as an empty page.
+            return {
+                "error": _safe_error(exc, "incident_timeline"),
+                "hint": _TIMELINE_ERROR_HINT,
+            }
 
     @server.tool(name="list_symptom_categories", annotations=_READ)
     def _list_symptom_categories_impl() -> dict:

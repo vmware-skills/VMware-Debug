@@ -92,19 +92,36 @@ def parse_timestamp(raw: object) -> float:
     bool is excluded explicitly (it is an int subclass).
     """
     if isinstance(raw, bool):
-        raise ValueError(f"unparseable timestamp: {raw!r}")
+        raise ValueError(
+            f"unparseable timestamp: {raw!r} — a bool is not a time. Set the event's "
+            "'ts' field to an ISO-8601 string, epoch seconds, or epoch millis "
+            "(e.g. '2026-07-20T14:03:00Z' or 1784908980), then re-run "
+            "incident_timeline."
+        )
     if isinstance(raw, (int, float)):
         value = float(raw)
         # Values past ~year 2286 in seconds are really milliseconds.
         if value > 1e11:
             value /= 1000.0
         if value < _MIN_PLAUSIBLE_EPOCH:
-            raise ValueError(f"implausible epoch timestamp: {raw!r}")
+            raise ValueError(
+                f"implausible epoch timestamp: {raw!r} — earlier than 1973, which "
+                "usually means a bare year (2020) or a truncated value was passed "
+                "instead of a real epoch. Set 'ts' to full epoch seconds/millis or "
+                "an ISO-8601 string (e.g. '2026-07-20T14:03:00Z'), then re-run "
+                "incident_timeline."
+            )
         return value
     if isinstance(raw, str):
         text = raw.strip()
         if not text:
-            raise ValueError("empty timestamp")
+            raise ValueError(
+                "empty timestamp: the event's 'ts' field is blank. It must be an "
+                "ISO-8601 string, epoch seconds, or epoch millis (e.g. "
+                "'2026-07-20T14:03:00Z'). Copy 'ts' from the source event as the "
+                "producing skill returned it — vmware-monitor, vmware-aria and "
+                "vmware-log-insight all carry one — then re-run incident_timeline."
+            )
         # ISO-8601 first (so "2020-..." is a date, not epoch 2020).
         try:
             dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
@@ -115,7 +132,12 @@ def parse_timestamp(raw: object) -> float:
             pass
         # Then a numeric epoch string, subject to the same plausibility floor.
         return parse_timestamp(float(text))
-    raise ValueError(f"unparseable timestamp: {raw!r}")
+    raise ValueError(
+        f"unparseable timestamp: {raw!r} (type {type(raw).__name__}). 'ts' must be "
+        "an ISO-8601 string, epoch seconds, or epoch millis — e.g. "
+        "'2026-07-20T14:03:00Z' or 1784908980. Convert that value before passing "
+        "the event to incident_timeline."
+    )
 
 
 def _first(d: dict, *keys: str) -> object:
@@ -135,7 +157,13 @@ def normalize_event(raw: dict, source: str | None = None) -> Event:
     """
     ts_raw = _first(raw, "ts", "timestamp", "time", "createTime", "startTimeUTC")
     if ts_raw is None:
-        raise ValueError(f"event has no timestamp field: {raw!r}")
+        raise ValueError(
+            f"event has no timestamp field: {raw!r} — expected one of "
+            "ts/timestamp/time/createTime/startTimeUTC. Add 'ts' (ISO-8601, epoch "
+            "seconds, or epoch millis) from the event as vmware-monitor / "
+            "vmware-aria / vmware-log-insight returned it, then re-run "
+            "incident_timeline."
+        )
 
     src = source or _first(raw, "source", "skill") or "unknown"
     sev = normalize_severity(_first(raw, "severity", "criticality", "level", "status"))
@@ -169,5 +197,10 @@ def normalize_events(raw_events: list[dict], source: str | None = None) -> list[
         try:
             out.append(normalize_event(raw, source))
         except (ValueError, AttributeError, TypeError) as exc:
-            raise ValueError(f"event[{i}] could not be normalised: {exc}") from exc
+            raise ValueError(
+                f"event[{i}] could not be normalised: {exc} "
+                f"Correct or remove entry {i} of the events list and re-run "
+                "incident_timeline — normalisation stops at the first bad event, "
+                "so later entries are still unchecked."
+            ) from exc
     return out

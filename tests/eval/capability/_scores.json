@@ -49,85 +49,36 @@
     },
     "error_actionability": {
       "detail": {
-        "dead_end_count": 6,
-        "dead_end_errors": [
-          {
-            "message": "unparseable timestamp: {}",
-            "missing": [
-              "names_artifact",
-              "states_remedy"
-            ],
-            "where": "envelope.py:118"
-          },
-          {
-            "message": "unparseable timestamp: {}",
-            "missing": [
-              "names_artifact",
-              "states_remedy"
-            ],
-            "where": "envelope.py:95"
-          },
-          {
-            "message": "event has no timestamp field: {}",
-            "missing": [
-              "names_artifact",
-              "states_remedy"
-            ],
-            "where": "envelope.py:138"
-          },
-          {
-            "message": "implausible epoch timestamp: {}",
-            "missing": [
-              "names_artifact",
-              "states_remedy"
-            ],
-            "where": "envelope.py:102"
-          },
-          {
-            "message": "empty timestamp",
-            "missing": [
-              "names_artifact",
-              "names_input",
-              "states_remedy"
-            ],
-            "where": "envelope.py:107"
-          },
-          {
-            "message": "event[{}] could not be normalised: {}",
-            "missing": [
-              "names_artifact",
-              "states_remedy"
-            ],
-            "where": "envelope.py:172"
-          }
-        ],
+        "composed_hint_sites": [],
+        "dead_end_count": 0,
+        "dead_end_errors": [],
         "per_dimension_pct": {
-          "names_artifact": 0.0,
-          "names_input": 85.7,
-          "states_remedy": 14.3
+          "names_artifact": 100.0,
+          "names_input": 100.0,
+          "states_remedy": 100.0
         },
         "raise_sites": 7
       },
       "maximum": 21,
-      "pct": 33.3,
+      "pct": 100.0,
       "unit": "points",
-      "value": 7
+      "value": 21
     },
     "manifest_context_headroom": {
       "detail": {
         "heaviest_tools": {
-          "incident_timeline": 329,
+          "incident_timeline": 333,
           "list_symptom_categories": 117
         },
-        "manifest_tokens": 446,
-        "mean_tokens_per_tool": 223.0,
+        "manifest_tokens": 450,
+        "mean_tokens_per_tool": 225.0,
         "reference_context": 16384,
         "tool_count": 2
       },
       "maximum": 16384,
       "pct": 97.3,
       "unit": "tokens",
-      "value": 15938
+      "value": 15934
     },
     "parameter_documentation_coverage": {
       "detail": {
@@ -150,13 +101,13 @@
     },
     "read_only_manifest_saving": {
       "detail": {
-        "full_manifest_tokens": 446,
+        "full_manifest_tokens": 450,
         "full_tool_count": 2,
-        "gated_manifest_tokens": 446,
+        "gated_manifest_tokens": 450,
         "gated_tool_count": 2,
         "withheld_tools": []
       },
-      "maximum": 446,
+      "maximum": 450,
       "pct": 0.0,
       "unit": "tokens",
       "value": 0
@@ -170,12 +121,30 @@
       "unit": "points",
       "value": 2
     },
+    "remedy_survives_truncation": {
+      "detail": {
+        "budget_chars": 500,
+        "over_budget": [],
+        "remedy_after_interpolation": [
+          "envelope.py:135",
+          "envelope.py:95",
+          "envelope.py:160",
+          "envelope.py:107",
+          "envelope.py:200",
+          "timeline.py:119"
+        ]
+      },
+      "maximum": 7,
+      "pct": 100.0,
+      "unit": "messages",
+      "value": 7
+    },
     "teaching_error_rate": {
       "detail": {},
       "maximum": 7,
-      "pct": 0.0,
+      "pct": 100.0,
       "unit": "messages",
-      "value": 0
+      "value": 7
     },
     "tool_description_quality": {
       "detail": {
@@ -202,6 +171,19 @@
       "pct": 75.0,
       "unit": "points",
       "value": 9
+    },
+    "tool_failure_payload_quality": {
+      "detail": {
+        "bare_string_error_lines": [],
+        "carries_hint": 1,
+        "dict_shaped": 1,
+        "error_return_sites": 1,
+        "hint_names_artifact": 1
+      },
+      "maximum": 3,
+      "pct": 100.0,
+      "unit": "checks",
+      "value": 3
     }
   }
 }
