@@ -34,13 +34,13 @@
       },
       "maximum": 1,
       "pct": 100.0,
+      "stale": true,
       "unit": "required entity params",
       "value": 1
     },
     "entry_point_availability": {
       "detail": {
-        "full_entry_points": 2,
-        "read_only_entry_points": 2
+        "full_entry_points": 2
       },
       "maximum": 2,
       "pct": 100.0,
@@ -53,16 +53,16 @@
         "dead_end_count": 0,
         "dead_end_errors": [],
         "per_dimension_pct": {
-          "names_artifact": 100.0,
+          "names_artifact": 87.5,
           "names_input": 100.0,
           "states_remedy": 100.0
         },
-        "raise_sites": 7
+        "raise_sites": 8
       },
-      "maximum": 21,
-      "pct": 100.0,
+      "maximum": 24,
+      "pct": 95.8,
       "unit": "points",
-      "value": 21
+      "value": 23
     },
     "manifest_context_headroom": {
       "detail": {
@@ -109,6 +109,7 @@
       },
       "maximum": 450,
       "pct": 0.0,
+      "stale": true,
       "unit": "tokens",
       "value": 0
     },
@@ -126,23 +127,20 @@
         "budget_chars": 500,
         "over_budget": [],
         "remedy_after_interpolation": [
-          "envelope.py:135",
-          "envelope.py:95",
-          "envelope.py:160",
-          "envelope.py:107",
-          "envelope.py:200",
+          "envelope.py:126",
+          "envelope.py:138",
           "timeline.py:119"
         ]
       },
-      "maximum": 7,
+      "maximum": 8,
       "pct": 100.0,
       "unit": "messages",
-      "value": 7
+      "value": 8
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 7,
-      "pct": 100.0,
+      "maximum": 8,
+      "pct": 87.5,
       "unit": "messages",
       "value": 7
     },

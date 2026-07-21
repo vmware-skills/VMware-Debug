@@ -13,16 +13,11 @@ import sys
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
-from vmware_policy import apply_read_only_gate, sanitize, set_environment_resolver
+from vmware_policy import sanitize, set_environment_resolver
 
 from vmware_debug.mcp import tools as t
 
 logger = logging.getLogger("mcp_server")
-
-#: Names withheld by the most recent :func:`build_server` call. The gate runs
-#: inside the factory (this server has no module-level instance), so the result
-#: is recorded here for startup logging and tests.
-WITHHELD_WRITE_TOOLS: list[str] = []
 
 
 # ---------------------------------------------------------------------------
@@ -51,8 +46,7 @@ LOCAL_ENVIRONMENT = "local"
 #: Client-facing behaviour hints, matching the rest of the family. Both tools
 #: are [READ]: pure correlation over dicts the caller already fetched, with the
 #: same answer every time. These drive MCP client UI (e.g. whether a call needs
-#: a confirmation prompt); the read-only gate classifies independently, from
-#: the [READ]/[WRITE] docstring marker.
+#: a confirmation prompt).
 #:
 #: ``openWorldHint`` is False rather than the family's usual True: this skill
 #: has no network access at all, which is exactly the closed world the hint
@@ -179,17 +173,6 @@ def build_server() -> FastMCP:
         constant, so truncated is always false and total exact —
         this is every category, not a page. Read-only; no network access."""
         return t.list_symptom_categories()
-
-    # Applied after every tool above has registered and before the server is
-    # handed out. The [READ]/[WRITE] docstring marker is what the gate reads
-    # first, so the readOnlyHint annotations above inform client UI without
-    # changing this classification; both tools are [READ] and nothing is
-    # withheld. Wired anyway so that stays provable, and so the gate is already
-    # in place the day this skill grows a write tool.
-    global WITHHELD_WRITE_TOOLS  # noqa: PLW0603 — factory has no module instance
-    WITHHELD_WRITE_TOOLS = apply_read_only_gate(
-        server, "vmware-debug", config_flag=None
-    )
 
     return server
 

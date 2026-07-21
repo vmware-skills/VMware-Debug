@@ -19,7 +19,7 @@ installer:
   package: vmware-debug
 allowed-tools:
   - Bash
-metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["VMWARE_READ_ONLY","VMWARE_DEBUG_READ_ONLY","VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"primaryEnv":"NONE","homepage":"https://github.com/zw008/VMware-Debug","os":["macos","linux"]}}
+metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"primaryEnv":"NONE","homepage":"https://github.com/zw008/VMware-Debug","os":["macos","linux"]}}
 ---
 
 # VMware Debug
@@ -113,17 +113,11 @@ a recommended plan.
 See `references/event-envelope.md`. The agent normalises each source's events into this
 shape; debug stays source-agnostic and has no dependency on the other packages.
 
-## Read-Only Mode
+## Read-Only by Design
 
-Both tools here are reads, so read-only mode withholds nothing — but
-`VMWARE_DEBUG_READ_ONLY=true` or the family-wide `VMWARE_READ_ONLY=true` still applies, and
-the gate verifies at start-up that zero write tools are exposed rather than taking this
-document's word for it. Debug has no config file, so the env vars are the only switch. The
-same family variable withholds write tools across every companion skill, so a whole-estate
-audit posture is one setting — and when you route a fix to vmware-aiops or vmware-pilot and
-the tool is missing from *their* `list_tools()`, that is the lockdown, not a fault. Do not
-retry or hunt for another route: name the blocked operation and say an operator must clear
-the switch and restart that server. Running with local or small models? See [`references/agent-guardrails.md`](references/agent-guardrails.md).
+Both tools here are reads — zero write tools, zero network access of its own.
+Running with local or small models? See
+[`references/agent-guardrails.md`](references/agent-guardrails.md).
 
 ## CLI Quick Reference
 

@@ -22,8 +22,6 @@ advisor/executor split.
 See [`skills/vmware-debug/SKILL.md`](skills/vmware-debug/SKILL.md) for the full
 methodology, the event-envelope contract, and symptom routing.
 
-- **Read-only by design — and provable** (v1.8.0): both MCP tools are read, none write; set `VMWARE_READ_ONLY=true` (or the per-skill `VMWARE_DEBUG_READ_ONLY`) and the family read-only gate verifies that at startup instead of taking the docs' word for it — env vars are the only switch here, this skill has no config file. See [Read-Only Mode](#read-only-mode).
-
 ## MCP tools
 
 | Tool | What |
@@ -31,44 +29,33 @@ methodology, the event-envelope contract, and symptom routing.
 | `incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
 | `list_symptom_categories` | [READ] List recognised symptom categories + what to check for each |
 
-## Read-Only Mode
+## Offline / Air-Gapped Install (from source)
 
-vmware-debug is read-only by design — both MCP tools carry the `[READ]` marker, take no
-credentials, and make no network calls at all; they only correlate event dicts the
-calling agent has already fetched with the other skills' read tools. Since v1.8.0 that
-is **provable rather than merely documented**: set `VMWARE_READ_ONLY=true` and the
-family read-only gate enumerates the registry at startup and verifies that zero write
-tools are exposed — structural, not a prompt instruction a model can ignore. **Off by
-default.** Fail-closed: if the mode is requested but cannot be guaranteed, the server
-refuses to start rather than running open.
+This project uses the modern PEP 517 build system (hatchling), so there is **no
+`setup.py`** by design — that is expected, not a missing file. If you cloned the
+source and hit `ERROR: File "setup.py" or "setup.cfg" not found ... editable mode
+currently requires a setuptools-based build`, your `pip` is older than 21.3 and
+cannot do an *editable* (`-e`) install with a non-setuptools backend. Editable
+mode is a developer convenience, not needed to run the tool — do one of:
 
-The same variable is family-wide: one env var also strips every write tool from the
-write-capable siblings (aiops, storage, vks, nsx, ...), so a whole-estate read-only
-posture is a single setting.
+```bash
+# From the source tree — a normal (non-editable) install builds a wheel:
+pip install .              # NOT  pip install -e .
 
-```json
-{
-  "mcpServers": {
-    "vmware-debug": {
-      "command": "vmware-debug",
-      "args": ["mcp"],
-      "env": {
-        "VMWARE_READ_ONLY": "true"
-      }
-    }
-  }
-}
+# ...or upgrade pip first, and editable works too:
+pip install --upgrade pip && pip install -e .
 ```
 
-- **Per-skill override**: `VMWARE_DEBUG_READ_ONLY` beats the family-wide
-  `VMWARE_READ_ONLY`. vmware-debug has no `config.yaml`, so the env vars are the only
-  switch. Precedence: per-skill env → family env → off.
-- **Classification**: this skill registers its tools through a `build_server()` factory,
-  so the gate classifies from the `[READ]`/`[WRITE]` docstring marker rather than from
-  MCP annotations. Anything not provably read-only is treated as a write.
-- **Startup log**: nothing is logged as withheld because nothing is — the gate's empty
-  result *is* the assertion (write-capable siblings log
-  `Read-only mode active ... withheld N write tool(s)` instead).
+For a **truly air-gapped host**, build the wheels on a connected machine and copy
+them over — the target then needs no network:
+
+```bash
+# On a connected machine, collect this package + its dependencies as wheels:
+pip wheel . -w dist        # → dist/*.whl   (or: uv build, for just this package)
+
+# Copy dist/ to the air-gapped host, then install offline:
+pip install --no-index --find-links dist vmware-debug
+```
 
 ## License
 

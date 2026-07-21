@@ -34,49 +34,12 @@ These are structural, so it cannot.
 
 | Guardrail you would otherwise prompt for | Now enforced by |
 |---|---|
-| "Work exclusively in read-only mode and never modify anything" | **The tool surface, and the gate that proves it.** Both tools are reads, so read-only mode withholds nothing here — but setting it makes the guarantee checkable: the gate verifies at start-up that zero write tools are exposed rather than taking this document's word for it. |
+| "Work read-only and never modify anything" | **The tool surface itself.** Both tools are reads — this skill has no write tool at all, so there is nothing to withhold and nothing to switch off. |
 | "Diagnose only — never apply the fix you propose" | **Structural.** This skill has no tool that changes anything, and it holds no connection to vCenter, NSX or anything else. Remediation is routed to vmware-aiops or vmware-pilot by the calling agent. |
 | "Do not fabricate a timeline — build it from the events I gave you" | **`incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
 | "Tell me when the symptom is outside what you can recognise" | **`list_symptom_categories`** states the catalogue, and unmatched symptoms come back as `uncategorized` rather than being forced into the nearest signature. |
 | "Use explicit limits for queries that may return large amounts of data" | **The list envelope.** `list_symptom_categories` returns `{items, returned, limit, total, truncated, hint}` with `truncated` always `false` — which is the point: it states that the catalogue is complete instead of leaving you to infer it. |
 | "Log everything you looked at" | **The `@vmware_tool` decorator.** Every call is recorded to `~/.vmware/audit.db`, reads included. |
-
-### Turning read-only mode on
-
-One variable covers every skill in the family:
-
-```json
-{
-  "mcpServers": {
-    "vmware-debug": {
-      "command": "vmware-debug",
-      "args": ["mcp"],
-      "env": { "VMWARE_READ_ONLY": "true" }
-    }
-  }
-}
-```
-
-Per-skill override:
-
-```bash
-VMWARE_READ_ONLY=true          # whole family read-only
-VMWARE_DEBUG_READ_ONLY=false   # …except this skill
-```
-
-**This skill has no `config.yaml`**, so the two environment variables are the
-only switch — there is no `read_only:` configuration setting to fall back on.
-Precedence is per-skill env → family env → off. An unparseable value
-(`VMWARE_READ_ONLY=ture`) enables read-only mode rather than silently ignoring
-the typo.
-
-Setting it here is worth doing even though nothing is withheld: the same
-variable withholds write tools across every companion skill, so a whole-estate
-diagnostic posture is one setting. That matters especially in this skill's
-workflow — you gather signals read-only, correlate, and then route a fix. When
-the fix tool is missing from vmware-aiops's or vmware-pilot's `list_tools()`,
-that is the lockdown working, not a fault: name the blocked operation and stop,
-rather than retrying or hunting for another route.
 
 ---
 
