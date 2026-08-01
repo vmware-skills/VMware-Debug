@@ -5,4 +5,4 @@ into a unified timeline, detect spikes, rank root-cause hypotheses, and route
 remediation to vmware-aiops / vmware-pilot. Never writes; never executes fixes.
 """
 
-__version__ = "1.8.7"
+__version__ = "1.8.8"

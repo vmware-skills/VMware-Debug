@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.zw008/vmware-debug -->
+<!-- mcp-name: io.github.vmware-skills/vmware-debug -->
 
 # VMware Debug
 

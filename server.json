@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.zw008/vmware-debug",
+  "name": "io.github.vmware-skills/vmware-debug",
   "title": "VMware Debug",
   "description": "Read-only VMware incident correlation: timeline, spikes, root-cause routing. 2 MCP tools.",
   "repository": {
     "url": "https://github.com/vmware-skills/VMware-Debug",
     "source": "github"
   },
-  "version": "1.8.7",
+  "version": "1.8.8",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "vmware-debug",
-      "version": "1.8.7",
+      "version": "1.8.8",
       "transport": {
         "type": "stdio"
       }
