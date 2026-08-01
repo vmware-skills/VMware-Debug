@@ -19,7 +19,7 @@ installer:
   package: vmware-debug
 allowed-tools:
   - Bash
-metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"primaryEnv":"NONE","homepage":"https://github.com/zw008/VMware-Debug","os":["macos","linux"]}}
+metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"primaryEnv":"NONE","homepage":"https://github.com/vmware-skills/VMware-Debug","os":["macos","linux"]}}
 ---
 
 # VMware Debug

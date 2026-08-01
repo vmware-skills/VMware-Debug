@@ -5,7 +5,7 @@
 This is a community-maintained open-source project and is **not affiliated with,
 endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and
 "vSphere" are trademarks of Broadcom. Source code is publicly auditable at
-[github.com/zw008/VMware-Debug](https://github.com/zw008/VMware-Debug) under the
+[github.com/vmware-skills/VMware-Debug](https://github.com/vmware-skills/VMware-Debug) under the
 MIT license.
 
 ## Reporting Vulnerabilities

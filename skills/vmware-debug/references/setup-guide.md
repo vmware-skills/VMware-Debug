@@ -31,7 +31,7 @@ routes fixes to (vmware-aiops, vmware-pilot).
 > **Disclaimer**: Community-maintained open-source project, **not affiliated with,
 > endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.**
 
-1. **Source Code** — https://github.com/zw008/VMware-Debug (MIT).
+1. **Source Code** — https://github.com/vmware-skills/VMware-Debug (MIT).
 2. **Credentials** — none. debug holds no secrets and connects to nothing.
 3. **Network** — none. All tools are local pure functions over event data the
    agent supplies.

@@ -4,7 +4,7 @@
   "title": "VMware Debug",
   "description": "Read-only VMware incident correlation: timeline, spikes, root-cause routing. 2 MCP tools.",
   "repository": {
-    "url": "https://github.com/zw008/VMware-Debug",
+    "url": "https://github.com/vmware-skills/VMware-Debug",
     "source": "github"
   },
   "version": "1.8.7",
