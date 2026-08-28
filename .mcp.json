@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "vmware-debug": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-debug==1.8.8",
+        "vmware-debug-mcp"
+      ]
+    }
+  }
+}
