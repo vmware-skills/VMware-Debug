@@ -16,6 +16,7 @@ from mcp.server.fastmcp import FastMCP
 from vmware_policy import sanitize, set_environment_resolver
 
 from vmware_debug.mcp import tools as t
+from vmware_debug import __version__
 
 logger = logging.getLogger("mcp_server")
 
@@ -117,6 +118,11 @@ set_environment_resolver(_environment_for)
 def build_server() -> FastMCP:
     """Construct and configure the MCP server."""
     server = FastMCP("vmware-debug")
+
+    # FastMCP takes no version argument and leaves the lowlevel server's at
+    # None, which makes `initialize` answer with the MCP SDK's version rather
+    # than ours. Set it so a client can tell which release it is talking to.
+    server._mcp_server.version = __version__
 
     @server.tool(name="incident_timeline", annotations=_READ)
     def _incident_timeline_impl(
