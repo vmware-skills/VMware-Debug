@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "vmware-debug",
   "displayName": "VMware Debug",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "description": "Read-only VMware incident correlation: timeline, spikes, root-cause routing. 2 MCP tools.",
   "author": {
     "name": "Wei Zhou",
