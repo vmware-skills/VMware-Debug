@@ -434,6 +434,36 @@ def build_server() -> FastMCP:
         except Exception as exc:
             return _case_error(exc, "case_grade")
 
+    @server.tool(name="case_readiness", annotations=_READ)
+    def _case_readiness_impl(available_skills: Optional[list[str]] = None) -> dict:
+        """[READ] What strength of conclusion can this environment reach?
+
+        WHEN: before starting an investigation, or when a case will not go
+        higher and you want to know whether that is fixable. Answering this
+        first is worth far more than discovering it halfway through.
+
+        INPUT: available_skills — the skills actually installed and configured.
+        Omit to assume all of them, which reports the ceiling imposed by the
+        family itself rather than by this install.
+
+        RETURNS: {classes, categories, note}. Per evidence class: whether it is
+        available, through which tools, and if not, `how_to_supply`. Per
+        symptom category (storage, network, compute, ha_drs, configuration,
+        accelerator, kubernetes, hardware): a `ceiling` and the
+        `independent_sources` behind it. There is deliberately no single score —
+        "readiness 78%" cannot be acted on, "storage reaches Probable, hardware
+        reaches Candidate" can.
+
+        GOTCHAS: two classes served by the SAME skill count as one source, so
+        two available classes do not always mean Probable. The hardware class is
+        unavailable no matter what is installed — nothing in this family reaches
+        below ESXi — and the knowledge class becomes available only when entries
+        are mounted under $OPS_HOME/knowledge/."""
+        try:
+            return t.case_readiness(available_skills=available_skills)
+        except Exception as exc:
+            return _case_error(exc, "case_readiness")
+
     return server
 
 

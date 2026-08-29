@@ -1,0 +1,173 @@
+# Evidence-source catalogue — which skill and tool answers which kind of question.
+#
+# A DATA FILE on purpose. Routing baked into a prompt drifts silently against the
+# tools it names; this file is checked by family_smoke against the live MCP
+# registries of all fifteen skills, so a tool that stops existing fails a gate
+# instead of becoming advice nobody can follow.
+#
+# Every `tool:` below was read off a running server, not recalled.
+#
+# The two classes with an empty `tools:` list are the point of the file, not an
+# omission. They are the two routes to a Confirmed conclusion, and this family
+# has neither, which is why a stock install tops out at Probable.
+
+classes:
+
+  virtualization_state:
+    label: Virtualisation state (inventory, alarms, events, host health)
+    skill: vmware-monitor
+    decisive: false
+    tools:
+      - {tool: get_events, gives: "vCenter event stream for a window"}
+      - {tool: get_alarms, gives: "active and recent alarms"}
+      - {tool: host_investigation_bundle, gives: "one host's correlated state"}
+      - {tool: vm_investigation_bundle, gives: "one VM's correlated state"}
+      - {tool: cluster_health_summary, gives: "cluster-wide health rollup"}
+      - {tool: vm_performance, gives: "per-VM counters over a window"}
+      - {tool: host_performance, gives: "per-host counters over a window"}
+
+  logs:
+    label: Centralised logs
+    skill: vmware-log-insight
+    decisive: false
+    degraded_alternative:
+      skill: vmware-monitor
+      tool: host_log_scan
+      note: >
+        Without Log Insight, scan hosts one at a time. Slower and narrower —
+        no cross-host correlation — but it is the difference between a thin
+        answer and none.
+    tools:
+      - {tool: log_search, gives: "raw log lines matching a query in a window"}
+      - {tool: log_aggregate, gives: "counts grouped by field, for spotting bursts"}
+      - {tool: alert_list, gives: "configured alerts and their state"}
+
+  metrics_and_anomalies:
+    label: Metrics, anomalies and capacity
+    skill: vmware-aria
+    decisive: false
+    tools:
+      - {tool: list_alerts, gives: "open alerts across the estate"}
+      - {tool: list_anomalies, gives: "statistically anomalous metrics"}
+      - {tool: get_resource_metrics, gives: "metric series for one resource"}
+      - {tool: promql_query, gives: "ad-hoc metric query"}
+      - {tool: get_resource_health, gives: "health badge for one resource"}
+
+  storage:
+    label: Datastore and vSAN state
+    skill: vmware-storage
+    decisive: false
+    tools:
+      - {tool: vsan_health, gives: "vSAN health checks"}
+      - {tool: vsan_capacity, gives: "vSAN capacity and slack"}
+      - {tool: vsan_efficiency, gives: "dedup/compression ratios"}
+      - {tool: list_all_datastores, gives: "datastore capacity and accessibility"}
+
+  network:
+    label: Overlay and distributed firewall
+    skill: vmware-nsx
+    decisive: false
+    tools:
+      - {tool: list_nsx_alarms, gives: "NSX manager alarms"}
+      - {tool: get_transport_node_status, gives: "per-transport-node health"}
+      - {tool: get_logical_port_status, gives: "port state for one workload"}
+      - {tool: get_edge_cluster_status, gives: "edge cluster health"}
+
+  network_security:
+    label: Firewall rule hits and path tracing
+    skill: vmware-nsx-security
+    decisive: false
+    tools:
+      - {tool: run_traceflow, gives: "synthetic packet path between endpoints"}
+      - {tool: get_traceflow_result, gives: "where that packet was dropped, and by which rule"}
+      - {tool: get_dfw_rule_stats, gives: "hit counts per firewall rule"}
+
+  configuration_drift:
+    label: Baseline compliance and configuration drift
+    skill: vmware-harden
+    decisive: false
+    tools:
+      - {tool: list_drift_events, gives: "what changed against a baseline, and when"}
+      - {tool: list_violations, gives: "current baseline violations, per node"}
+      - {tool: scan_target, gives: "a fresh compliance scan"}
+
+  accelerator:
+    label: GPU and vGPU state
+    skill: vmware-privateai
+    decisive: false
+    tools:
+      - {tool: gpu_host_list, gives: "hosts with GPUs and their devices"}
+      - {tool: gpu_utilization, gives: "GPU utilisation counters"}
+      - {tool: gpu_consumer_list, gives: "which VMs hold which vGPU profiles"}
+
+  kubernetes:
+    label: Supervisor and Tanzu cluster state
+    skill: vmware-vks
+    decisive: false
+    tools:
+      - {tool: get_supervisor_status, gives: "Supervisor cluster health"}
+      - {tool: list_tkc_clusters, gives: "workload clusters and their phase"}
+      - {tool: list_namespace_storage_usage, gives: "namespace storage pressure"}
+
+  # ── The two that do not exist ──────────────────────────────────────────
+  # Both are decisive: either one can take a conclusion to Confirmed. Neither
+  # has a tool. Listing them empty is what lets case_readiness report an honest
+  # ceiling instead of a ceiling nobody explained.
+
+  hardware:
+    label: Direct hardware and device diagnostics (BMC/Redfish, SMART/NVMe, core dump)
+    skill: null
+    decisive: true
+    tools: []
+    absent_because: >
+      No skill in this family reaches below ESXi. A failing-device hypothesis can
+      be corroborated from vSphere's symptoms but not confirmed from them.
+    how_to_supply: >
+      Have the site pull a vendor support bundle (iDRAC / iLO / XCC) or a
+      storcli / nvme-cli health export, and submit it as evidence with
+      source_skill "vmware-redfish". An ordinary MCP server over Redfish would
+      close this; no special hardware protocol is required.
+
+  knowledge:
+    label: Knowledge base, runbooks and vendor SRs
+    skill: null
+    decisive: true
+    tools: []
+    absent_because: >
+      $OPS_HOME/knowledge/ ships empty. The family bundles no KB, and a vendor SR
+      archive is site-specific by nature.
+    how_to_supply: >
+      Mount entries under $OPS_HOME/knowledge/{kb,runbook,sr,cases}/. Markdown,
+      text, YAML, JSON/JSONL and CSV are read as-is; PDF/DOCX/PPTX/HTML must be
+      converted to Markdown first. Every entry needs an `applies_to` block
+      (product, build, driver, firmware, model) — matching is by version
+      applicability, never by similarity, because a similar KB for the wrong
+      build is what manufactures a wrong Confirmed.
+
+# Which evidence classes a symptom category actually needs. `supporting` is what
+# builds a Probable; `decisive` is what would take it to Confirmed.
+routing:
+  storage:
+    supporting: [virtualization_state, logs, storage]
+    decisive: [hardware, knowledge]
+  network:
+    supporting: [virtualization_state, logs, network, network_security]
+    decisive: [knowledge]
+  compute:
+    supporting: [virtualization_state, metrics_and_anomalies]
+    decisive: [knowledge]
+  ha_drs:
+    supporting: [virtualization_state, metrics_and_anomalies, logs]
+    decisive: [knowledge]
+  configuration:
+    supporting: [configuration_drift, virtualization_state]
+    decisive: [configuration_drift]
+  accelerator:
+    supporting: [accelerator, virtualization_state, logs]
+    decisive: [hardware, knowledge]
+  kubernetes:
+    supporting: [kubernetes, virtualization_state, logs]
+    decisive: [knowledge]
+  hardware:
+    supporting: [virtualization_state, logs]
+    decisive: [hardware]

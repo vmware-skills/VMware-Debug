@@ -8,13 +8,14 @@
           "incident_timeline",
           "list_symptom_categories",
           "case_open",
-          "case_list"
+          "case_list",
+          "case_readiness"
         ],
         "reachable_on_surface": 4,
         "reachable_only_via_description": 0,
         "required_entity_params": 4,
         "required_params_classified": "4/13",
-        "tool_count": 8
+        "tool_count": 9
       },
       "maximum": 4,
       "pct": 100.0,
@@ -42,17 +43,17 @@
     },
     "entry_point_availability": {
       "detail": {
-        "full_entry_points": 4
+        "full_entry_points": 5
       },
-      "maximum": 8,
-      "pct": 50.0,
+      "maximum": 9,
+      "pct": 55.6,
       "unit": "entry points",
-      "value": 4
+      "value": 5
     },
     "error_actionability": {
       "detail": {
         "composed_hint_sites": [],
-        "dead_end_count": 8,
+        "dead_end_count": 10,
         "dead_end_errors": [
           {
             "message": "Cannot read conclusion.md for case {}: {}. The case directory may have been moved or its permissions",
@@ -111,6 +112,22 @@
             "where": "model.py:33"
           },
           {
+            "message": "evidence_sources.yaml at {} is missing 'classes' or 'routing'. An empty catalogue would make every r",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "sources.py:36"
+          },
+          {
+            "message": "evidence_sources.yaml is not valid YAML: {}.",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "sources.py:34"
+          },
+          {
             "message": "Cannot read {} at {}: {}. The case directory may have been moved or its permissions changed.",
             "missing": [
               "names_artifact",
@@ -120,16 +137,16 @@
           }
         ],
         "per_dimension_pct": {
-          "names_artifact": 44.8,
-          "names_input": 96.6,
-          "states_remedy": 72.4
+          "names_artifact": 42.4,
+          "names_input": 97.0,
+          "states_remedy": 69.7
         },
-        "raise_sites": 29
+        "raise_sites": 33
       },
-      "maximum": 87,
-      "pct": 71.3,
+      "maximum": 99,
+      "pct": 69.7,
       "unit": "points",
-      "value": 62
+      "value": 69
     },
     "manifest_context_headroom": {
       "detail": {
@@ -140,15 +157,15 @@
           "case_submit_evidence": 549,
           "incident_timeline": 329
         },
-        "manifest_tokens": 2178,
-        "mean_tokens_per_tool": 272.2,
+        "manifest_tokens": 2418,
+        "mean_tokens_per_tool": 268.7,
         "reference_context": 16384,
-        "tool_count": 8
+        "tool_count": 9
       },
       "maximum": 16384,
-      "pct": 86.7,
+      "pct": 85.2,
       "unit": "tokens",
-      "value": 14206
+      "value": 13966
     },
     "parameter_documentation_coverage": {
       "detail": {
@@ -162,10 +179,10 @@
           ]
         }
       },
-      "maximum": 31,
-      "pct": 90.3,
+      "maximum": 32,
+      "pct": 90.6,
       "unit": "parameters",
-      "value": 28
+      "value": 29
     },
     "per_tool_token_discipline": {
       "detail": {
@@ -175,10 +192,10 @@
           "case_submit_evidence": 549
         }
       },
-      "maximum": 8,
-      "pct": 75.0,
+      "maximum": 9,
+      "pct": 77.8,
       "unit": "tools",
-      "value": 6
+      "value": 7
     },
     "read_only_manifest_saving": {
       "detail": {
@@ -198,10 +215,10 @@
       "detail": {
         "unmarked": []
       },
-      "maximum": 8,
+      "maximum": 9,
       "pct": 100.0,
       "unit": "points",
-      "value": 8
+      "value": 9
     },
     "remedy_survives_truncation": {
       "detail": {
@@ -220,29 +237,29 @@
           "ids.py:48"
         ]
       },
-      "maximum": 21,
+      "maximum": 23,
       "pct": 100.0,
       "unit": "messages",
-      "value": 21
+      "value": 23
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 29,
-      "pct": 44.8,
+      "maximum": 33,
+      "pct": 42.4,
       "unit": "messages",
-      "value": 13
+      "value": 14
     },
     "tool_description_quality": {
       "detail": {
         "per_dimension_pct": {
-          "args": 75.0,
-          "gotcha": 75.0,
+          "args": 77.8,
+          "gotcha": 77.8,
           "marker": 100.0,
-          "next_hop": 62.5,
+          "next_hop": 55.6,
           "what": 100.0,
-          "when": 87.5
+          "when": 88.9
         },
-        "tools_graded": 8,
+        "tools_graded": 9,
         "weakest_tools": {
           "case_get": [
             "gotcha"
@@ -256,6 +273,9 @@
             "next_hop"
           ],
           "case_open": [],
+          "case_readiness": [
+            "next_hop"
+          ],
           "case_record_gap": [
             "next_hop",
             "when"
@@ -263,27 +283,26 @@
           "case_submit_evidence": [
             "args"
           ],
-          "incident_timeline": [],
-          "list_symptom_categories": []
+          "incident_timeline": []
         }
       },
-      "maximum": 48,
+      "maximum": 54,
       "pct": 83.3,
       "unit": "points",
-      "value": 40
+      "value": 45
     },
     "tool_failure_payload_quality": {
       "detail": {
         "bare_string_error_lines": [],
-        "carries_hint": 7,
-        "dict_shaped": 7,
-        "error_return_sites": 7,
-        "hint_names_artifact": 7
+        "carries_hint": 8,
+        "dict_shaped": 8,
+        "error_return_sites": 8,
+        "hint_names_artifact": 8
       },
-      "maximum": 21,
+      "maximum": 24,
       "pct": 100.0,
       "unit": "checks",
-      "value": 21
+      "value": 24
     }
   }
 }

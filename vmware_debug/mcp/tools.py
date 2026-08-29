@@ -47,6 +47,7 @@ def list_symptom_categories() -> dict:
 
 from vmware_debug.ops.cases.api import (  # noqa: E402  (grouped with its section)
     add_gap as case_record_gap,
+    check_readiness as case_readiness,
     get_case as case_get,
     grade as case_grade,
     list_open_cases as case_list,
@@ -63,4 +64,5 @@ __all__ = [
     "case_submit_evidence",
     "case_record_gap",
     "case_grade",
+    "case_readiness",
 ]
