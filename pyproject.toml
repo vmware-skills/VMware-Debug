@@ -22,6 +22,10 @@ dependencies = [
     "rich>=13.0,<15.0",
     "mcp[cli]>=1.10,<2.0",
     "vmware-policy>=1.8.5,<2.0",
+    # Imported directly by ops/cases/grading.py for the rules file. It has
+    # always arrived transitively via vmware-policy; a package should
+    # declare what it imports rather than rely on a dependency's dependency.
+    "pyyaml>=6.0,<7.0",
 ]
 
 [project.scripts]

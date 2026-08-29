@@ -1,0 +1,65 @@
+# Conclusion grading rules — vmware-debug investigation layer.
+#
+# These are the packaged defaults. A site may override them by writing
+# $OPS_HOME/investigation/grading_rules.yaml (default ~/.vmware/...).
+#
+# Override semantics: a grade block in the site file REPLACES the packaged block
+# for that grade entirely. There is no deep merge. Deep-merged rules produce a
+# final policy nobody can read off any single file, and this is a file a
+# customer is expected to audit.
+#
+# The grade is computed from the case ledger on every call. Nothing here — and
+# no MCP tool — lets a model state a conclusion level directly.
+
+grades:
+
+  probable:
+    # Distinct source skills, not distinct tools. Two calls to the same skill
+    # tend to fail the same way at the same time, so they are one source.
+    min_independent_sources: 2
+    # Only gaps that could OVERTURN the hypothesis (could_falsify: true) hold a
+    # case at Candidate. A merely missing confirmation does not.
+    #
+    # This is the difference between grading the reference vSAN case Probable,
+    # which is where its own authors put it with a SMART/NVMe gap open, and
+    # grading it Candidate. It also decides whether the ledger works at all: if
+    # writing down what you could not get costs two grades, the cheapest move
+    # is to not write it down, and the gap ledger is the one thing here that
+    # must never have a cheaper alternative.
+    blocked_by_falsifiable_gaps: true
+
+  confirmed:
+    requires: probable
+    # Confirmed is the grade that asserts no hole is left, so EITHER kind of
+    # blocking gap stops it — including the missing confirmation that Probable
+    # tolerates.
+    blocked_by_gaps: true
+    # At least one item from a decisive source class. Decisive is necessary,
+    # not sufficient: the `requires` above still has to hold, so a single
+    # vendor SR cannot carry a case by itself.
+    min_decisive_sources: 1
+    # Matched against an evidence item's `source_skill`.
+    #
+    # NONE OF THESE EXIST TODAY. There is no hardware-diagnostic channel in the
+    # family (no Redfish/BMC, no SMART/NVMe), and ~/.vmware/knowledge/ ships
+    # empty. That is deliberate and it is why the reachable ceiling is
+    # Probable — the limit is mechanical rather than a promise to be careful.
+    # Adding a source here is what raises the ceiling.
+    decisive_sources:
+      # 1. Direct hardware / device diagnostics.
+      - vmware-redfish
+      - vmware-smart
+      # 2. Knowledge-base entries whose applies_to matched the case scope.
+      #    A KB that did not pass version checking is submitted as an ordinary
+      #    supporting item and never lands here.
+      - knowledge-kb
+      # 3. Vendor SR / official case with a stated root cause.
+      - knowledge-sr
+
+  excluded:
+    # An exclusion needs an observation that rules the hypothesis out. Absence
+    # of evidence is a gap, not an exclusion — the one rule in this file most
+    # likely to be argued away in prose, so it is expressed as a required
+    # non-empty field on a specific evidence item.
+    requires_falsifying_evidence: true
+    min_independent_sources: 2
