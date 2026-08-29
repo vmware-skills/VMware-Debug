@@ -14,11 +14,18 @@ vmware-monitor and vmware-aria against a production vSphere estate with Llama
 cross-skill rules are identical across this family; the parts below marked
 vmware-debug are specific to this skill.
 
-vmware-debug exposes 2 MCP tools and both are reads. It connects to nothing:
-the calling agent gathers events from the other skills, normalises them, and
-hands them over for correlation. That makes it the safest skill in the family
-to point a small model at — and the one most exposed to the model's reasoning,
-because its output *is* an interpretation.
+vmware-debug exposes 8 MCP tools: 4 reads and 4 writes. It connects to nothing
+and holds no credentials — the calling agent gathers events from the other
+skills, normalises them, and hands them over. The four writes go to the local
+investigation ledger under `~/.vmware/cases/`, never to a VMware system. That
+makes it the safest skill in the family to point a small model at — and the one
+most exposed to the model's reasoning, because its output *is* an
+interpretation.
+
+For a small model the ledger is more than bookkeeping: `case_grade` computes the
+conclusion level from recorded evidence rather than accepting one, so a model
+that would happily narrate "root cause confirmed" cannot record that unless the
+evidence for it is actually in the folder.
 
 > **Disclaimer**: This is a community-maintained open-source project and is
 > **not affiliated with, endorsed by, or sponsored by VMware, Inc. or Broadcom

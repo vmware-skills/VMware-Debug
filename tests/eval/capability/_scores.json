@@ -6,18 +6,20 @@
         "broken_chains": [],
         "entry_points": [
           "incident_timeline",
-          "list_symptom_categories"
+          "list_symptom_categories",
+          "case_open",
+          "case_list"
         ],
-        "reachable_on_surface": 0,
+        "reachable_on_surface": 4,
         "reachable_only_via_description": 0,
-        "required_entity_params": 0,
-        "required_params_classified": "0/1",
-        "tool_count": 2
+        "required_entity_params": 4,
+        "required_params_classified": "4/13",
+        "tool_count": 8
       },
-      "maximum": 1,
+      "maximum": 4,
       "pct": 100.0,
       "unit": "required entity params",
-      "value": 1
+      "value": 4
     },
     "entity_reachability_read_only": {
       "detail": {
@@ -40,64 +42,143 @@
     },
     "entry_point_availability": {
       "detail": {
-        "full_entry_points": 2
+        "full_entry_points": 4
       },
-      "maximum": 2,
-      "pct": 100.0,
+      "maximum": 8,
+      "pct": 50.0,
       "unit": "entry points",
-      "value": 2
+      "value": 4
     },
     "error_actionability": {
       "detail": {
         "composed_hint_sites": [],
-        "dead_end_count": 0,
-        "dead_end_errors": [],
+        "dead_end_count": 8,
+        "dead_end_errors": [
+          {
+            "message": "Cannot read conclusion.md for case {}: {}. The case directory may have been moved or its permissions",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "conclusion.py:81"
+          },
+          {
+            "message": "Evidence field {} is required and cannot be blank. {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "evidence.py:41"
+          },
+          {
+            "message": "Cannot read gaps.json for case {}: {}.",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "evidence.py:271"
+          },
+          {
+            "message": "gaps.json in case {} is not valid JSON: {}. It was hand-edited. Restore it rather than deleting it \u2014",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "evidence.py:273"
+          },
+          {
+            "message": "Cannot read grading_rules.yaml at {}: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "grading.py:55"
+          },
+          {
+            "message": "grading_rules.yaml at {} is not valid YAML: {}. Fix it rather than deleting it \u2014 falling back to the",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "grading.py:57"
+          },
+          {
+            "message": "Scope field {} is required and cannot be blank. It is what step 01 of the evidence loop produces; a ",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "model.py:33"
+          },
+          {
+            "message": "Cannot read {} at {}: {}. The case directory may have been moved or its permissions changed.",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "store.py:81"
+          }
+        ],
         "per_dimension_pct": {
-          "names_artifact": 87.5,
-          "names_input": 100.0,
-          "states_remedy": 100.0
+          "names_artifact": 44.8,
+          "names_input": 96.6,
+          "states_remedy": 72.4
         },
-        "raise_sites": 8
+        "raise_sites": 29
       },
-      "maximum": 24,
-      "pct": 95.8,
+      "maximum": 87,
+      "pct": 71.3,
       "unit": "points",
-      "value": 23
+      "value": 62
     },
     "manifest_context_headroom": {
       "detail": {
         "heaviest_tools": {
-          "incident_timeline": 329,
-          "list_symptom_categories": 121
+          "case_grade": 264,
+          "case_open": 354,
+          "case_record_gap": 337,
+          "case_submit_evidence": 549,
+          "incident_timeline": 329
         },
-        "manifest_tokens": 450,
-        "mean_tokens_per_tool": 225.0,
+        "manifest_tokens": 2178,
+        "mean_tokens_per_tool": 272.2,
         "reference_context": 16384,
-        "tool_count": 2
+        "tool_count": 8
       },
       "maximum": 16384,
-      "pct": 97.3,
+      "pct": 86.7,
       "unit": "tokens",
-      "value": 15934
+      "value": 14206
     },
     "parameter_documentation_coverage": {
       "detail": {
-        "undocumented_by_tool": {}
+        "undocumented_by_tool": {
+          "case_grade": [
+            "case_id"
+          ],
+          "case_submit_evidence": [
+            "fetched_at",
+            "summary"
+          ]
+        }
       },
-      "maximum": 4,
-      "pct": 100.0,
+      "maximum": 31,
+      "pct": 90.3,
       "unit": "parameters",
-      "value": 4
+      "value": 28
     },
     "per_tool_token_discipline": {
       "detail": {
         "ceiling": 350,
-        "over_ceiling": {}
+        "over_ceiling": {
+          "case_open": 354,
+          "case_submit_evidence": 549
+        }
       },
-      "maximum": 2,
-      "pct": 100.0,
+      "maximum": 8,
+      "pct": 75.0,
       "unit": "tools",
-      "value": 2
+      "value": 6
     },
     "read_only_manifest_saving": {
       "detail": {
@@ -117,10 +198,10 @@
       "detail": {
         "unmarked": []
       },
-      "maximum": 2,
+      "maximum": 8,
       "pct": 100.0,
       "unit": "points",
-      "value": 2
+      "value": 8
     },
     "remedy_survives_truncation": {
       "detail": {
@@ -129,54 +210,80 @@
         "remedy_after_interpolation": [
           "envelope.py:126",
           "envelope.py:138",
-          "timeline.py:119"
+          "conclusion.py:135",
+          "conclusion.py:144",
+          "evidence.py:172",
+          "evidence.py:199",
+          "evidence.py:235",
+          "grading.py:65",
+          "ids.py:43",
+          "ids.py:48"
         ]
       },
-      "maximum": 8,
+      "maximum": 21,
       "pct": 100.0,
       "unit": "messages",
-      "value": 8
+      "value": 21
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 8,
-      "pct": 87.5,
+      "maximum": 29,
+      "pct": 44.8,
       "unit": "messages",
-      "value": 7
+      "value": 13
     },
     "tool_description_quality": {
       "detail": {
         "per_dimension_pct": {
-          "args": 100.0,
-          "gotcha": 100.0,
+          "args": 75.0,
+          "gotcha": 75.0,
           "marker": 100.0,
-          "next_hop": 100.0,
+          "next_hop": 62.5,
           "what": 100.0,
-          "when": 100.0
+          "when": 87.5
         },
-        "tools_graded": 2,
+        "tools_graded": 8,
         "weakest_tools": {
+          "case_get": [
+            "gotcha"
+          ],
+          "case_grade": [
+            "args",
+            "next_hop"
+          ],
+          "case_list": [
+            "gotcha",
+            "next_hop"
+          ],
+          "case_open": [],
+          "case_record_gap": [
+            "next_hop",
+            "when"
+          ],
+          "case_submit_evidence": [
+            "args"
+          ],
           "incident_timeline": [],
           "list_symptom_categories": []
         }
       },
-      "maximum": 12,
-      "pct": 100.0,
+      "maximum": 48,
+      "pct": 83.3,
       "unit": "points",
-      "value": 12
+      "value": 40
     },
     "tool_failure_payload_quality": {
       "detail": {
         "bare_string_error_lines": [],
-        "carries_hint": 1,
-        "dict_shaped": 1,
-        "error_return_sites": 1,
-        "hint_names_artifact": 1
+        "carries_hint": 7,
+        "dict_shaped": 7,
+        "error_return_sites": 7,
+        "hint_names_artifact": 7
       },
-      "maximum": 3,
+      "maximum": 21,
       "pct": 100.0,
       "unit": "checks",
-      "value": 3
+      "value": 21
     }
   }
 }

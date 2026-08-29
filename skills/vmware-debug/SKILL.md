@@ -100,12 +100,27 @@ a recommended plan.
 - **MCP** (in an agent): the agent calls the other skills' read tools, then `incident_timeline` to correlate. This is the primary mode — that's where the cross-skill "联动" happens.
 - **CLI** (humans): `vmware-debug triage --events events.json` correlates a JSON array you collected yourself.
 
-## MCP Tools (2 — 2 read, 0 write)
+## MCP Tools (8 — 4 read, 4 write)
+
+**Correlation** — stateless, for a single look:
 
 | Tool | What |
 |---|---|
 | `incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
 | `list_symptom_categories` | [READ] List recognised symptom categories + what to check for each |
+
+**Investigation ledger** — for an incident you will reason about over time:
+
+| Tool | What |
+|---|---|
+| `case_open` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
+| `case_list` | [READ] Cases, newest first |
+| `case_get` | [READ] One case: scope, ledger sizes, grade history |
+| `case_submit_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
+| `case_record_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
+| `case_grade` | [WRITE] Recompute the conclusion grade from the ledger and record it |
+
+The four writes go to `$OPS_HOME` (default `~/.vmware/cases/`) and nowhere else.
 
 **List envelope** (output of `list_symptom_categories`): `{items, returned, limit, total, truncated, hint}` — read the rows from `items`. `truncated` is always `false` here, which is the point: it states that the catalogue is complete instead of leaving you to infer it.
 
@@ -113,10 +128,53 @@ a recommended plan.
 See `references/event-envelope.md`. The agent normalises each source's events into this
 shape; debug stays source-agnostic and has no dependency on the other packages.
 
-## Read-Only by Design
+## The Investigation Ledger
 
-Both tools here are reads — zero write tools, zero network access of its own.
-Running with local or small models? See
+Correlating events answers "what happened together". A case answers "what do we
+believe, on what evidence, and what is still missing" — and keeps answering it
+across sessions and across people.
+
+The case folder is the deliverable, not an implementation detail. Everything in
+it but the index is plain text, so a customer can take the folder away and audit
+how a conclusion was reached with none of this installed:
+
+```
+~/.vmware/cases/<case-id>/
+├── scope.json    what is being investigated, and how that was decided
+├── evidence/     one file per fact: source skill, exact query, time basis
+├── gaps.json     what could NOT be obtained, what it blocks, how to close it
+├── conclusion.md the grade, appended — including every time it went down
+└── timeline.md · hypotheses.md · plan.jsonl · case.json
+```
+
+**You cannot state a conclusion level.** `case_grade` has no parameter for one;
+the grade is recomputed from the ledger on every call. To change it, change the
+ledger — submit the missing evidence, or record the gap that is blocking it.
+
+- **Candidate** — a hypothesis exists
+- **Probable** — ≥2 *independent* sources agree (two calls to one skill are one
+  source) and nothing outstanding could overturn it
+- **Confirmed** — that, plus a decisive item: a direct hardware diagnostic, a
+  version-checked knowledge-base entry, or a vendor SR; and no gap left open
+- **Excluded** — an observation that actually rules it out. "We looked and found
+  nothing" is a gap, not an exclusion
+
+> **On a stock install the ceiling is Probable.** Confirmed needs a decisive
+> source, and there is neither a hardware-diagnostic channel (no Redfish/BMC, no
+> SMART/NVMe) nor a knowledge library mounted — `~/.vmware/knowledge/` ships
+> empty. Every tool that can reach the ceiling says so in its output rather than
+> letting you wonder why a well-supported case never goes higher. Mount a
+> knowledge library and the ceiling rises on its own.
+
+Recording a gap is meant to be free: a missing confirmation caps the grade, it
+does not demote it. Only a gap that could *overturn* the hypothesis holds a case
+at Candidate.
+
+## No Network, By Design
+
+vmware-debug connects to nothing and holds no credentials. The calling agent
+fetches with the other skills' read tools and submits the results here. Its only
+writes are to the local case ledger. Running with local or small models? See
 [`references/agent-guardrails.md`](references/agent-guardrails.md).
 
 ## CLI Quick Reference

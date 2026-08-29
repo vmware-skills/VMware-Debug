@@ -39,3 +39,28 @@ def list_symptom_categories() -> dict:
     """
     categories = category_routing()
     return paginated(categories, total=len(categories))
+
+
+# ── Investigation cases ───────────────────────────────────────────────────
+# The bodies live in ops/cases/api.py so the behaviour stays testable without
+# an MCP server. These are the names the tool registrations bind to.
+
+from vmware_debug.ops.cases.api import (  # noqa: E402  (grouped with its section)
+    add_gap as case_record_gap,
+    get_case as case_get,
+    grade as case_grade,
+    list_open_cases as case_list,
+    open_case as case_open,
+    submit_evidence as case_submit_evidence,
+)
+
+__all__ = [
+    "incident_timeline",
+    "list_symptom_categories",
+    "case_open",
+    "case_get",
+    "case_list",
+    "case_submit_evidence",
+    "case_record_gap",
+    "case_grade",
+]

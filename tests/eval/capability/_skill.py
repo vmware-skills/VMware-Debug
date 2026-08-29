@@ -38,18 +38,22 @@ COMPANION_SKILLS = (
 #: use. Authored from the registry's own required parameters, not from the
 #: domain in the abstract. Drives ``test_entity_reachability``: a stem that is
 #: not here is invisible to that eval, which is why the suite asserts coverage.
-#: Deliberately empty: neither tool takes a discoverable identifier —
-#: ``incident_timeline`` takes an event payload and
-#: ``list_symptom_categories`` takes nothing. The suite asserts that an
-#: empty result comes from an empty map rather than from a map that
-#: simply failed to fit, so this emptiness has to be stated.
+#: ``case`` is the only one. The correlation tools take no discoverable
+#: identifier — ``incident_timeline`` takes an event payload and
+#: ``list_symptom_categories`` takes nothing — but every ledger tool takes a
+#: ``case_id``, and that id IS discoverable from this surface: ``case_list``
+#: returns it and ``case_open`` mints it. Listing it here is what makes the
+#: reachability eval check that, rather than skipping the parameter and scoring
+#: a surface smaller than the one that exists.
 ENTITY_WORDS = {
+    "case": ("case", "cases"),
 }
 
 #: Skill-specific parameters that end in an entity suffix but are supplied by the
 #: operator rather than discovered from an API. Universal exclusions (``target``,
 #: paths, filters) live in the eval itself.
 NOT_AN_ENTITY: frozenset[str] = frozenset()
+
 
 def get_server(module):
     """Return the FastMCP instance ``SERVER_MODULE`` exposes.

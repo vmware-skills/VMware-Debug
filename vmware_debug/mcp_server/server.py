@@ -35,14 +35,16 @@ logger = logging.getLogger("mcp_server")
 #: ``staging`` / ``lab``.
 #:
 #: vmware-debug has no such config and no connection to declare one about: its
-#: tools are pure correlation over event dicts the calling agent has already
-#: fetched with other skills' read tools. There is no network access, no
-#: writes, and in fact no @vmware_tool-decorated operation above read risk — so
-#: nothing here is gated under either setting today. Requiring a declaration it
-#: has no place to make would leave it permanently blocked for no gain.
+#: tools either correlate event dicts the calling agent already fetched, or
+#: read and write the investigation ledger under $OPS_HOME. There is still no
+#: network access and no VMware environment to be in, so ``local`` is the
+#: honest answer rather than a placeholder.
 #:
-#: The constant is registered anyway so that the answer is explicit and stays
-#: true if this skill ever grows a tool that writes to a local store.
+#: The ledger tools ARE writes, which the earlier version of this note said did
+#: not exist. They are writes to a directory on this machine, at ``low`` risk:
+#: nothing they touch can affect a vCenter, and the ledger is append-only. The
+#: environment declaration is what keeps that distinction reviewable instead of
+#: implicit.
 LOCAL_ENVIRONMENT = "local"
 
 #: Client-facing behaviour hints, matching the rest of the family. Both tools
@@ -60,6 +62,23 @@ _READ = {
     "openWorldHint": False,
 }
 
+#: The case tools write to the local investigation ledger under $OPS_HOME.
+#: Still ``openWorldHint: False`` — the boundary this skill does not cross is
+#: the network, and these tools do not cross it either. ``destructiveHint`` is
+#: False because the ledger is append-only: opening a case refuses to overwrite
+#: one, evidence lands in its own file, and a grade is appended to the history
+#: rather than replacing it. Nothing here has anything to undo.
+#:
+#: ``idempotentHint`` is False: submitting the same evidence twice records it
+#: twice, which is correct — two fetches of the same query at different times
+#: are two observations.
+_WRITE_LOCAL = {
+    "readOnlyHint": False,
+    "destructiveHint": False,
+    "idempotentHint": False,
+    "openWorldHint": False,
+}
+
 
 #: Recovery step attached to every incident_timeline failure. Hoisted to a
 #: constant so the wording stays in one place rather than drifting per call site.
@@ -69,6 +88,15 @@ _TIMELINE_ERROR_HINT = (
     "corrected in the 'events' argument you pass. 'error' names the offending "
     "entry and the expected form; fix it and call incident_timeline again. Run "
     "list_symptom_categories if you need to know which skill to pull events from."
+)
+
+_CASE_ERROR_HINT = (
+    "The case tools read and write the investigation ledger under $OPS_HOME "
+    "(default ~/.vmware/cases) and touch no VMware system, so a failure here is "
+    "about the case id, the arguments, or the folder itself — never about "
+    "vCenter connectivity. 'error' names what is wrong and what to do; "
+    "case_list shows the ids that exist. Note there is no 'items' key on a "
+    "failure: a call that did not work must not read as an empty result."
 )
 
 #: Exception types this skill raises on purpose, whose text it authors and
@@ -188,6 +216,223 @@ def build_server() -> FastMCP:
         constant, so truncated is always false and total exact —
         this is every category, not a page. Read-only; no network access."""
         return t.list_symptom_categories()
+
+    # ── Investigation cases ───────────────────────────────────────────────
+    # The eight-step evidence loop's ledger. debug holds no credentials and
+    # reaches no VMware environment: the agent fetches with the data-source
+    # skills' read tools and submits the results here, which is what lets a
+    # finished case be reopened and re-argued on a machine with access to
+    # nothing.
+
+    def _case_error(exc: Exception, tool: str) -> dict:
+        """Return a failed call as a payload, never as an empty result."""
+        return {"error": _safe_error(exc, tool), "hint": _CASE_ERROR_HINT}
+
+    @server.tool(name="case_open", annotations=_WRITE_LOCAL)
+    def _case_open_impl(
+        summary: str,
+        determined_by: str,
+        objects: Optional[list[str]] = None,
+        window_start: Optional[str] = None,
+        window_end: Optional[str] = None,
+        product_versions: Optional[dict] = None,
+    ) -> dict:
+        """[WRITE] Open an investigation case — step 01, define the event.
+
+        WHEN: at the start of an incident you expect to reason about rather than
+        glance at. For a one-off lookup use incident_timeline alone.
+
+        INPUT: summary (what is wrong, one line); determined_by (HOW the scope
+        was decided — "user report", "vCenter alarm 42" — required, because a
+        scope from a phone call and one from an alarm id support different
+        conclusions and nobody remembers which it was later); optional objects,
+        window_start/window_end (ISO-8601), product_versions (used to check
+        whether a knowledge-base entry actually applies).
+
+        RETURNS: {case_id, path, state, grade, ceiling, ceiling_reasons, next}.
+        Read `ceiling` now — it is the best grade this install can reach at all.
+
+        GOTCHAS: writes only under $OPS_HOME, never to a VMware system, and
+        never over an existing case."""
+        try:
+            return t.case_open(
+                summary=summary,
+                determined_by=determined_by,
+                objects=objects,
+                window_start=window_start,
+                window_end=window_end,
+                product_versions=product_versions,
+            )
+        except Exception as exc:
+            return _case_error(exc, "case_open")
+
+    @server.tool(name="case_list", annotations=_READ)
+    def _case_list_impl(limit: int = 50) -> dict:
+        """[READ] List investigation cases, newest first.
+
+        WHEN: to find the id of a case you or someone else opened earlier.
+        Returns the family list envelope {items, returned, limit, total,
+        truncated, hint}; each item is {case_id, summary, state, grade,
+        opened_at}. A case whose folder is damaged appears with
+        state="unreadable" rather than vanishing from the list."""
+        try:
+            return t.case_list(limit=limit)
+        except Exception as exc:
+            return _case_error(exc, "case_list")
+
+    @server.tool(name="case_get", annotations=_READ)
+    def _case_get_impl(case_id: str) -> dict:
+        """[READ] One case: its scope, its ledger sizes, and its grade history.
+
+        WHEN: to pick up an investigation, or to see why a case sits at the
+        grade it does. Returns counts and identifiers rather than the whole
+        ledger — read the case folder itself (the `path` from case_open) for
+        full evidence bodies.
+
+        RETURNS: {case_id, path, state, grade, opened_at, scope, evidence_count,
+        sources, gap_count, blocking_gaps, grade_history}. `sources` is the
+        distinct skills evidence came from, which is what corroboration is
+        counted in."""
+        try:
+            return t.case_get(case_id=case_id)
+        except Exception as exc:
+            return _case_error(exc, "case_get")
+
+    # The widest signature here, and deliberately so. `per_tool_token_discipline`
+    # flags it, but ~322 of its ~570 manifest tokens are the JSON schema for
+    # twelve parameters, not prose — and those twelve ARE the evidence contract:
+    # drop one and a conclusion stops being traceable to what produced it.
+    # Folding the four time fields into a nested `time_basis` object would shrink
+    # the schema and make it likelier to be filled wrong; flat optional fields
+    # with explicit nulls are what the design asks for, because an absent key is
+    # what a model fills with invention. Trim the prose here and the cost stays
+    # while the explanation goes.
+    @server.tool(name="case_submit_evidence", annotations=_WRITE_LOCAL)
+    def _case_submit_evidence_impl(
+        case_id: str,
+        source_skill: str,
+        source_tool: str,
+        summary: str,
+        query: Optional[dict] = None,
+        fetched_at: Optional[str] = None,
+        window_start: Optional[str] = None,
+        window_end: Optional[str] = None,
+        time_source: Optional[str] = None,
+        clock_skew_s: Optional[float] = None,
+        falsifies: Optional[list[str]] = None,
+        payload: Optional[dict] = None,
+    ) -> dict:
+        """[WRITE] Record one retrieved fact — steps 02/03 of the evidence loop.
+
+        WHEN: after every read-tool call you intend to reason from.
+
+        INPUT: source_skill + source_tool (which produced it) and query (the
+        exact parameters), so it can be re-run. window_start/window_end are the
+        period the DATA COVERS, not when it was fetched — list_events(hours=24)
+        run at 10:00 and at 18:00 answer different questions, and correlation
+        depends on which. time_source ("vcenter"/"host"/"client") and
+        clock_skew_s feed skew detection; pass null when unknown, never a guess.
+        falsifies: hypothesis ids this RULES OUT — the only thing that can
+        exclude one. payload: the raw result.
+
+        RETURNS: {case_id, evidence_id, grade, reasons}, including the resulting
+        grade so you need no second call to see whether this changed anything.
+
+        GOTCHAS: a fetch that failed or came back empty goes to case_record_gap,
+        not here."""
+        try:
+            return t.case_submit_evidence(
+                case_id=case_id,
+                source_skill=source_skill,
+                source_tool=source_tool,
+                query=query or {},
+                summary=summary,
+                fetched_at=fetched_at,
+                window_start=window_start,
+                window_end=window_end,
+                time_source=time_source,
+                clock_skew_s=clock_skew_s,
+                falsifies=falsifies,
+                payload=payload,
+            )
+        except Exception as exc:
+            return _case_error(exc, "case_submit_evidence")
+
+    @server.tool(name="case_record_gap", annotations=_WRITE_LOCAL)
+    def _case_record_gap_impl(
+        case_id: str,
+        what: str,
+        why: str,
+        how_to_close: str,
+        blocks: Optional[list[str]] = None,
+        could_falsify: bool = False,
+    ) -> dict:
+        """[WRITE] Record something the investigation could NOT obtain.
+
+        WHEN: any time a fetch failed, was refused, returned nothing, or the
+        data simply does not exist in this environment. This is the tool that
+        keeps a case honest: an unrecorded gap makes it look better supported
+        than it is.
+
+        INPUT: what (the missing observation); why (why it could not be had);
+        how_to_close (the next action, even if it is outside this system — a
+        gap with no stated next action reads like a to-do and gets skipped);
+        blocks (hypothesis ids it holds up); could_falsify — would obtaining
+        this be able to prove the hypothesis WRONG? Most gaps are missing
+        corroboration (false: caps the case below Confirmed). A gap that could
+        overturn the hypothesis is different in kind (true: holds it at
+        Candidate, because claiming otherwise claims a check nobody ran).
+
+        RETURNS: {case_id, gap_id, grade, reasons}.
+
+        GOTCHAS: recording a gap does not punish the case for the evidence it
+        does have — a missing confirmation caps the grade, it does not demote
+        it. Writing gaps down is meant to be free."""
+        try:
+            return t.case_record_gap(
+                case_id=case_id,
+                what=what,
+                why=why,
+                how_to_close=how_to_close,
+                blocks=blocks,
+                could_falsify=could_falsify,
+            )
+        except Exception as exc:
+            return _case_error(exc, "case_record_gap")
+
+    @server.tool(name="case_grade", annotations=_WRITE_LOCAL)
+    def _case_grade_impl(case_id: str) -> dict:
+        """[WRITE] Compute and record the conclusion grade — steps 07/08.
+
+        WHEN: when you think the investigation has reached a conclusion, or to
+        record where it stands before handing it over.
+
+        There is deliberately NO parameter for the grade. You cannot state a
+        conclusion level; it is recomputed from the ledger on every call. If
+        you disagree with the result, change the ledger — submit the evidence
+        that is missing, or record the gap that is blocking it.
+
+        The levels: Candidate (a hypothesis exists); Probable (at least two
+        INDEPENDENT sources agree — two calls to the same skill are one source
+        — and nothing outstanding could overturn it); Confirmed (that, plus a
+        decisive item: a direct hardware diagnostic, a version-checked
+        knowledge-base entry, or a vendor SR, and no gap left open); Excluded
+        (an observation that actually rules the hypothesis out — "we looked and
+        found nothing" is a gap, not an exclusion).
+
+        RETURNS: {grade, previous, direction, reasons, ceiling, ceiling_reasons,
+        rules_source, rules_origin}. `direction` is initial/up/down/unchanged —
+        grades may go DOWN, and the history records it when they do.
+
+        GOTCHAS: on a stock install `ceiling` is "probable", because Confirmed
+        needs a decisive source and there is neither a hardware-diagnostic
+        channel nor a knowledge library mounted yet. That is a real limit, not
+        a caution. Every grading is appended to conclusion.md and none is ever
+        rewritten."""
+        try:
+            return t.case_grade(case_id=case_id)
+        except Exception as exc:
+            return _case_error(exc, "case_grade")
 
     return server
 
