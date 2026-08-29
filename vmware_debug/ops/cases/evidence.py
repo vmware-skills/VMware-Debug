@@ -20,9 +20,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vmware_debug.ops.cases.store import CaseNotFound, case_dir, cases_root
+from vmware_debug.ops.cases.store import CaseError, CaseNotFound, case_dir, cases_root
 
 _GAPS = "gaps.json"
+
+
+class EvidenceConflict(CaseError):
+    """Two writers claimed the same evidence id.
+
+    A domain error rather than the builtin ``FileExistsError``: the MCP layer
+    passes deliberate exceptions through and reduces everything else to
+    "operation failed", so a message worth reading has to be raised as one of
+    ours. Reaching for a broad builtin base instead is what once swallowed nine
+    repos' password-error guidance.
+    """
 
 
 def _require(value: str, field_name: str, why: str) -> str:
@@ -185,7 +196,7 @@ def record_evidence(case_id: str, evidence: Evidence, payload: Any = None) -> Ev
 
     path = d / f"{stamped.evidence_id}.json"
     if path.exists():
-        raise FileExistsError(
+        raise EvidenceConflict(
             f"Evidence {stamped.evidence_id} already exists in case {case_id}. "
             f"Two writers appended at once; re-run the submission."
         )

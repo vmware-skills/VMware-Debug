@@ -17,6 +17,7 @@ from vmware_policy import sanitize, set_environment_resolver
 
 from vmware_debug.mcp import tools as t
 from vmware_debug import __version__
+from vmware_debug.ops.cases.store import CaseError
 
 logger = logging.getLogger("mcp_server")
 
@@ -71,15 +72,23 @@ _TIMELINE_ERROR_HINT = (
 )
 
 #: Exception types this skill raises on purpose, whose text it authors and
-#: therefore trusts to reach the agent verbatim. ``ValueError`` is the whole
-#: list because it is the whole vocabulary: every rejection here comes from
-#: ``envelope.py`` or ``ops/timeline.py`` refusing a malformed event, and each
-#: one names the offending entry and the expected form.
+#: therefore trusts to reach the agent verbatim.
+#:
+#: ``ValueError`` covers the event vocabulary: every rejection from
+#: ``envelope.py`` or ``ops/timeline.py`` names the offending entry and the
+#: expected form. ``CaseError`` covers the investigation ledger — a case that
+#: does not exist, a directory that cannot be read, an evidence id claimed
+#: twice. Those messages exist precisely to tell the caller what to do next
+#: ("run case_list to see the ids that exist"), and reducing them to
+#: "CaseNotFound: operation failed." would throw away the part that helps. Both
+#: are bases, so their subclasses pass with them.
 #:
 #: ``RuntimeError`` is deliberately absent. It is Python's generic catch-all, so
 #: allowing it through would pass any library's raw text as if this skill had
-#: written it.
-_TEACHING_ERRORS = (ValueError,)
+#: written it. Broad builtin bases are avoided for the same reason: widening to
+#: ``OSError`` is what once swallowed nine repos' password-error guidance, which
+#: is why the ledger raises ``EvidenceConflict`` rather than ``FileExistsError``.
+_TEACHING_ERRORS = (ValueError, CaseError)
 
 
 def _safe_error(exc: Exception, tool: str) -> str:
