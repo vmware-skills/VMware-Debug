@@ -33,6 +33,7 @@ from vmware_debug.ops.cases.evidence import (
 )
 from vmware_debug.ops.cases.grading import grade_case
 from vmware_debug.ops.cases.model import Scope
+from vmware_debug.ops.cases.plan import plan_next as _plan_next
 from vmware_debug.ops.cases.readiness import readiness as _readiness
 from vmware_debug.ops.cases.store import case_dir, create_case, list_cases, load_case
 
@@ -207,3 +208,12 @@ def grade(case_id: str, at: str | None = None) -> dict[str, Any]:
 def check_readiness(available_skills: list[str] | None = None) -> dict[str, Any]:
     """What grade each kind of investigation can reach here — design section 5."""
     return _readiness(available_skills=available_skills)
+
+
+def plan(
+    case_id: str,
+    category: str | None = None,
+    available_skills: list[str] | None = None,
+) -> dict[str, Any]:
+    """What to fetch next for this case, recomputed from its current state."""
+    return _plan_next(case_id, category=category, available_skills=available_skills)

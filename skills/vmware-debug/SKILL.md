@@ -100,7 +100,7 @@ a recommended plan.
 - **MCP** (in an agent): the agent calls the other skills' read tools, then `incident_timeline` to correlate. This is the primary mode — that's where the cross-skill "联动" happens.
 - **CLI** (humans): `vmware-debug triage --events events.json` correlates a JSON array you collected yourself.
 
-## MCP Tools (9 — 5 read, 4 write)
+## MCP Tools (10 — 6 read, 4 write)
 
 **Correlation** — stateless, for a single look:
 
@@ -115,6 +115,7 @@ a recommended plan.
 |---|---|
 | `case_open` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
 | `case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
+| `case_plan` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
 | `case_list` | [READ] Cases, newest first |
 | `case_get` | [READ] One case: scope, ledger sizes, grade history |
 | `case_submit_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
@@ -159,6 +160,11 @@ ledger — submit the missing evidence, or record the gap that is blocking it.
   version-checked knowledge-base entry, or a vendor SR; and no gap left open
 - **Excluded** — an observation that actually rules it out. "We looked and found
   nothing" is a gap, not an exclusion
+
+`case_plan` is not a checklist: submit evidence and the next plan is shorter,
+lose a source and it routes around it. Its `unavailable` half is the important
+one — a source this install cannot reach is listed there with how to supply it,
+so the gap is visible now rather than when the conclusion refuses to firm up.
 
 `case_readiness` answers this per symptom category rather than as one number —
 "storage reaches Probable, hardware reaches Candidate" can be acted on;

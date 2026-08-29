@@ -171,3 +171,21 @@ routing:
   hardware:
     supporting: [virtualization_state, logs]
     decisive: [hardware]
+
+  # The three below complete the set that ops/timeline.py's keyword classifier
+  # can emit. A classified incident whose category has no routing entry would
+  # produce an empty plan, and an empty plan reads exactly like "nothing to
+  # check" — the family's costliest failure shape, at the step where the whole
+  # investigation is supposed to start. A regression test keeps the two lists
+  # from drifting apart again.
+  power_lifecycle:
+    supporting: [virtualization_state, logs]
+    decisive: [knowledge]
+
+  auth:
+    supporting: [virtualization_state, logs]
+    decisive: [knowledge]
+
+  platform:
+    supporting: [virtualization_state, logs, metrics_and_anomalies]
+    decisive: [knowledge]

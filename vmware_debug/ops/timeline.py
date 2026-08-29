@@ -297,6 +297,16 @@ def incident_timeline(
     }
 
 
+def classify_symptom(text: str, entity: str = "") -> list[str]:
+    """Return the symptom categories this text matches, strongest signal first.
+
+    The public face of the keyword taxonomy. The investigation planner needs to
+    classify a case's scope summary, and reaching into ``_categorize`` for that
+    would make a private helper part of another module's contract by accident.
+    """
+    return [category for category, _suggestion in _categorize(text, entity)]
+
+
 # Kept module-private but exported for tests that assert the catalogue stays
 # in sync with the routing playbooks.
 def known_categories() -> list[str]:

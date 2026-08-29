@@ -14,7 +14,7 @@ vmware-monitor and vmware-aria against a production vSphere estate with Llama
 cross-skill rules are identical across this family; the parts below marked
 vmware-debug are specific to this skill.
 
-vmware-debug exposes 9 MCP tools: 5 reads and 4 writes. It connects to nothing
+vmware-debug exposes 10 MCP tools: 6 reads and 4 writes. It connects to nothing
 and holds no credentials — the calling agent gathers events from the other
 skills, normalises them, and hands them over. The four writes go to the local
 investigation ledger under `~/.vmware/cases/`, never to a VMware system. That

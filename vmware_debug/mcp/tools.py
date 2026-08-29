@@ -52,6 +52,7 @@ from vmware_debug.ops.cases.api import (  # noqa: E402  (grouped with its sectio
     grade as case_grade,
     list_open_cases as case_list,
     open_case as case_open,
+    plan as case_plan,
     submit_evidence as case_submit_evidence,
 )
 
@@ -65,4 +66,5 @@ __all__ = [
     "case_record_gap",
     "case_grade",
     "case_readiness",
+    "case_plan",
 ]

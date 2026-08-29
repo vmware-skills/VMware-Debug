@@ -464,6 +464,48 @@ def build_server() -> FastMCP:
         except Exception as exc:
             return _case_error(exc, "case_readiness")
 
+    @server.tool(name="case_plan", annotations=_READ)
+    def _case_plan_impl(
+        case_id: str,
+        category: Optional[str] = None,
+        available_skills: Optional[list[str]] = None,
+        max_steps: int = 6,
+    ) -> dict:
+        """[READ] What to fetch next for this case — step 02, recomputed each call.
+
+        WHEN: right after case_open, and again after each round of evidence. It
+        is not a checklist: submit something and the next plan is shorter, lose
+        a source and it routes around it.
+
+        INPUT: case_id. Optional category to force the symptom class (storage,
+        network, compute, ha_drs, configuration, accelerator, kubernetes,
+        hardware, power_lifecycle, auth, platform) — omit to infer it from the
+        scope. Optional available_skills to narrow to what is installed.
+        max_steps caps how many steps come back (default 6) — a storage case has
+        fourteen reachable tools, and a plan that long stops being a next step.
+
+        RETURNS: {category, steps, already_covered, held_back, unavailable,
+        ceiling, note}. Steps are interleaved across evidence classes, so you
+        get breadth before depth — corroboration is counted in distinct sources,
+        which is what actually moves the grade.
+        Each step is {evidence_class, skill, tool, purpose, objects, window,
+        degraded} — call that skill's tool, then submit the result with
+        case_submit_evidence.
+
+        GOTCHAS: `unavailable` is the important half. A source this install
+        cannot reach is listed there with how_to_supply rather than left out, so
+        the gap is visible now instead of when the conclusion refuses to firm
+        up. An empty `steps` is never silent — `note` says whether everything
+        reachable is already in, or whether nothing here can be reached."""
+        try:
+            return t.case_plan(
+                case_id=case_id,
+                category=category,
+                available_skills=available_skills,
+            )
+        except Exception as exc:
+            return _case_error(exc, "case_plan")
+
     return server
 
 

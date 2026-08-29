@@ -178,3 +178,23 @@ class TestReadinessAgreesWithTheGrader:
         r = readiness(available_skills=["vmware-monitor"])["categories"]["storage"]
         assert r["independent_sources"] == ["vmware-monitor"]
         assert r["ceiling"] == "candidate"
+
+
+def test_every_classifier_category_has_a_routing_entry():
+    """Two taxonomies of the same thing drift, and this pair would drift
+    silently: a symptom category the classifier can emit but the catalogue does
+    not route produces an EMPTY plan, which reads as "nothing to check" at the
+    exact moment an investigation is supposed to begin.
+
+    The reverse is allowed — a routed category with no keywords yet can still be
+    selected explicitly.
+    """
+    from vmware_debug.ops.timeline import known_categories
+
+    routed = set(load_catalogue()["routing"])
+    missing = set(known_categories()) - routed
+    assert not missing, (
+        f"ops/timeline.py can classify {sorted(missing)} but evidence_sources.yaml "
+        f"routes nowhere for them. Add a routing entry, or the plan for those "
+        f"incidents comes back empty."
+    )
