@@ -13,7 +13,7 @@ import sys
 from typing import Optional, Union
 
 from mcp.server.fastmcp import FastMCP
-from vmware_policy import sanitize, set_environment_resolver
+from vmware_policy import describe_tool_parameters, sanitize, set_environment_resolver
 
 from vmware_debug.mcp import tools as t
 from vmware_debug import __version__
@@ -783,10 +783,11 @@ def build_server() -> FastMCP:
             return t.case_knowledge(case_id=case_id)
         except Exception as exc:
             return _case_error(exc, "case_knowledge")
+    # The docstrings above are the schema — see describe_tool_parameters.
+    describe_tool_parameters(server._tool_manager._tools)
+
 
     return server
-
-
 def main() -> None:
     """Entry point for `vmware-debug-mcp` (stdio transport)."""
     # Floor is 3.10, matching `requires-python` and the other eleven skills.
