@@ -135,7 +135,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "plan.py:84"
+            "where": "plan.py:97"
           },
           {
             "message": "evidence_sources.yaml at {} is missing 'classes' or 'routing'. An empty catalogue would make every r",
@@ -179,39 +179,64 @@
           }
         ],
         "per_dimension_pct": {
-          "names_artifact": 38.1,
-          "names_input": 95.2,
-          "states_remedy": 61.9
+          "names_artifact": 37.2,
+          "names_input": 95.3,
+          "states_remedy": 62.8
         },
-        "raise_sites": 42
+        "raise_sites": 43
       },
-      "maximum": 126,
+      "maximum": 129,
       "pct": 65.1,
       "unit": "points",
-      "value": 82
+      "value": 84
     },
     "manifest_context_headroom": {
       "detail": {
         "heaviest_tools": {
-          "case_open": 478,
-          "case_plan": 444,
-          "case_record_gap": 380,
-          "case_submit_evidence": 902,
-          "incident_timeline": 454
+          "case_open": 521,
+          "case_plan": 499,
+          "case_record_gap": 410,
+          "case_submit_evidence": 971,
+          "incident_timeline": 521
         },
-        "manifest_tokens": 4812,
-        "mean_tokens_per_tool": 343.7,
+        "manifest_tokens": 5160,
+        "mean_tokens_per_tool": 368.6,
         "reference_context": 16384,
         "tool_count": 14
       },
       "maximum": 16384,
-      "pct": 70.6,
+      "pct": 68.5,
       "unit": "tokens",
-      "value": 11572
+      "value": 11224
     },
     "parameter_documentation_coverage": {
       "detail": {
-        "undocumented_by_tool": {}
+        "undocumented_by_tool": {},
+        "value_set_candidates": {
+          "case_open.objects": [
+            "host-12",
+            "vm-web01"
+          ],
+          "case_plan.available_skills": [
+            "monitor",
+            "vmware-monitor"
+          ],
+          "case_readiness.available_skills": [
+            "monitor",
+            "unrecognised_skills",
+            "vmware-monitor"
+          ],
+          "case_submit_evidence.payload": [
+            "events",
+            "items",
+            "rows"
+          ],
+          "case_submit_evidence.time_source": [
+            "client",
+            "host",
+            "vcenter"
+          ]
+        }
       },
       "maximum": 45,
       "pct": 100.0,
@@ -222,12 +247,12 @@
       "detail": {
         "ceiling": 350,
         "over_ceiling": {
-          "case_open": 478,
-          "case_plan": 444,
-          "case_record_gap": 380,
-          "case_submit_evidence": 902,
-          "case_timeline": 374,
-          "incident_timeline": 454
+          "case_open": 521,
+          "case_plan": 499,
+          "case_record_gap": 410,
+          "case_submit_evidence": 971,
+          "case_timeline": 393,
+          "incident_timeline": 521
         }
       },
       "maximum": 14,
@@ -275,15 +300,15 @@
           "hypotheses.py:70"
         ]
       },
-      "maximum": 27,
+      "maximum": 28,
       "pct": 100.0,
       "unit": "messages",
-      "value": 27
+      "value": 28
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 42,
-      "pct": 35.7,
+      "maximum": 43,
+      "pct": 34.9,
       "unit": "messages",
       "value": 15
     },
@@ -291,36 +316,44 @@
       "detail": {
         "per_dimension_pct": {
           "args": 100.0,
-          "gotcha": 100.0,
+          "gotcha": 85.7,
           "marker": 100.0,
-          "next_hop": 78.6,
+          "next_hop": 57.1,
           "what": 100.0,
           "when": 92.9
         },
         "tools_graded": 14,
         "weakest_tools": {
-          "case_close": [],
-          "case_get": [],
-          "case_grade": [],
+          "case_close": [
+            "next_hop"
+          ],
+          "case_get": [
+            "gotcha"
+          ],
+          "case_grade": [
+            "next_hop"
+          ],
           "case_hypotheses": [],
           "case_knowledge": [
             "next_hop"
           ],
           "case_list": [
+            "gotcha",
             "next_hop"
           ],
           "case_readiness": [
             "next_hop"
           ],
           "case_record_gap": [
+            "next_hop",
             "when"
           ]
         }
       },
       "maximum": 84,
-      "pct": 95.2,
+      "pct": 89.3,
       "unit": "points",
-      "value": 80
+      "value": 75
     },
     "tool_failure_payload_quality": {
       "detail": {
