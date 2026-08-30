@@ -256,8 +256,10 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 ## Troubleshooting
 
 - **`incident_timeline` raises "event[N] could not be normalised"** — event N is missing a timestamp or has an unparseable one. Every event needs `ts` (ISO-8601, epoch seconds, or millis).
-- **All hypotheses come back "uncategorized"** — the symptom isn't in the catalogue yet; widen the window and pull from another source (aria anomalies, log-insight). Consider adding a signature (see `references/routing.md`).
-- **No spikes detected on an obvious burst** — you need ≥3 time bins for a baseline; shrink `bin_seconds`.
+- **Most events come back "uncategorized"** — read `classification` in the result: it says how many, what share, and quotes the texts that matched nothing. Do **not** widen the window; a wider window adds baseline, not signal. The spikes still tell you *when*, which is answerable without a category. If the samples name a subsystem the taxonomy does not know, add a signature (see `references/routing.md`).
+- **No spikes detected on an obvious burst** — check `binning` for the resolution you were given. The width is chosen from event density so that bins average ≥4 events; a burst shorter than one bin can still be flattened by it. Pass `bin_seconds` to narrow. Below three bins there is no baseline at all and nothing is reported.
+- **`case_timeline` says zero events after you submitted results** — check `payload_events` in each `case_submit_evidence` reply. Events are read from a bare list, or from `items`/`events`/`rows`; a *summary* of a tool's result carries none. `note` names which items carried nothing and what keys they held instead.
+- **`case_readiness` says a skill you have is not installed** — both spellings are accepted (`monitor` and `vmware-monitor`). A name it did not recognise comes back in `unrecognised_skills` rather than being read as missing.
 - **It won't execute the fix** — by design. Route to vmware-aiops or vmware-pilot.
 
 ## Audit & Safety

@@ -25,6 +25,7 @@ from vmware_policy.paths import ops_path
 
 from vmware_debug.ops.cases.evidence import load_evidence, load_gaps
 from vmware_debug.ops.cases.store import load_case
+from vmware_debug.ops.skill_names import group_by_skill
 
 PACKAGED_RULES = Path(__file__).resolve().parents[2] / "rules" / "grading_rules.yaml"
 
@@ -161,16 +162,29 @@ def grade_case(case_id: str) -> GradeResult:
     # from the right one.
     scope = load_case(case_id).scope
 
-    sources = {e.source_skill for e in evidence}
+    # Independence is counted per SKILL, not per string. 'monitor' and
+    # 'vmware-monitor' are the same skill under two of the family's own
+    # spellings, and counting them separately sells a promotion to Probable for
+    # the price of a typo — corroboration invented out of orthography.
+    by_skill = group_by_skill([e.source_skill for e in evidence])
+    sources = set(by_skill)
     blocking = tuple(g for g in gaps if g.blocks)
     falsifiable = tuple(g for g in blocking if g.could_falsify)
     reasons: list[str] = []
 
     if evidence:
+        submitted = sorted(name for spellings in by_skill.values() for name in spellings)
         reasons.append(
             f"{len(evidence)} evidence item(s) from {len(sources)} source(s): "
-            f"{', '.join(sorted(sources))}."
+            f"{', '.join(submitted)}."
         )
+        merged = {k: v for k, v in by_skill.items() if len(v) > 1}
+        if merged:
+            reasons.append(
+                "Counted as one source each: "
+                + "; ".join(f"{' and '.join(v)} are the same skill" for v in merged.values())
+                + ". Corroboration means a second skill, not a second spelling."
+            )
     else:
         reasons.append("No evidence recorded yet.")
     if blocking:

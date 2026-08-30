@@ -10,7 +10,7 @@ mcp/pydantic (CLAUDE.md 踩坑 #33).
 
 import logging
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 from mcp.server.fastmcp import FastMCP
 from vmware_policy import sanitize, set_environment_resolver
@@ -161,6 +161,12 @@ def build_server() -> FastMCP:
     # than ours. Set it so a client can tell which release it is talking to.
     server._mcp_server.version = __version__
 
+    # 357 tokens against a 350 ceiling, and the seven are the two sentences
+    # pointing at `binning` and `classification`. Both were added because a real
+    # investigation went wrong for want of them: the answer had been computed at
+    # 23-hour resolution and over a stream it could read 20% of, and said
+    # neither. A result whose limits are not stated is read as one without any,
+    # so trimming these two would keep the cost and remove the point.
     @server.tool(name="incident_timeline", annotations=_READ)
     def _incident_timeline_impl(
         events: list[dict],
@@ -183,9 +189,12 @@ def build_server() -> FastMCP:
         omitted), z_threshold (spike sensitivity, default 2.0), top_n (max
         hypotheses, default 5).
 
-        RETURNS: {event_count, window, spikes (anomalous bins), hypotheses
-        (ranked root-cause candidates, each with a suggested_check),
-        next_checks (what to investigate next, including which skill/tool)}.
+        RETURNS: {event_count, window, binning, classification, spikes
+        (strongest anomalous bins), spikes_total, hypotheses (ranked
+        root-cause candidates, each with a suggested_check), next_checks (which
+        skill/tool to run next)}. Read `binning` for the resolution you were
+        given, and `classification` for how much of the stream matched nothing —
+        the ranking describes only the part that did.
 
         GOTCHAS: read-only, stateless, no network — nothing is executed.
         Remediation routes to vmware-aiops (single fix) or vmware-pilot
@@ -321,7 +330,10 @@ def build_server() -> FastMCP:
         clock_skew_s: Optional[float] = None,
         falsifies: Optional[list[str]] = None,
         knowledge_entry_id: Optional[str] = None,
-        payload: Optional[dict] = None,
+        # Union, not dict: the documented payload shape includes a bare array of
+        # events, and typed Optional[dict] that shape was refused by schema
+        # validation before any of this skill's code ran.
+        payload: Optional[Union[dict, list]] = None,
     ) -> dict:
         """[WRITE] Record one retrieved fact — steps 02/03 of the evidence loop.
 
@@ -337,11 +349,16 @@ def build_server() -> FastMCP:
         exclude one. knowledge_entry_id: REQUIRED when source_skill is
         knowledge-kb or knowledge-sr — which mounted entry this is. Without it
         the entry's applies_to cannot be checked against the case, so it is not
-        decisive; run case_knowledge to see what is mounted. payload: the raw
-        result.
+        decisive; run case_knowledge to see what is mounted. payload: the read
+        tool's RAW result, not a summary of it — for its events to reach
+        case_timeline it must be a list of event dicts, or carry them under
+        `items` (the family list envelope), `events` or `rows`.
 
-        RETURNS: {case_id, evidence_id, grade, reasons}, including the resulting
-        grade so you need no second call to see whether this changed anything.
+        RETURNS: {case_id, evidence_id, payload_events, payload_note, grade,
+        reasons} — the resulting grade, so you need no second call to see
+        whether this changed anything, and what the payload was read as, so a
+        summary submitted in place of a result is visible here rather than as a
+        zero from case_timeline later.
 
         GOTCHAS: a fetch that failed or came back empty goes to case_record_gap,
         not here."""
@@ -448,11 +465,16 @@ def build_server() -> FastMCP:
         higher and you want to know whether that is fixable. Answering this
         first is worth far more than discovering it halfway through.
 
-        INPUT: available_skills — the skills actually installed and configured.
-        Omit to assume all of them, which reports the ceiling imposed by the
-        family itself rather than by this install.
+        INPUT: available_skills — the skills actually installed and configured,
+        in either of the family's spellings ("monitor" and "vmware-monitor" name
+        the same thing). Omit to assume all of them, which reports the ceiling
+        imposed by the family itself rather than by this install.
 
-        RETURNS: {classes, categories, note}. Per evidence class: whether it is
+        RETURNS: {classes, categories, unrecognised_skills, note}. A name that
+        matched no skill in the catalogue comes back in `unrecognised_skills`
+        rather than being absorbed into "not installed" — otherwise a typo reads
+        as advice to install something you already have. Per evidence class:
+        whether it is
         available, through which tools, and if not, `how_to_supply`. Per
         symptom category (storage, network, compute, ha_drs, configuration,
         accelerator, kubernetes, hardware): a `ceiling` and the
@@ -485,12 +507,14 @@ def build_server() -> FastMCP:
 
         INPUT: case_id. Optional category to force the symptom class (storage,
         network, compute, ha_drs, configuration, accelerator, kubernetes,
-        hardware, power_lifecycle, auth, platform) — omit to infer it from the
-        scope. Optional available_skills to narrow to what is installed.
+        hardware, host_lifecycle, power_lifecycle, auth, platform) — omit to
+        infer it from the scope. Optional available_skills to narrow to what is
+        installed, in either spelling (monitor or vmware-monitor).
         max_steps caps how many steps come back (default 6) — a storage case has
         fourteen reachable tools, and a plan that long stops being a next step.
 
-        RETURNS: {category, steps, already_covered, held_back, unavailable,
+        RETURNS: {category, category_signals, steps, already_covered,
+        held_back, unavailable,
         ceiling, note}. Steps are interleaved across evidence classes, so you
         get breadth before depth — corroboration is counted in distinct sources,
         which is what actually moves the grade.
@@ -502,7 +526,10 @@ def build_server() -> FastMCP:
         cannot reach is listed there with how_to_supply rather than left out, so
         the gap is visible now instead of when the conclusion refuses to firm
         up. An empty `steps` is never silent — `note` says whether everything
-        reachable is already in, or whether nothing here can be reached."""
+        reachable is already in, or whether nothing here can be reached.
+        `category_signals` names the words that chose the category, and any
+        category that also matched — check it first, since the rest runs off
+        that one word."""
         try:
             return t.case_plan(
                 case_id=case_id,
@@ -553,15 +580,18 @@ def build_server() -> FastMCP:
         reproducible from the case folder alone months later, on a machine with
         access to nothing.
 
-        RETURNS: {event_count, window, spikes, hypotheses, evidence_without_events,
-        rejected, note} and writes timeline.md.
+        RETURNS: {event_count, window, binning, classification, spikes,
+        spikes_total, hypotheses, evidence_without_events,
+        evidence_without_events_detail, rejected, note} and writes timeline.md.
 
         GOTCHAS: `note` distinguishes three states that all show zero events —
         no evidence submitted at all, evidence that carried none, and a genuinely
-        quiet window. `rejected` names any row that could not be read, with the
+        quiet window — and names which items carried none, with what they held
+        instead. `rejected` names any row that could not be read, with the
         evidence item it came from; dropping those silently would shrink the
         picture the conclusion rests on. Submit a read tool's raw result as
-        `payload` for its events to reach here."""
+        `payload` for its events to reach here — a summary of the result carries
+        no rows, and case_submit_evidence says so at the time."""
         try:
             return t.case_timeline(
                 case_id=case_id,

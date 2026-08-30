@@ -24,7 +24,7 @@ from vmware_debug.ops.cases.evidence import load_evidence
 from vmware_debug.ops.cases.readiness import readiness
 from vmware_debug.ops.cases.sources import load_catalogue
 from vmware_debug.ops.cases.store import load_case
-from vmware_debug.ops.timeline import classify_symptom
+from vmware_debug.ops.timeline import classify_symptom_matches
 
 #: What to fetch when the symptom category is not yet known. Broad state from
 #: the one skill that has it, which is what turns "something is weird" into a
@@ -32,13 +32,25 @@ from vmware_debug.ops.timeline import classify_symptom
 _UNCLASSIFIED_CLASSES = ("virtualization_state", "logs")
 
 
-def _infer_category(scope_summary: str, routed: set[str]) -> str | None:
-    """Classify from the scope text, reusing the keyword taxonomy debug already
-    has. A category the catalogue does not route is treated as unknown rather
-    than returned — routing nowhere and saying "storage" would be worse than
-    admitting we do not know."""
-    hits = [c for c in classify_symptom(scope_summary) if c in routed]
-    return hits[0] if hits else None
+def _infer_category(scope_summary: str, routed: set[str]) -> tuple[str | None, list[dict]]:
+    """Classify from the scope text, and return what decided it.
+
+    Reuses the keyword taxonomy debug already has. A category the catalogue does
+    not route is treated as unknown rather than returned — routing nowhere and
+    saying "storage" would be worse than admitting we do not know.
+
+    The signals come back with the answer because everything downstream runs off
+    this one word. The same incident described five ways used to route five
+    ways, each decided by whichever noun happened to be in the sentence, and the
+    plan said only which category it had chosen — so the person best placed to
+    notice the choice was wrong had nothing to notice it from.
+    """
+    signals = [
+        {"category": m["category"], "matched_keywords": m["matched_keywords"]}
+        for m in classify_symptom_matches(scope_summary)
+        if m["category"] in routed
+    ]
+    return (signals[0]["category"] if signals else None), signals
 
 
 #: How many steps a plan offers by default. A storage case has fourteen
@@ -75,7 +87,8 @@ def plan_next(
             f"the case scope."
         )
 
-    inferred = category or _infer_category(case.scope.summary, set(routing))
+    matched, signals = _infer_category(case.scope.summary, set(routing))
+    inferred = category or matched
     ready = readiness(available_skills=available_skills)
     classes = ready["classes"]
 
@@ -116,6 +129,7 @@ def plan_next(
     return {
         "case_id": case_id,
         "category": inferred,
+        "category_signals": signals,
         "steps": steps,
         "already_covered": already,
         "held_back": held_back,
@@ -125,8 +139,27 @@ def plan_next(
             if inferred
             else ready["categories"]["platform"]["ceiling"]
         ),
-        "note": _note(inferred, steps, already, unavailable, held_back),
+        "note": _note(inferred, steps, already, unavailable, held_back, signals),
     }
+
+
+def _signal_sentence(category: str | None, signals: list[dict]) -> str:
+    """Say which words chose the category, and which categories lost.
+
+    Named rather than merely counted: a competing category is the one thing that
+    tells a reader the routing was a judgement rather than a fact.
+    """
+    if not signals or signals[0]["category"] != category:
+        return ""
+    words = ", ".join(f"'{k}'" for k in signals[0]["matched_keywords"])
+    tail = ""
+    if len(signals) > 1:
+        tail = (
+            f" {', '.join(s['category'] for s in signals[1:])} also matched, "
+            f"less strongly — pass category= to force one if this is the wrong "
+            f"reading."
+        )
+    return f" Inferred from {words}.{tail}"
 
 
 def _steps_for(name: str, catalogue_spec: dict, ready_spec: dict, case) -> list[dict]:
@@ -184,7 +217,7 @@ def _unavailable(name: str, spec: dict, decisive: bool = False) -> dict:
     }
 
 
-def _note(category, steps, already, unavailable, held_back) -> str:
+def _note(category, steps, already, unavailable, held_back, signals=()) -> str:
     more = (
         f" {held_back} further step(s) are available for this category — pass a "
         f"larger max_steps to see them."
@@ -195,11 +228,13 @@ def _note(category, steps, already, unavailable, held_back) -> str:
         return (
             "No symptom category matched the scope summary, so this plan fetches "
             "broad state first. Re-run case_plan once that evidence is in — the "
-            "category usually falls out of it. You can also pass one explicitly."
+            "category usually falls out of it. You can also pass one explicitly, "
+            "or run list_symptom_categories to see what is recognised."
         )
     if steps:
         return (
-            f"Category {category}. Run each step with the named skill's tool, then "
+            f"Category {category}.{_signal_sentence(category, list(signals))} Run each "
+            f"step with the named skill's tool, then "
             f"submit the result with case_submit_evidence. Anything you cannot "
             f"get goes to case_record_gap — an unrecorded gap makes the case look "
             f"better supported than it is." + more

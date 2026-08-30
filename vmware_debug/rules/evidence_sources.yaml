@@ -178,6 +178,15 @@ routing:
   # check" — the family's costliest failure shape, at the step where the whole
   # investigation is supposed to start. A regression test keeps the two lists
   # from drifting apart again.
+  # A host that took itself out of service. configuration_drift is supporting
+  # here and nowhere else in this table: entering maintenance mode, shutting
+  # down and rebooting are mostly things a host was TOLD to do — by vLCM
+  # remediation, by DPM, by a scheduled job — so "what changed against the
+  # baseline, and when" is a first-class question rather than a follow-up.
+  host_lifecycle:
+    supporting: [virtualization_state, logs, configuration_drift]
+    decisive: [knowledge]
+
   power_lifecycle:
     supporting: [virtualization_state, logs]
     decisive: [knowledge]

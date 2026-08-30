@@ -35,6 +35,7 @@ from vmware_debug.ops.cases.grading import grade_case
 from vmware_debug.ops.cases.hypotheses import add_hypothesis, hypothesis_ledger
 from vmware_debug.ops.cases.knowledge import knowledge_status as _knowledge_status
 from vmware_debug.ops.cases.model import Scope
+from vmware_debug.ops.cases.payloads import inspect_payload, payload_note
 from vmware_debug.ops.cases.plan import plan_next as _plan_next
 from vmware_debug.ops.cases.readiness import readiness as _readiness
 from vmware_debug.ops.cases.store import case_dir, create_case, list_cases, load_case
@@ -136,7 +137,17 @@ def submit_evidence(
     knowledge_entry_id: str | None = None,
     payload: Any = None,
 ) -> dict[str, Any]:
-    """Step 02/03. Record one retrieved fact and report where that leaves the case."""
+    """Step 02/03. Record one retrieved fact and report where that leaves the case.
+
+    ``payload`` is the read tool's raw result. For its events to reach
+    case_timeline it has to be a list of event dicts, or a mapping carrying them
+    under ``items`` (the family list envelope), ``events`` or ``rows``; what was
+    found is reported back as ``payload_events`` and ``payload_note``. This is
+    the only moment at which a summary submitted in place of a result is
+    knowable, and it used to pass unremarked — the mismatch then surfaced at
+    case_timeline as a zero, advising the caller to do what they had just done.
+    """
+    shape = inspect_payload(payload)
     item = Evidence(
         source_skill=source_skill,
         source_tool=source_tool,
@@ -155,6 +166,8 @@ def submit_evidence(
     return {
         "case_id": case_id,
         "evidence_id": stored.evidence_id,
+        "payload_events": shape.event_count,
+        "payload_note": payload_note(shape),
         "grade": result.grade,
         "reasons": list(result.reasons),
     }

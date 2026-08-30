@@ -110,10 +110,14 @@ def create_case(scope: Scope, at: str) -> Case:
     d = cases_root() / case_id
     if d.exists():
         raise CaseExists(
-            f"Case {case_id} already exists at {d}. Two cases opened for the "
-            f"same summary within the same second collide on the id. Use "
-            f"case_get to look at the existing one, or open the new case with "
-            f"a summary that names what makes it different."
+            f"Case {case_id} already exists at {d}. The id is the open time "
+            f"plus a slug of the summary, so two cases opened in the same "
+            f"second whose summaries reduce to the same slug collide — the "
+            f"summaries need not be identical, and saying they were sent one "
+            f"reporter looking for a duplicate that did not exist. Run "
+            f"case_get {case_id} to see which case is already there; if it is "
+            f"a different incident, open this one with a summary that names "
+            f"what makes it different."
         )
 
     d.mkdir(parents=True)

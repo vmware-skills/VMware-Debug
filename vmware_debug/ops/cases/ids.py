@@ -9,6 +9,7 @@ of the tricks known today.
 
 from __future__ import annotations
 
+import hashlib
 import re
 
 #: Generated ids are ``YYYYMMDD-HHMMSS-<slug>``. The pattern accepts that shape
@@ -83,10 +84,27 @@ def new_case_id(summary: str, at: str) -> str:
             f"something like '2026-08-28T09:15:00Z'."
         )
     prefix = f"{stamp[:8]}-{stamp[8:14]}"
-    slug = slugify(summary)
-    if not slug:
-        # Two cases opened in the same second with equally unusable summaries
-        # would collide here. The store refuses to overwrite an existing case,
-        # so the collision surfaces as an error rather than as a lost case.
-        slug = "case"
-    return validate_case_id(f"{prefix}-{slug}")
+    return validate_case_id(f"{prefix}-{slugify(summary) or _digest_slug(summary)}")
+
+
+def _digest_slug(summary: str) -> str:
+    """A stable id fragment for a summary the id alphabet cannot hold.
+
+    A summary written entirely in Chinese leaves nothing behind ``slugify``, and
+    the previous fallback was the literal word ``case`` — so two unrelated
+    investigations opened in the same second got the same id and the second was
+    refused as a duplicate of the first. Widening the alphabet is not an option:
+    the id becomes a directory name, and its character set is the only thing
+    between a model-chosen string and ``open(root / case_id)``.
+
+    So the id carries a digest of the summary instead. It is not readable, and
+    the readable version is one file away in scope.json — but distinguishing two
+    different investigations is a property the id has to have, and being
+    pronounceable is not.
+    """
+    if not (summary or "").strip():
+        # Nothing to distinguish. Two blank summaries in one second really are
+        # the same case, and the store's refusal to overwrite is the right
+        # answer rather than a manufactured difference.
+        return "case"
+    return "case-" + hashlib.sha256(summary.encode("utf-8")).hexdigest()[:8]

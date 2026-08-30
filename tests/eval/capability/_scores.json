@@ -94,7 +94,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "grading.py:56"
+            "where": "grading.py:57"
           },
           {
             "message": "grading_rules.yaml at {} is not valid YAML: {}. Fix it rather than deleting it \u2014 falling back to the",
@@ -102,7 +102,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "grading.py:58"
+            "where": "grading.py:59"
           },
           {
             "message": "A hypothesis needs a statement \u2014 what you think happened, in one line. An unnamed hypothesis cannot ",
@@ -135,7 +135,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "plan.py:72"
+            "where": "plan.py:84"
           },
           {
             "message": "evidence_sources.yaml at {} is missing 'classes' or 'routing'. An empty catalogue would make every r",
@@ -167,7 +167,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "timeline.py:140"
+            "where": "timeline.py:137"
           },
           {
             "message": "Cannot read case.json for {}: {}",
@@ -175,7 +175,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "timeline.py:154"
+            "where": "timeline.py:151"
           }
         ],
         "per_dimension_pct": {
@@ -194,20 +194,20 @@
       "detail": {
         "heaviest_tools": {
           "case_open": 354,
-          "case_plan": 360,
+          "case_plan": 395,
           "case_record_gap": 337,
-          "case_submit_evidence": 621,
-          "incident_timeline": 329
+          "case_submit_evidence": 693,
+          "incident_timeline": 357
         },
-        "manifest_tokens": 3777,
-        "mean_tokens_per_tool": 269.8,
+        "manifest_tokens": 3988,
+        "mean_tokens_per_tool": 284.9,
         "reference_context": 16384,
         "tool_count": 14
       },
       "maximum": 16384,
-      "pct": 76.9,
+      "pct": 75.7,
       "unit": "tokens",
-      "value": 12607
+      "value": 12396
     },
     "parameter_documentation_coverage": {
       "detail": {
@@ -216,8 +216,7 @@
             "case_id"
           ],
           "case_submit_evidence": [
-            "fetched_at",
-            "summary"
+            "fetched_at"
           ],
           "case_timeline": [
             "bin_seconds",
@@ -228,23 +227,24 @@
         }
       },
       "maximum": 45,
-      "pct": 84.4,
+      "pct": 86.7,
       "unit": "parameters",
-      "value": 38
+      "value": 39
     },
     "per_tool_token_discipline": {
       "detail": {
         "ceiling": 350,
         "over_ceiling": {
           "case_open": 354,
-          "case_plan": 360,
-          "case_submit_evidence": 621
+          "case_plan": 395,
+          "case_submit_evidence": 693,
+          "incident_timeline": 357
         }
       },
       "maximum": 14,
-      "pct": 78.6,
+      "pct": 71.4,
       "unit": "tools",
-      "value": 11
+      "value": 10
     },
     "read_only_manifest_saving": {
       "detail": {
@@ -281,7 +281,7 @@
           "evidence.py:179",
           "evidence.py:211",
           "evidence.py:248",
-          "grading.py:66",
+          "grading.py:67",
           "hypotheses.py:47",
           "hypotheses.py:70"
         ]

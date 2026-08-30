@@ -18,25 +18,9 @@ from vmware_debug.envelope import normalize_events
 from vmware_debug.ops.cases.conclusion import record_grade
 from vmware_debug.ops.cases.evidence import load_evidence, load_gaps
 from vmware_debug.ops.cases.grading import grade_case
+from vmware_debug.ops.cases.payloads import describe_empty, inspect_payload
 from vmware_debug.ops.cases.store import CaseError, case_dir, load_case
 from vmware_debug.ops.timeline import incident_timeline
-
-#: Keys a submitted payload may carry its event rows under. `items` is the
-#: family envelope; the others are what the read tools that predate it use.
-_EVENT_KEYS = ("items", "events", "rows")
-
-
-def _events_from(payload: Any) -> list[dict]:
-    """Pull event-shaped rows out of one submitted payload."""
-    if isinstance(payload, list):
-        return [r for r in payload if isinstance(r, dict)]
-    if not isinstance(payload, dict):
-        return []
-    for key in _EVENT_KEYS:
-        rows = payload.get(key)
-        if isinstance(rows, list):
-            return [r for r in rows if isinstance(r, dict)]
-    return []
 
 
 def build_case_timeline(
@@ -61,7 +45,10 @@ def build_case_timeline(
 
     rows: list[dict] = []
     rejected: list[str] = []
-    without_events = 0
+    # Named, not merely counted. "N items carried no events" is the same
+    # unusable answer the tester was given; which items, and what they held
+    # instead, is what lets someone see they submitted a summary.
+    without_events: list[str] = []
     for item in evidence:
         path = d / f"{item.evidence_id}.json"
         try:
@@ -69,11 +56,11 @@ def build_case_timeline(
         except (OSError, json.JSONDecodeError):
             rejected.append(f"{item.evidence_id}: payload unreadable")
             continue
-        found = _events_from(body.get("payload"))
-        if not found:
-            without_events += 1
+        shape = inspect_payload(body.get("payload"))
+        if not shape.rows:
+            without_events.append(describe_empty(item.evidence_id, shape))
             continue
-        for i, raw in enumerate(found):
+        for i, raw in enumerate(shape.rows):
             try:
                 rows.extend(normalize_events([raw]))
             except Exception as exc:
@@ -85,7 +72,8 @@ def build_case_timeline(
         else {"event_count": 0, "window": None, "spikes": [], "hypotheses": []}
     )
     result["case_id"] = case_id
-    result["evidence_without_events"] = without_events
+    result["evidence_without_events"] = len(without_events)
+    result["evidence_without_events_detail"] = without_events
     result["rejected"] = rejected
     result["note"] = _note(len(evidence), len(rows), without_events, rejected)
 
@@ -93,7 +81,7 @@ def build_case_timeline(
     return result
 
 
-def _note(evidence_count: int, event_count: int, without: int, rejected: list) -> str:
+def _note(evidence_count: int, event_count: int, without: list[str], rejected: list) -> str:
     if evidence_count == 0:
         return (
             "No evidence has been submitted, so there is no timeline to build. "
@@ -103,12 +91,21 @@ def _note(evidence_count: int, event_count: int, without: int, rejected: list) -
     if event_count == 0:
         return (
             f"No events among {evidence_count} evidence item(s): "
-            f"{without} carried no event rows. That is not the same as a quiet "
-            f"window — submit an event-returning tool's result (get_events, "
-            f"log_search) with its `payload` to build a timeline."
+            f"{len(without)} carried no event rows ({'; '.join(without)}). That "
+            f"is not the same as a quiet window. Events are read from a bare "
+            f"list, or from `items` (the family list envelope), `events` or "
+            f"`rows` in the submitted payload — submit the read tool's raw "
+            f"result rather than a summary of it. A query that genuinely "
+            f"returned nothing belongs in case_record_gap, not here."
         )
-    tail = f" {len(rejected)} row(s) could not be read and are listed." if rejected else ""
-    return f"{event_count} event(s) from {evidence_count - without} evidence item(s)." + tail
+    tail = ""
+    if without:
+        tail += f" {len(without)} item(s) carried no event rows ({'; '.join(without)})."
+    if rejected:
+        tail += f" {len(rejected)} row(s) could not be read and are listed."
+    return (
+        f"{event_count} event(s) from {evidence_count - len(without)} evidence item(s)." + tail
+    )
 
 
 def _write_timeline_md(case_id: str, result: dict, rows: list) -> None:

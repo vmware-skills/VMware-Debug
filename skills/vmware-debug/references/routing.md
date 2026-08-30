@@ -10,6 +10,7 @@ Keep this in sync with `_CATEGORY_SIGNATURES` in `vmware_debug/ops/timeline.py`
 | **network** | vmotion, uplink, link down, mtu, firewall, dfw, segment, tier-0, bgp | vmware-nsx, vmware-nsx-security (traceflow, DFW hits) | pilot |
 | **compute** | cpu ready, memory, balloon, swap, contention, numa | vmware-aria (metrics + anomalies) | pilot (rightsizing) |
 | **ha_drs** | ha, high availability, drs, failover, admission control, isolation | vmware-monitor, vmware-aiops (cluster) | pilot |
+| **host_lifecycle** | maintenance mode, shut down of, host reboot, standby mode, lost connection to, cannot synchronize, not responding | vmware-monitor (host/cluster state), vmware-harden (drift — a host that left service on cue was told to), vmware-log-insight (vpxd/hostd) | pilot |
 | **power_lifecycle** | power on/off, failed to start, boot, vmx, ovf, clone, snapshot | vmware-aiops (task status, snapshot tree), vmware-monitor | aiops |
 | **auth** | login, authentication, denied, 401, 403, token, certificate, tls | config/.env, target cert + time sync | config fix |
 | **platform** | vpxd, hostd, service restart, crash, 503, not responding, disconnected | vmware-monitor (connection/service), vmware-log-insight (vpxd/hostd) | pilot |

@@ -21,7 +21,7 @@ runtime dependency** on the other packages (no version lockstep, no heavy instal
 | Field | Type | Notes |
 |---|---|---|
 | `ts` | string \| number | ISO-8601, epoch **seconds**, or epoch **millis** (auto-detected). Required. |
-| `source` | string | `monitor` \| `aria` \| `loginsight` \| `nsx` \| `nsx-security` \| `storage` \| ... |
+| `source` | string | `monitor` \| `aria` \| `loginsight` \| `nsx` \| `nsx-security` \| `storage` \| ... The catalogue in `rules/evidence_sources.yaml` spells the same skills `vmware-monitor`, `vmware-aria`, `vmware-log-insight`. Both spellings are understood wherever a skill is named — `case_readiness(available_skills=...)`, and the grader's count of independent sources, which treats two spellings of one skill as one source. |
 | `severity` | string | Free text; normalised to `critical`/`error`/`warning`/`info`/`unknown`. |
 | `entity` | string | The object the event is about (VM/host/datastore). May be empty. |
 | `text` | string | Human-readable message — this is what the symptom classifier matches on. |

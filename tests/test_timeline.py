@@ -162,7 +162,11 @@ def test_rank_hypotheses_orders_by_severity_weight():
 def test_rank_hypotheses_keeps_uncategorized_visible():
     hyps = rank_hypotheses([_ev(1, "error", text="something totally novel")])
     assert hyps[0].category == "uncategorized"
-    assert "another source" in hyps[0].suggested_check
+    # The advice used to be "widen the search window", which is a loop for
+    # anyone who has already widened it. What replaces it has to be reachable
+    # from what the caller is holding.
+    assert "widen" not in hyps[0].suggested_check.lower()
+    assert "sample_text" in hyps[0].suggested_check
 
 
 # ── top-level incident_timeline ─────────────────────────────────────────
