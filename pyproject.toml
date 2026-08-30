@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vmware-debug"
-version = "1.11.0"
+version = "1.11.1"
 description = "VMware diagnostic brain — read-only incident triage, log/event correlation, and root-cause routing across the VMware skill family"
 readme = "README.md"
 license = "MIT"
