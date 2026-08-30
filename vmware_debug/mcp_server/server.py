@@ -161,12 +161,16 @@ def build_server() -> FastMCP:
     # than ours. Set it so a client can tell which release it is talking to.
     server._mcp_server.version = __version__
 
-    # 357 tokens against a 350 ceiling, and the seven are the two sentences
-    # pointing at `binning` and `classification`. Both were added because a real
+    # 454 tokens against a 350 ceiling. The first seven over were the two
+    # sentences pointing at `binning` and `classification`, added because a real
     # investigation went wrong for want of them: the answer had been computed at
     # 23-hour resolution and over a stream it could read 20% of, and said
     # neither. A result whose limits are not stated is read as one without any,
-    # so trimming these two would keep the cost and remove the point.
+    # so trimming those two would keep the cost and remove the point. The rest
+    # is the `Args:` block, which is not decoration either: without a per-
+    # parameter description the schema an agent reads says only "number", and
+    # bin_seconds and z_threshold are exactly the two knobs a wrong guess makes
+    # silently useless.
     @server.tool(name="incident_timeline", annotations=_READ)
     def _incident_timeline_impl(
         events: list[dict],
@@ -183,12 +187,6 @@ def build_server() -> FastMCP:
         next. Not sure which events to pull? Run list_symptom_categories
         first. This tool does NOT fetch anything itself.
 
-        INPUT: events = event envelopes, each {ts, source, severity, entity,
-        text, fields} (ts may be ISO-8601, epoch seconds or millis; severity
-        is normalised). Optional: bin_seconds (time-bin width; auto if
-        omitted), z_threshold (spike sensitivity, default 2.0), top_n (max
-        hypotheses, default 5).
-
         RETURNS: {event_count, window, binning, classification, spikes
         (strongest anomalous bins), spikes_total, hypotheses (ranked
         root-cause candidates, each with a suggested_check), next_checks (which
@@ -199,7 +197,24 @@ def build_server() -> FastMCP:
         GOTCHAS: read-only, stateless, no network — nothing is executed.
         Remediation routes to vmware-aiops (single fix) or vmware-pilot
         (multi-step). A malformed event returns {error, hint} naming the
-        offending index."""
+        offending index.
+
+        Args:
+            events: Event envelopes, each {ts, source, severity, entity, text,
+                fields}. ts may be ISO-8601, epoch seconds or epoch millis and
+                is required; severity is normalised onto critical/error/warning/
+                info/unknown, so vendor spellings (fatal, red, warn, yellow,
+                notice, green) are accepted. An entry that cannot be normalised
+                is refused with its index, not skipped.
+            bin_seconds: Time-bin width in seconds. Omit and it is chosen from
+                event density off the ladder 1/10/60/300/900/3600/21600/86400,
+                taking the finest width still averaging 4 events per bin.
+            z_threshold: Standard deviations above the mean bin count that mark
+                a spike (default 2.0). Under 3 bins, or a flat series, yields
+                none at any threshold — empty spikes is not "calm".
+            top_n: How many ranked hypotheses come back (default 5). Spikes are
+                capped separately at 20, true count in 'spikes_total'.
+        """
         try:
             return t.incident_timeline(events, bin_seconds, z_threshold, top_n)
         except Exception as exc:
@@ -251,18 +266,32 @@ def build_server() -> FastMCP:
         WHEN: at the start of an incident you expect to reason about rather than
         glance at. For a one-off lookup use incident_timeline alone.
 
-        INPUT: summary (what is wrong, one line); determined_by (HOW the scope
-        was decided — "user report", "vCenter alarm 42" — required, because a
-        scope from a phone call and one from an alarm id support different
-        conclusions and nobody remembers which it was later); optional objects,
-        window_start/window_end (ISO-8601), product_versions (used to check
-        whether a knowledge-base entry actually applies).
-
         RETURNS: {case_id, path, state, grade, ceiling, ceiling_reasons, next}.
         Read `ceiling` now — it is the best grade this install can reach at all.
 
         GOTCHAS: writes only under $OPS_HOME, never to a VMware system, and
-        never over an existing case."""
+        never over an existing case.
+
+        Args:
+            summary: What is wrong, one line. case_plan reads it to infer the
+                symptom category, so name the symptom in the estate's own words
+                ("datastore latency on cluster-a"), not a diagnosis.
+            determined_by: HOW the scope was decided — "user report", "vCenter
+                alarm 42". Required: a scope from a phone call and one from an
+                alarm id support different conclusions, and nobody remembers
+                which it was later.
+            objects: Entities in scope, names or MoIDs ("vm-web01", "host-12").
+                Omit for a case not yet pinned to specific objects.
+            window_start: When the incident is believed to have started,
+                ISO-8601. Omit if unknown — evidence gets fetched against it,
+                so an invented window is worse than none.
+            window_end: Believed end, ISO-8601. Omit while still in progress.
+            product_versions: Versions keyed by product — {"esxi": "8.0.3"} —
+                plus "driver.<name>" / "firmware.<name>" entries. Knowledge-base
+                entries are version-checked against this: one constraining a
+                product absent here can support a hypothesis but never make the
+                case Confirmed, since an unanswerable constraint is not a pass.
+        """
         try:
             return t.case_open(
                 summary=summary,
@@ -283,7 +312,13 @@ def build_server() -> FastMCP:
         Returns the family list envelope {items, returned, limit, total,
         truncated, hint}; each item is {case_id, summary, state, grade,
         opened_at}. A case whose folder is damaged appears with
-        state="unreadable" rather than vanishing from the list."""
+        state="unreadable" rather than vanishing from the list.
+
+        Args:
+            limit: Maximum cases in the page, newest first (default 50). There
+                is no offset — 'total' reports every case, so when truncated is
+                true the only way to reach older ones is a larger limit.
+        """
         try:
             return t.case_list(limit=limit)
         except Exception as exc:
@@ -301,15 +336,21 @@ def build_server() -> FastMCP:
         RETURNS: {case_id, path, state, grade, opened_at, scope, evidence_count,
         sources, gap_count, blocking_gaps, grade_history}. `sources` is the
         distinct skills evidence came from, which is what corroboration is
-        counted in."""
+        counted in.
+
+        Args:
+            case_id: The case id returned by case_open, or listed by case_list.
+                An unknown id is an error, never an empty case.
+        """
         try:
             return t.case_get(case_id=case_id)
         except Exception as exc:
             return _case_error(exc, "case_get")
 
     # The widest signature here, and deliberately so. `per_tool_token_discipline`
-    # flags it, but ~322 of its ~570 manifest tokens are the JSON schema for
-    # twelve parameters, not prose — and those twelve ARE the evidence contract:
+    # flags it, but ~322 of its ~900 manifest tokens are the JSON schema for
+    # thirteen parameters, not prose — and those thirteen ARE the evidence
+    # contract:
     # drop one and a conclusion stops being traceable to what produced it.
     # Folding the four time fields into a nested `time_basis` object would shrink
     # the schema and make it likelier to be filled wrong; flat optional fields
@@ -339,21 +380,6 @@ def build_server() -> FastMCP:
 
         WHEN: after every read-tool call you intend to reason from.
 
-        INPUT: source_skill + source_tool (which produced it) and query (the
-        exact parameters), so it can be re-run. window_start/window_end are the
-        period the DATA COVERS, not when it was fetched — list_events(hours=24)
-        run at 10:00 and at 18:00 answer different questions, and correlation
-        depends on which. time_source ("vcenter"/"host"/"client") and
-        clock_skew_s feed skew detection; pass null when unknown, never a guess.
-        falsifies: hypothesis ids this RULES OUT — the only thing that can
-        exclude one. knowledge_entry_id: REQUIRED when source_skill is
-        knowledge-kb or knowledge-sr — which mounted entry this is. Without it
-        the entry's applies_to cannot be checked against the case, so it is not
-        decisive; run case_knowledge to see what is mounted. payload: the read
-        tool's RAW result, not a summary of it — for its events to reach
-        case_timeline it must be a list of event dicts, or carry them under
-        `items` (the family list envelope), `events` or `rows`.
-
         RETURNS: {case_id, evidence_id, payload_events, payload_note, grade,
         reasons} — the resulting grade, so you need no second call to see
         whether this changed anything, and what the payload was read as, so a
@@ -361,7 +387,50 @@ def build_server() -> FastMCP:
         zero from case_timeline later.
 
         GOTCHAS: a fetch that failed or came back empty goes to case_record_gap,
-        not here."""
+        not here.
+
+        Args:
+            case_id: The case this fact belongs to (from case_open/case_list).
+                Required.
+            source_skill: The skill that produced it, as the family spells it —
+                "vmware-monitor", "vmware-aria", "vmware-log-insight". Required,
+                non-blank. Two items from the SAME skill count as ONE source
+                when corroboration is counted, so this string decides whether
+                the case can reach Probable. Two reserved values name the
+                knowledge layer instead: "knowledge-kb" and "knowledge-sr", the
+                only sources that can be decisive.
+            source_tool: The tool within that skill, e.g. "get_events".
+                Required, non-blank — "monitor said so" is not reproducible.
+            summary: What this item shows, one line.
+            query: The exact parameters the tool was called with, so it can be
+                re-run. Omit only if there genuinely were none.
+            fetched_at: When the fetch happened, ISO-8601. Omit to stamp now —
+                wrong for an item transcribed from earlier.
+            window_start: Start of the period the DATA COVERS, ISO-8601 — not
+                when it was fetched. get_events(hours=24) run at 10:00 and at
+                18:00 answer different questions.
+            window_end: End of the period the data covers, ISO-8601.
+            time_source: Whose clock stamped it — "vcenter", "host" or "client".
+                Recorded so a reader can judge whether two sources' timestamps
+                compare; nothing in this release corrects for it. Null when
+                unknown, never a guess.
+            clock_skew_s: Known offset of that clock from UTC, in seconds.
+                Recorded, likewise not applied. Null when unknown.
+            falsifies: Hypothesis ids (H1, H2, …) this observation RULES OUT —
+                the only route to Excluded; "we looked and found nothing" is a
+                gap, not an exclusion. Ids must already exist via
+                case_hypotheses; an unregistered id is refused and nothing is
+                written.
+            knowledge_entry_id: Which mounted knowledge entry this item IS.
+                REQUIRED when source_skill is knowledge-kb or knowledge-sr —
+                without it the entry's applies_to cannot be checked, so it
+                counts as ordinary support and can never make the case
+                Confirmed. case_knowledge lists what is mounted.
+            payload: The read tool's RAW result, not a summary. For its events
+                to reach case_timeline it must be a list of event dicts, or
+                carry them under 'items', 'events' or 'rows'. What was found
+                comes back as payload_events/payload_note.
+        """
         try:
             return t.case_submit_evidence(
                 case_id=case_id,
@@ -397,20 +466,28 @@ def build_server() -> FastMCP:
         keeps a case honest: an unrecorded gap makes it look better supported
         than it is.
 
-        INPUT: what (the missing observation); why (why it could not be had);
-        how_to_close (the next action, even if it is outside this system — a
-        gap with no stated next action reads like a to-do and gets skipped);
-        blocks (hypothesis ids it holds up); could_falsify — would obtaining
-        this be able to prove the hypothesis WRONG? Most gaps are missing
-        corroboration (false: caps the case below Confirmed). A gap that could
-        overturn the hypothesis is different in kind (true: holds it at
-        Candidate, because claiming otherwise claims a check nobody ran).
-
         RETURNS: {case_id, gap_id, grade, reasons}.
 
         GOTCHAS: recording a gap does not punish the case for the evidence it
         does have — a missing confirmation caps the grade, it does not demote
-        it. Writing gaps down is meant to be free."""
+        it. Writing gaps down is meant to be free.
+
+        Args:
+            case_id: The case this gap belongs to (from case_open/case_list).
+            what: The observation that could not be obtained — the thing you
+                wanted, not the error you got.
+            why: Why it could not be had — refused, unreachable, collected by
+                nothing in this family, absent from this environment.
+            how_to_close: The next action that would close it, even outside this
+                system ("open a vendor SR"). A gap with no stated next action
+                reads like a to-do and gets skipped.
+            blocks: Hypothesis ids (H1, H2, …) this gap holds up; they must
+                already exist via case_hypotheses. Empty is fine.
+            could_falsify: Would OBTAINING this be able to prove the hypothesis
+                WRONG? false (default) is the ordinary case — missing
+                corroboration, capping the case below Confirmed. true means it
+                could overturn the hypothesis, holding it at Candidate.
+        """
         try:
             return t.case_record_gap(
                 case_id=case_id,
@@ -451,7 +528,12 @@ def build_server() -> FastMCP:
         needs a decisive source and there is neither a hardware-diagnostic
         channel nor a knowledge library mounted yet. That is a real limit, not
         a caution. Every grading is appended to conclusion.md and none is ever
-        rewritten."""
+        rewritten.
+
+        Args:
+            case_id: The case to grade (from case_open/case_list). This is the
+                only parameter — see above for why there is no grade parameter.
+        """
         try:
             return t.case_grade(case_id=case_id)
         except Exception as exc:
@@ -464,11 +546,6 @@ def build_server() -> FastMCP:
         WHEN: before starting an investigation, or when a case will not go
         higher and you want to know whether that is fixable. Answering this
         first is worth far more than discovering it halfway through.
-
-        INPUT: available_skills — the skills actually installed and configured,
-        in either of the family's spellings ("monitor" and "vmware-monitor" name
-        the same thing). Omit to assume all of them, which reports the ceiling
-        imposed by the family itself rather than by this install.
 
         RETURNS: {classes, categories, unrecognised_skills, note}. A name that
         matched no skill in the catalogue comes back in `unrecognised_skills`
@@ -486,7 +563,16 @@ def build_server() -> FastMCP:
         two available classes do not always mean Probable. The hardware class is
         unavailable no matter what is installed — nothing in this family reaches
         below ESXi — and the knowledge class becomes available only when entries
-        are mounted under $OPS_HOME/knowledge/."""
+        are mounted under $OPS_HOME/knowledge/.
+
+        Args:
+            available_skills: The skills actually installed and configured, in
+                either of the family's spellings — "monitor" and "vmware-monitor"
+                name the same thing. Omit to assume all of them, which reports
+                the ceiling imposed by the family itself rather than by this
+                install. A name matching no catalogued skill comes back in
+                `unrecognised_skills` rather than being read as "not installed".
+        """
         try:
             return t.case_readiness(available_skills=available_skills)
         except Exception as exc:
@@ -505,14 +591,6 @@ def build_server() -> FastMCP:
         is not a checklist: submit something and the next plan is shorter, lose
         a source and it routes around it.
 
-        INPUT: case_id. Optional category to force the symptom class (storage,
-        network, compute, ha_drs, configuration, accelerator, kubernetes,
-        hardware, host_lifecycle, power_lifecycle, auth, platform) — omit to
-        infer it from the scope. Optional available_skills to narrow to what is
-        installed, in either spelling (monitor or vmware-monitor).
-        max_steps caps how many steps come back (default 6) — a storage case has
-        fourteen reachable tools, and a plan that long stops being a next step.
-
         RETURNS: {category, category_signals, steps, already_covered,
         held_back, unavailable,
         ceiling, note}. Steps are interleaved across evidence classes, so you
@@ -529,7 +607,23 @@ def build_server() -> FastMCP:
         reachable is already in, or whether nothing here can be reached.
         `category_signals` names the words that chose the category, and any
         category that also matched — check it first, since the rest runs off
-        that one word."""
+        that one word.
+
+        Args:
+            case_id: The case to plan for (from case_open/case_list).
+            category: Force the symptom class instead of inferring it. Exactly
+                one of: storage, network, compute, ha_drs, configuration,
+                accelerator, kubernetes, hardware, host_lifecycle,
+                power_lifecycle, auth, platform. Omit to infer, then read
+                `category_signals` for the word that decided it.
+            available_skills: Narrow to the skills actually installed, in either
+                spelling ("monitor" or "vmware-monitor"). Omit to assume all of
+                them, which can produce steps this install cannot run.
+            max_steps: HAS NO EFFECT in this release — accepted but never
+                forwarded to the planner, which always caps at 6. The result's
+                note may still advise raising it; doing so changes nothing.
+                Read `held_back` for how many steps were cut.
+        """
         try:
             return t.case_plan(
                 case_id=case_id,
@@ -560,7 +654,17 @@ def build_server() -> FastMCP:
         supported, the same way a case does not get to state its own grade.
 
         GOTCHAS: refuted outranks blocked. Once an observation settles the
-        question, a missing measurement no longer matters."""
+        question, a missing measurement no longer matters.
+
+        Args:
+            case_id: The case whose hypothesis ledger this is (from
+                case_open/case_list).
+            statement: The candidate explanation, in one line. Pass it to
+                register a new hypothesis, which is assigned the next id (H1,
+                H2, …); omit it to read the ledger without changing it. There is
+                no parameter for a hypothesis's status — status is computed from
+                the evidence and gaps that point at it.
+        """
         try:
             return t.case_hypotheses(case_id=case_id, statement=statement)
         except Exception as exc:
@@ -591,7 +695,21 @@ def build_server() -> FastMCP:
         evidence item it came from; dropping those silently would shrink the
         picture the conclusion rests on. Submit a read tool's raw result as
         `payload` for its events to reach here — a summary of the result carries
-        no rows, and case_submit_evidence says so at the time."""
+        no rows, and case_submit_evidence says so at the time.
+
+        Args:
+            case_id: The case whose submitted payloads are correlated (from
+                case_open/case_list). Unlike incident_timeline this takes no
+                events — everything comes from the case folder.
+            bin_seconds: Time-bin width in seconds. Omit and it is chosen from
+                event density (ladder 1..86400, finest width still averaging 4
+                events per bin); `binning` reports which was used.
+            z_threshold: Standard deviations above the mean bin count that mark
+                a spike (default 2.0). Under 3 bins, or a flat series, yields
+                none at any threshold.
+            top_n: How many ranked hypotheses come back (default 5). Spikes are
+                capped separately at 20, true count in 'spikes_total'.
+        """
         try:
             return t.case_timeline(
                 case_id=case_id,
@@ -616,7 +734,13 @@ def build_server() -> FastMCP:
 
         GOTCHAS: a closed case is not closed again and its record is never
         rewritten. To reopen the question, open a new case that cites this one,
-        so the original conclusion and whatever changed it both stay readable."""
+        so the original conclusion and whatever changed it both stay readable.
+
+        Args:
+            case_id: The case to close (from case_open/case_list). There is no
+                grade parameter — closing recomputes the grade from the ledger.
+                An already-closed case is refused rather than closed again.
+        """
         try:
             return t.case_close(case_id=case_id)
         except Exception as exc:
@@ -630,10 +754,6 @@ def build_server() -> FastMCP:
         or when a case will not reach Confirmed and you need to say why in terms
         they can act on. This is the answer to "which knowledge formats do you
         take" — the first question anyone mounting a library asks.
-
-        INPUT: optional case_id. With it, each mounted entry is also checked
-        against that case's recorded versions, so you can say which entries
-        could make THAT case Confirmed and which cannot, with the reason.
 
         RETURNS: {root, sections, entries, with_applies_to, by_source,
         unreadable, unsupported, formats, needs_conversion, note} — plus
@@ -650,7 +770,15 @@ def build_server() -> FastMCP:
         wrong build reads exactly like the right one. An entry with no
         `applies_to` can support a hypothesis but can never make a case
         Confirmed. A constraint the case scope cannot answer is not a match
-        either: silence is not a pass."""
+        either: silence is not a pass.
+
+        Args:
+            case_id: Omit to describe the knowledge layer itself — what formats
+                are read and what is mounted. Pass a case id and every mounted
+                entry is additionally version-checked against THAT case's
+                product_versions, adding `applicable` and `decisive_here` with
+                the reason each entry did or did not qualify.
+        """
         try:
             return t.case_knowledge(case_id=case_id)
         except Exception as exc:
