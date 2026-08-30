@@ -33,7 +33,9 @@ vmware-debug categories          # 看它能诊断哪些症状类别
 - `list_symptom_categories`：症状类别及对应的排查路由（不知道查什么时用它）
 
 **事件信封**：`{ts, source, severity, entity, text, fields}`。agent 把各源事件归一成此形状再交给
-debug；debug 因此与其它包零运行时依赖。
+debug；debug 因此与其它包零运行时依赖。**请把每条事件的 `event_type` 保留在 `fields` 里**——
+分类器除了正文之外也匹配它，而现代 vSphere 多数事件是 `EventEx`：正文是一句通用套话，
+真正说明「这是什么事件」的只有 `eventTypeId`。
 
 ## 安全
 

@@ -14,7 +14,8 @@ runtime dependency** on the other packages (no version lockstep, no heavy instal
   "severity": "error",
   "entity":   "vm-web01",
   "text":     "Device naa.600... performance has deteriorated",
-  "fields":   { "host": "esxi-03", "datastore": "ds1" }
+  "fields":   { "event_type": "esx.problem.scsi.device.io.latency.high",
+                "host": "esxi-03", "datastore": "ds1" }
 }
 ```
 
@@ -24,8 +25,23 @@ runtime dependency** on the other packages (no version lockstep, no heavy instal
 | `source` | string | `monitor` \| `aria` \| `loginsight` \| `nsx` \| `nsx-security` \| `storage` \| ... The catalogue in `rules/evidence_sources.yaml` spells the same skills `vmware-monitor`, `vmware-aria`, `vmware-log-insight`. Both spellings are understood wherever a skill is named — `case_readiness(available_skills=...)`, and the grader's count of independent sources, which treats two spellings of one skill as one source. |
 | `severity` | string | Free text; normalised to `critical`/`error`/`warning`/`info`/`unknown`. |
 | `entity` | string | The object the event is about (VM/host/datastore). May be empty. |
-| `text` | string | Human-readable message — this is what the symptom classifier matches on. |
-| `fields` | object | Any source-specific extras; preserved, never dropped. |
+| `text` | string | Human-readable message. Matched by the symptom classifier. |
+| `fields` | object | Any source-specific extras; preserved, never dropped. `event_type` / `eventTypeId` is matched by the classifier too — see below. |
+
+### `fields.event_type` is worth passing
+
+The classifier matches the identifier as well as the prose, with camelCase and
+dots split so a two-word keyword can reach it (`HostShutdownEvent` → `host
+shutdown`, `esx.problem.cpu.ready` → `cpu ready`).
+
+For a classic vCenter event this changes almost nothing — `VmMigratedEvent` and
+its message say the same words. It matters for `EventEx`, which is how modern
+vSphere emits most events: the message is generic boilerplate ("Issue detected on
+esx01") and the whole identity is in `eventTypeId`. Drop that field and a storage
+incident arrives as an unreadable event; keep it and it classifies as storage.
+
+`vmware-monitor`'s `get_events` returns it as `event_type`; passing the row
+through unchanged is enough.
 
 The normaliser is tolerant of common field-name variants (e.g. `timestamp`,
 `createTime`, `startTimeUTC` for `ts`; `criticality`, `level` for `severity`;

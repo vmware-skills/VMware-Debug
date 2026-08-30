@@ -72,10 +72,23 @@ def plan_next(
         case_id: The case to plan for.
         category: Force a symptom category. Omit to infer it from the scope.
         available_skills: Narrow to the skills actually installed.
-        max_steps: Cap on steps returned. Whatever is held back is counted in
-            the result and named in the note — a silently truncated plan reads
-            as a complete one.
+        max_steps: Cap on steps returned, at least 1. Whatever is held back is
+            counted in the result and named in the note — a silently truncated
+            plan reads as a complete one.
+
+    Raises:
+        ValueError: if ``max_steps`` is below 1. Slicing would otherwise accept
+            it and answer plausibly: ``[:0]`` gives an empty plan, which the
+            caller reads as "nothing left to fetch", and ``[:-3]`` quietly drops
+            the last three steps. Both are wrong answers wearing the shape of
+            right ones.
     """
+    if max_steps < 1:
+        raise ValueError(
+            f"max_steps must be at least 1, got {max_steps}. Omit it for the "
+            f"default of {DEFAULT_MAX_STEPS}, or raise it to see the steps "
+            f"counted in 'held_back'."
+        )
     case = load_case(case_id)
     cat = load_catalogue()
     routing = cat["routing"]

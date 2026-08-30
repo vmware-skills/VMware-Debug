@@ -13,39 +13,71 @@ import sys
 from typing import Optional, Union
 
 from mcp.server.fastmcp import FastMCP
-from vmware_policy import describe_tool_parameters, sanitize, set_environment_resolver
+from vmware_policy import describe_tool_parameters, sanitize
 
 from vmware_debug.mcp import tools as t
 from vmware_debug import __version__
+from vmware_debug.ops.cases.plan import DEFAULT_MAX_STEPS
 from vmware_debug.ops.cases.store import CaseError
 
 logger = logging.getLogger("mcp_server")
 
 
 # ---------------------------------------------------------------------------
-# Environment declaration
+# Environment declaration — deliberately absent
 # ---------------------------------------------------------------------------
-
-#: What this skill reports as the environment of everything it touches.
-#:
-#: Policy rules scope by environment, and the baseline treats a target that
-#: declares none as unknown — today that warns on state-changing operations,
-#: and the next major release refuses them. Every other skill answers this from
-#: its own config, where an operator labels each target ``production`` /
-#: ``staging`` / ``lab``.
-#:
-#: vmware-debug has no such config and no connection to declare one about: its
-#: tools either correlate event dicts the calling agent already fetched, or
-#: read and write the investigation ledger under $OPS_HOME. There is still no
-#: network access and no VMware environment to be in, so ``local`` is the
-#: honest answer rather than a placeholder.
-#:
-#: The ledger tools ARE writes, which the earlier version of this note said did
-#: not exist. They are writes to a directory on this machine, at ``low`` risk:
-#: nothing they touch can affect a vCenter, and the ledger is append-only. The
-#: environment declaration is what keeps that distinction reviewable instead of
-#: implicit.
-LOCAL_ENVIRONMENT = "local"
+#
+# This module registers no ``vmware_policy`` environment resolver. That is the
+# fix for a real DENY -> ALLOW regression, not an oversight, so here is why in
+# full.
+#
+# ``set_environment_resolver`` writes to a single process-global slot shared by
+# every skill in the interpreter. This module used to call it at *import* time
+# with a resolver that answered ``"local"`` for every target it was asked about.
+# In an MCP host that loads several of these skills into one process — the
+# normal deployment — importing vmware-debug therefore replaced whatever
+# resolver a sibling had installed, and every one of that sibling's targets
+# started resolving to ``"local"``. A rule scoped to
+# ``environments: [production]`` stops matching, so it stops denying. The
+# real-hardware round measured exactly that, and nothing surfaced it: a deny
+# rule that under-matches is silent by construction.
+#
+# Two things were wrong and both had to go.
+#
+# The *timing*: registering a process-global at import means a bare ``import``
+# — the thing a host does merely to enumerate a package — mutates enforcement
+# for code that has nothing to do with this skill. The old note here said the
+# registration sat at import because ``build_server()`` would otherwise re-run
+# it. That reasoning answered the wrong question: the cost of re-registering a
+# constant is nil, and the cost of registering it at all is a sibling's rules.
+#
+# The *answer*: a resolver is asked "what environment is target X in?" and this
+# one replied ``"local"`` for every X. For X = ``prod-vc01`` that is not a
+# conservative default, it is false, and it is precisely the value that makes
+# production-scoped rules stop matching. Moving the same constant into
+# ``build_server()`` would only narrow who gets lied to.
+#
+# So the registration is gone rather than relocated. vmware-debug has no target
+# config and no connection to declare one about: its tools either correlate
+# event dicts the calling agent already fetched, or read and write the
+# investigation ledger under $OPS_HOME. The ledger tools are writes — to a
+# directory on this machine, at ``low`` risk, append-only — but "a write with no
+# VMware target" is not the same claim as "every target in this process is in
+# environment local", and only the second one was being made. Having no basis to
+# answer for any target, the honest thing is to leave the slot alone and let
+# ``resolve_environment`` apply its documented default: unlabeled (``""``),
+# which matches no environment-scoped rule and is never refused for lack of a
+# label (HLD §6, D-3).
+#
+# Declining is a fix for this skill, not for the hazard. One global slot with
+# last-writer-wins semantics still means any skill that registers honestly can
+# be silently displaced by the next one imported, and ``vmware_policy`` only
+# logs a warning when that happens — a warning is not a control. The repair
+# belongs there, and the shape it should take is: key the resolver by the
+# registering skill so each skill's targets are resolved by its own lookup, and
+# make a second registration for a skill that already has one an error rather
+# than an overwrite. Fixing it here is not possible; every skill would have to
+# agree, and the one that forgets is the one that breaks the others.
 
 #: Client-facing behaviour hints, matching the rest of the family. Both tools
 #: are [READ]: pure correlation over dicts the caller already fetched, with the
@@ -141,17 +173,6 @@ def _safe_error(exc: Exception, tool: str) -> str:
     return f"{type(exc).__name__}: operation failed."
 
 
-def _environment_for(target: Optional[str]) -> str:
-    """Report the environment for policy scoping. Always ``local`` — see above."""
-    return LOCAL_ENVIRONMENT
-
-
-# Registered at import time rather than inside build_server(): the resolver is
-# process-global state in vmware_policy, not per-server-instance, and every
-# build_server() call would otherwise re-register the same constant.
-set_environment_resolver(_environment_for)
-
-
 def build_server() -> FastMCP:
     """Construct and configure the MCP server."""
     server = FastMCP("vmware-debug")
@@ -205,7 +226,12 @@ def build_server() -> FastMCP:
                 is required; severity is normalised onto critical/error/warning/
                 info/unknown, so vendor spellings (fatal, red, warn, yellow,
                 notice, green) are accepted. An entry that cannot be normalised
-                is refused with its index, not skipped.
+                is refused with its index, not skipped. Keep each event's
+                event_type in fields — vmware-monitor's get_events returns it,
+                and the symptom classifier matches it alongside the message. On
+                a modern EventEx the message is generic boilerplate and the
+                eventTypeId is the only thing that says what happened, so
+                dropping it turns a readable event into an uncategorized one.
             bin_seconds: Time-bin width in seconds. Omit and it is chosen from
                 event density off the ladder 1/10/60/300/900/3600/21600/86400,
                 taking the finest width still averaging 4 events per bin.
@@ -583,7 +609,7 @@ def build_server() -> FastMCP:
         case_id: str,
         category: Optional[str] = None,
         available_skills: Optional[list[str]] = None,
-        max_steps: int = 6,
+        max_steps: int = DEFAULT_MAX_STEPS,
     ) -> dict:
         """[READ] What to fetch next for this case — step 02, recomputed each call.
 
@@ -619,16 +645,21 @@ def build_server() -> FastMCP:
             available_skills: Narrow to the skills actually installed, in either
                 spelling ("monitor" or "vmware-monitor"). Omit to assume all of
                 them, which can produce steps this install cannot run.
-            max_steps: HAS NO EFFECT in this release — accepted but never
-                forwarded to the planner, which always caps at 6. The result's
-                note may still advise raising it; doing so changes nothing.
-                Read `held_back` for how many steps were cut.
+            max_steps: How many steps to return, at least 1. The default of 6
+                is two rounds across three evidence classes — enough to reach
+                the two independent sources a Probable grade costs, without
+                handing a model a fourteen-item menu it will work through. Raise
+                it when `held_back` says there is more for this category; a
+                storage case has fourteen reachable tools. Below 1 is refused
+                rather than obeyed, because an empty plan already means
+                "nothing left to fetch".
         """
         try:
             return t.case_plan(
                 case_id=case_id,
                 category=category,
                 available_skills=available_skills,
+                max_steps=max_steps,
             )
         except Exception as exc:
             return _case_error(exc, "case_plan")

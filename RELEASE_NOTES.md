@@ -1,3 +1,75 @@
+## Unreleased — the resolver hijack, the discarded event identifier, and a parameter that did nothing
+
+Three findings from the 2026-08-30 real-hardware re-test. No version bump yet.
+
+**Importing this package no longer disables another skill's policy rules.**
+`vmware_debug.mcp_server.server` registered a `vmware_policy` environment
+resolver at import time, answering `local` for every target it was asked about.
+That slot is process-global — one function for every skill in the interpreter —
+so in an MCP host that loads several of these skills, importing vmware-debug
+replaced whatever a sibling had installed and every one of that sibling's targets
+began resolving to `local`. A rule scoped to `environments: [production]` then
+matches nothing, and denies nothing. The re-test measured a rule going DENY to
+ALLOW that way.
+
+The registration is gone rather than moved. The old note here argued it sat at
+import so `build_server()` would not re-register a constant; that answered the
+wrong question, since re-registering costs nothing and registering at all costs a
+sibling its rules. vmware-debug has no target config and no connection, so
+`resolve_environment`'s documented default — unlabeled, matching no
+environment-scoped rule — is the honest answer.
+
+**`case_plan(max_steps=...)` now reaches the planner.** The MCP tool declared the
+parameter and called `api.plan()` without it, so every plan came back at 6 steps
+however many were asked for, while the ops layer has always honoured the cap and
+a storage case has fourteen reachable tools. The result's own note ended with
+"pass a larger max_steps to see them" — advice to do the one thing that could not
+work. Values below 1 are now refused rather than obeyed: `[:0]` returns an empty
+plan, which reads as "nothing left to fetch", and `[:-3]` silently drops the last
+three steps. The default now comes from one constant instead of being typed out
+at three layers.
+
+**Symptom classification reads the event's own identifier.** `normalize_event`
+has always preserved `event_type` / `eventTypeId` in `fields`, and the classifier
+read only the prose. Modern vSphere sends most events as `EventEx`, where the
+message is generic boilerplate ("Issue detected on esx01") and the whole identity
+is a string like `esx.problem.scsi.device.io.latency.high` — which names its
+subsystem outright. vmware-monitor hit this on real hardware and fixed it on its
+side; vmware-debug had the same defect on the receiving side. camelCase and
+punctuation are split so a two-word keyword can reach an identifier
+(`HostShutdownEvent` becomes `host shutdown`); nothing here decides a category,
+it only makes an existing keyword reachable.
+
+**On the unclassified share: measured, explained, and not inflated.** Against
+pyVmomi's registry of all 427 vSphere event types the taxonomy reads 124 and
+misses 303, and the misses are not subsystems it lacks. They are events whose
+subsystem already has a category, spelled the way a server records a fact rather
+than the way an operator describes a symptom: `VmPoweredOnEvent` against "power
+on", `HostCnxFailedTimeoutEvent` against "connection lost", `DasHostFailedEvent`
+against "high availability", `VmMigratedEvent` against "vmotion". No keywords were
+added. Sixty more phrases would close today's list and lose on the next vSphere
+release, which is what a hand-maintained vocabulary does — so the taxonomy is
+unchanged, the finding is recorded as a regression test with the corpus and the
+named examples, and a test fails if the phrase list is later padded.
+
+Reading the identifier is worth exactly one type out of 427 on this corpus,
+because for a classic event the message and the class name say the same words.
+That number is pinned too, so no coverage claim can be borrowed from it. The
+value is on `EventEx`, which a list of class names cannot represent.
+
+What did change is the advice. The coverage note told the reader that unmatched
+events might "name a subsystem this taxonomy does not know" and to go find that
+subsystem's read tools — a false premise followed by a wasted call. It now names
+the actual mechanism, says to pass `event_type`, and says to force the category
+with `case_plan(category=...)` when you already believe you know it.
+
+The re-test also reported a missing `causal_chains` key "which the docs imply".
+No document in this repository promises one, and `incident_timeline`'s RETURNS
+list is accurate. Rather than invent a key or simply reply that the claim is
+wrong, the checkable form of the concern is now a test: whatever the docstring
+lists, the tool returns, and whatever the tool returns, the docstring lists.
+
+
 ## v1.11.1 — the schema an agent reads now carries the descriptions
 
 Parameter descriptions reach the JSON schema for the first time. An MCP client

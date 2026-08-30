@@ -133,6 +133,9 @@ The four writes go to `$OPS_HOME` (default `~/.vmware/cases/`) and nowhere else.
 **Event envelope** (input to `incident_timeline`): `{ts, source, severity, entity, text, fields}`.
 See `references/event-envelope.md`. The agent normalises each source's events into this
 shape; debug stays source-agnostic and has no dependency on the other packages.
+Keep each event's `event_type` in `fields` — the classifier matches it as well as
+the message, and on a modern `EventEx` it is the only thing that says what the
+event was.
 
 ## The Investigation Ledger
 

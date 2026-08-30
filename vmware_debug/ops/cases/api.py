@@ -36,7 +36,7 @@ from vmware_debug.ops.cases.hypotheses import add_hypothesis, hypothesis_ledger
 from vmware_debug.ops.cases.knowledge import knowledge_status as _knowledge_status
 from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.payloads import inspect_payload, payload_note
-from vmware_debug.ops.cases.plan import plan_next as _plan_next
+from vmware_debug.ops.cases.plan import DEFAULT_MAX_STEPS, plan_next as _plan_next
 from vmware_debug.ops.cases.readiness import readiness as _readiness
 from vmware_debug.ops.cases.store import case_dir, create_case, list_cases, load_case
 from vmware_debug.ops.cases.timeline import build_case_timeline, close_case as _close_case
@@ -232,9 +232,21 @@ def plan(
     case_id: str,
     category: str | None = None,
     available_skills: list[str] | None = None,
+    max_steps: int = DEFAULT_MAX_STEPS,
 ) -> dict[str, Any]:
-    """What to fetch next for this case, recomputed from its current state."""
-    return _plan_next(case_id, category=category, available_skills=available_skills)
+    """What to fetch next for this case, recomputed from its current state.
+
+    ``max_steps`` is threaded through explicitly rather than defaulted here and
+    forgotten: this signature is the only thing between the MCP tool and the
+    planner, and when it did not name the parameter the tool's own ``max_steps``
+    argument was accepted and dropped on the floor for several releases.
+    """
+    return _plan_next(
+        case_id,
+        category=category,
+        available_skills=available_skills,
+        max_steps=max_steps,
+    )
 
 
 def hypotheses(case_id: str, statement: str | None = None, at: str | None = None) -> dict[str, Any]:

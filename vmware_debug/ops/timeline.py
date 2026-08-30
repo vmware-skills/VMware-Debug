@@ -9,6 +9,7 @@ next-check suggestions) self-contained and unit-testable.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from vmware_debug.envelope import SEVERITY_WEIGHT, Event
@@ -103,10 +104,17 @@ _UNCATEGORIZED_REMEDY = (
     "No symptom keyword matched these. They are counted, not dropped: read "
     "sample_text for what they actually say, and use the spikes above — pass "
     "bin_seconds to change the resolution — to find WHEN they clustered, which "
-    "is answerable without knowing what they are. If they name a subsystem "
-    "this taxonomy does not know, run list_symptom_categories to see what is "
-    "recognised and pull that subsystem's own read tools. The span of the "
-    "window is not what makes a burst visible; the bin resolution is."
+    "is answerable without knowing what they are. Measured against all 427 "
+    "vSphere event types, this residue is mostly NOT a subsystem the taxonomy "
+    "lacks: it is events whose subsystem already has a category, spelled the "
+    "way vCenter names them rather than the way an operator describes a symptom "
+    "(VmPoweredOnEvent vs 'power on', DasHostFailedEvent vs 'high "
+    "availability'). Two things follow. Pass each event's event_type if you have "
+    "not — vmware-monitor's get_events returns it, it is matched too, and on an "
+    "EventEx it is the only identity the event has. And if you already believe "
+    "which category applies, force it with case_plan(category=...) instead of "
+    "hunting for a subsystem that is not missing. The span of the window is not "
+    "what makes a burst visible; the bin resolution is."
 )
 
 #: Above this share of unreadable events, the fact is repeated in next_checks
@@ -257,7 +265,47 @@ class CategoryMatch:
     suggested_check: str
 
 
-def _match_categories(text: str, entity: str) -> tuple[CategoryMatch, ...]:
+#: Envelope ``fields`` keys that carry vCenter's own name for an event.
+#:
+#: ``event_type`` is what ``vmware-monitor.get_events`` returns; ``eventTypeId``
+#: is what the raw vSphere object calls it. Deliberately a short, specific list:
+#: a generic key like "type" means something different in every source, and
+#: matching symptom keywords against an arbitrary field is how a classifier
+#: starts answering confidently about nothing.
+_EVENT_TYPE_KEYS = ("event_type", "eventTypeId", "event_type_id")
+
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+def event_type_words(fields: dict | None) -> str:
+    """The event's own identifier, respelled so keyword matching can reach it.
+
+    vCenter names events as identifiers — ``VmPoweredOnEvent``,
+    ``HostCnxFailedTimeoutEvent``, ``esx.problem.scsi.device.io.latency.high`` —
+    and modern vSphere sends most of them as ``EventEx``, where the message is
+    generic boilerplate and *all* of the identity is in that string. The
+    envelope has been preserving it in ``fields`` since the beginning and the
+    classifier has been reading only the prose, which is a signal thrown away at
+    the point it matters most.
+
+    Splitting camelCase and punctuation is normalisation rather than new
+    vocabulary: "VmPoweredOn" is one token and no phrase in the taxonomy can
+    match inside it, so passing the identifier without splitting it would be
+    the same as not passing it at all. Nothing here decides a category — it only
+    makes an existing keyword reachable.
+    """
+    if not fields:
+        return ""
+    raw = next((fields[k] for k in _EVENT_TYPE_KEYS if fields.get(k)), None)
+    if raw is None:
+        return ""
+    spaced = _CAMEL_BOUNDARY.sub(" ", str(raw))
+    return re.sub(r"[._\-/]+", " ", spaced)
+
+
+def _match_categories(
+    text: str, entity: str, fields: dict | None = None
+) -> tuple[CategoryMatch, ...]:
     """Every signature the text matches, strongest signal first.
 
     Ranking by matched-keyword length rather than by count, and rather than by
@@ -271,7 +319,7 @@ def _match_categories(text: str, entity: str) -> tuple[CategoryMatch, ...]:
     ``sorted`` is stable, so a genuine tie falls back to the table's own order
     and the answer stays deterministic.
     """
-    haystack = f"{text} {entity}".lower()
+    haystack = f"{text} {entity} {event_type_words(fields)}".lower()
     matches = []
     for category, keywords, suggestion in _CATEGORY_SIGNATURES:
         hits = tuple(kw for kw in keywords if kw in haystack)
@@ -287,9 +335,9 @@ def _match_categories(text: str, entity: str) -> tuple[CategoryMatch, ...]:
     return tuple(sorted(matches, key=lambda m: -m.strength))
 
 
-def _categorize(text: str, entity: str) -> list[tuple[str, str]]:
+def _categorize(text: str, entity: str, fields: dict | None = None) -> list[tuple[str, str]]:
     """Return (category, suggested_check) for every signature the text matches."""
-    return [(m.category, m.suggested_check) for m in _match_categories(text, entity)]
+    return [(m.category, m.suggested_check) for m in _match_categories(text, entity, fields)]
 
 
 def rank_hypotheses(events: list[Event], top_n: int = 5) -> list[Hypothesis]:
@@ -302,7 +350,7 @@ def rank_hypotheses(events: list[Event], top_n: int = 5) -> list[Hypothesis]:
     """
     groups: dict[str, dict] = {}
     for e in events:
-        cats = _categorize(e.text, e.entity) or [("uncategorized", "")]
+        cats = _categorize(e.text, e.entity, e.fields) or [("uncategorized", "")]
         for category, suggestion in cats:
             g = groups.setdefault(
                 category,
@@ -348,7 +396,7 @@ def classification_coverage(events: list[Event]) -> dict:
     seen: set[str] = set()
     categorized = 0
     for e in events:
-        if _match_categories(e.text, e.entity):
+        if _match_categories(e.text, e.entity, e.fields):
             categorized += 1
         elif e.text and e.text not in seen:
             seen.add(e.text)
@@ -518,7 +566,7 @@ def incident_timeline(
     }
 
 
-def classify_symptom(text: str, entity: str = "") -> list[str]:
+def classify_symptom(text: str, entity: str = "", fields: dict | None = None) -> list[str]:
     """Return the symptom categories this text matches, strongest signal first.
 
     The public face of the keyword taxonomy. The investigation planner needs to
@@ -528,10 +576,12 @@ def classify_symptom(text: str, entity: str = "") -> list[str]:
     An empty list means nothing matched, and that stays a possible answer: a
     classifier that always has something to say has stopped being consulted.
     """
-    return [m.category for m in _match_categories(text, entity)]
+    return [m.category for m in _match_categories(text, entity, fields)]
 
 
-def classify_symptom_matches(text: str, entity: str = "") -> list[dict]:
+def classify_symptom_matches(
+    text: str, entity: str = "", fields: dict | None = None
+) -> list[dict]:
     """Like :func:`classify_symptom`, but says what decided each category.
 
     A category handed over with no evidence for it cannot be argued with, and
@@ -545,7 +595,7 @@ def classify_symptom_matches(text: str, entity: str = "") -> list[dict]:
             "strength": m.strength,
             "suggested_check": m.suggested_check,
         }
-        for m in _match_categories(text, entity)
+        for m in _match_categories(text, entity, fields)
     ]
 
 
