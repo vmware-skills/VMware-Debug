@@ -1,3 +1,45 @@
+## v1.11.0 — the correlation engine, on a real incident
+
+A tester fed the investigation layer a genuine failure: on 08-03 at 05:49, four
+ESXi hosts went `EnteringMaintenanceMode` → `EnteredMaintenanceMode` →
+`HostShutdown` → `HostConnectionLost` → `HostSyncFailed` ×24 within 32 seconds,
+and never came back. 3,818 real vCenter events over 40 days, pulled per this
+skill's own envelope documentation. The case-management layer held up. The
+correlation engine — the thing this skill is named for — did not.
+
+**80% of events were `uncategorized`, and the headline conclusion was "cannot
+classify, widen your search window".** The classification table's
+`power_lifecycle` keywords were all VM-centric (`power on`/`power off`, `vmx`,
+`ovf`, `clone`, `snapshot`); nothing covered host maintenance mode or host
+shutdown, and `"Shut down of esxi05"` does not match `"power off"`. There is now
+a `host_lifecycle` category — a separate category rather than more keywords,
+because it is a separate investigation, routed to monitor + logs + harden (a
+host that left service on cue was usually told to). `classification_coverage()`
+reports what went unread in every result, and above ~25% it reaches
+`next_checks`. The "widen the window" remedy is gone: the window was already 40
+days, and widening makes the incident *less* findable.
+
+**The only spike detected was the day the hosts came back up.**
+`_auto_bin_seconds` was `span/30`, so a 29-day window gave 23.2-hour buckets;
+the incident hour was the second-busiest in the dataset and absent from the
+spike list, while `--bin-seconds 3600` found it at z=8.25. Binning now chooses
+by event *density*, from a floor of 4 events per bin that is derived rather than
+tuned: spikes flag at mean+2σ, and a count only exceeds twice its mean once the
+mean reaches 4. The chosen width, how it was chosen, and the bin count are
+reported.
+
+**The same incident described five ways routed five different ways** — decided
+by an incidental noun, with the most accurate description routing nowhere.
+Categories are now ranked by matched-keyword length, so a long phrase beats a
+stray word, and the losing categories are named.
+
+Also fixed: `case_timeline`'s payload contract was undocumented and its MCP
+parameter type refused the array shape the docstring implied; pure-Chinese
+summaries collapsed to one `case_id` per second, with a collision message that
+was false; and skill names were compared as raw strings, so `monitor` and
+`vmware-monitor` counted as two independent evidence sources — buying *Probable*
+out of orthography, in the layer built to prevent exactly that.
+
 ## v1.10.0 — the knowledge layer is implemented, not just described
 
 v1.9.0 shipped the investigation layer with `applies_to` documented as the thing
