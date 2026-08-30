@@ -32,6 +32,21 @@ def isolated_home(tmp_path, monkeypatch):
 
 
 @pytest.fixture
+def mounted_kb(tmp_path):
+    """A knowledge entry that genuinely applies to the case fixture's scope.
+
+    Submitting evidence labelled `knowledge-sr` used to be enough to confirm a
+    case; the label did all the work. Now the entry has to exist and its
+    applies_to has to match, so a test that wants Confirmed has to construct one
+    — which is the point.
+    """
+    p = tmp_path / "vmware" / "knowledge" / "kb" / "KB-fixture.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("---\nid: KB-fixture\napplies_to:\n  product: vsphere\n---\nbody\n")
+    return p
+
+
+@pytest.fixture
 def case():
     """A case with H1 already registered.
 
@@ -39,12 +54,22 @@ def case():
     unregistered hypothesis is now refused — a dangling id used to block and
     falsify nothing while silently costing a grade level.
     """
-    cid = create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    cid = create_case(
+        Scope(
+            summary="vsan latency", determined_by="alarm 42",
+            product_versions={"vsphere": "8.0.3"},
+        ),
+        at=AT,
+    ).case_id
     add_hypothesis(cid, "failing device")
     return cid
 
 
 def evidence(skill="vmware-monitor", tool="list_events", **kw):
+    # Knowledge evidence must say which entry it is; without that its
+    # applicability cannot be checked and it is not decisive.
+    if skill in ("knowledge-kb", "knowledge-sr") and "knowledge_entry_id" not in kw:
+        kw["knowledge_entry_id"] = "KB-fixture"
     return Evidence(
         source_skill=skill,
         source_tool=tool,
@@ -131,7 +156,7 @@ class TestConfirmedNeedsADecisiveSource:
             record_evidence(case, evidence(skill=skill))
         assert grade_case(case).grade == "probable"
 
-    def test_a_decisive_source_reaches_confirmed(self, case):
+    def test_a_decisive_source_reaches_confirmed(self, case, mounted_kb):
         record_evidence(case, evidence(skill="vmware-monitor"))
         record_evidence(case, evidence(skill="knowledge-sr"))
         assert grade_case(case).grade == "confirmed"
@@ -178,7 +203,7 @@ class TestExclusionNeedsAFalsifyingObservation:
 
 
 class TestDemotion:
-    def test_a_new_gap_takes_confirmed_back_down_to_probable(self, case):
+    def test_a_new_gap_takes_confirmed_back_down_to_probable(self, case, mounted_kb):
         record_evidence(case, evidence(skill="vmware-monitor"))
         record_evidence(case, evidence(skill="knowledge-sr"))
         assert grade_case(case).grade == "confirmed"
@@ -265,7 +290,7 @@ class TestTheRulesFileHasNoDecorativeKnobs:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(body)
 
-    def test_relaxing_the_prerequisite_actually_relaxes_it(self, case, tmp_path):
+    def test_relaxing_the_prerequisite_actually_relaxes_it(self, case, tmp_path, mounted_kb):
         """One decisive source, no corroboration: Confirmed under the relaxed
         rule, and not under the packaged one."""
         record_evidence(case, evidence(skill="knowledge-sr"))

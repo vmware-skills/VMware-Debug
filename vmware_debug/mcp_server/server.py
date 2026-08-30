@@ -320,6 +320,7 @@ def build_server() -> FastMCP:
         time_source: Optional[str] = None,
         clock_skew_s: Optional[float] = None,
         falsifies: Optional[list[str]] = None,
+        knowledge_entry_id: Optional[str] = None,
         payload: Optional[dict] = None,
     ) -> dict:
         """[WRITE] Record one retrieved fact — steps 02/03 of the evidence loop.
@@ -333,7 +334,11 @@ def build_server() -> FastMCP:
         depends on which. time_source ("vcenter"/"host"/"client") and
         clock_skew_s feed skew detection; pass null when unknown, never a guess.
         falsifies: hypothesis ids this RULES OUT — the only thing that can
-        exclude one. payload: the raw result.
+        exclude one. knowledge_entry_id: REQUIRED when source_skill is
+        knowledge-kb or knowledge-sr — which mounted entry this is. Without it
+        the entry's applies_to cannot be checked against the case, so it is not
+        decisive; run case_knowledge to see what is mounted. payload: the raw
+        result.
 
         RETURNS: {case_id, evidence_id, grade, reasons}, including the resulting
         grade so you need no second call to see whether this changed anything.
@@ -353,6 +358,7 @@ def build_server() -> FastMCP:
                 time_source=time_source,
                 clock_skew_s=clock_skew_s,
                 falsifies=falsifies,
+                knowledge_entry_id=knowledge_entry_id,
                 payload=payload,
             )
         except Exception as exc:
@@ -585,6 +591,40 @@ def build_server() -> FastMCP:
             return t.case_close(case_id=case_id)
         except Exception as exc:
             return _case_error(exc, "case_close")
+
+    @server.tool(name="case_knowledge", annotations=_READ)
+    def _case_knowledge_impl(case_id: Optional[str] = None) -> dict:
+        """[READ] What the knowledge layer accepts, and what is mounted.
+
+        WHEN: when someone asks what can be added to make conclusions stronger,
+        or when a case will not reach Confirmed and you need to say why in terms
+        they can act on. This is the answer to "which knowledge formats do you
+        take" — the first question anyone mounting a library asks.
+
+        INPUT: optional case_id. With it, each mounted entry is also checked
+        against that case's recorded versions, so you can say which entries
+        could make THAT case Confirmed and which cannot, with the reason.
+
+        RETURNS: {root, sections, entries, with_applies_to, by_source,
+        unreadable, unsupported, formats, needs_conversion, note} — plus
+        {applicable, decisive_here} when a case_id is given.
+
+        `formats` lists every extension read and how each carries its metadata:
+        Markdown front-matter, YAML/JSON whole-file, JSONL per line, CSV/TSV per
+        row, and plain text with a sibling .yaml. `needs_conversion` names the
+        ones that must become Markdown first (PDF, DOCX, PPTX, HTML).
+
+        GOTCHAS: an entry is decisive ONLY if its `applies_to` block was checked
+        against the case scope and passed — matching is by version
+        applicability, never by similarity, because an entry written for the
+        wrong build reads exactly like the right one. An entry with no
+        `applies_to` can support a hypothesis but can never make a case
+        Confirmed. A constraint the case scope cannot answer is not a match
+        either: silence is not a pass."""
+        try:
+            return t.case_knowledge(case_id=case_id)
+        except Exception as exc:
+            return _case_error(exc, "case_knowledge")
 
     return server
 

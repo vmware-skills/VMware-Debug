@@ -100,7 +100,7 @@ a recommended plan.
 - **MCP** (in an agent): the agent calls the other skills' read tools, then `incident_timeline` to correlate. This is the primary mode — that's where the cross-skill "联动" happens.
 - **CLI** (humans): `vmware-debug triage --events events.json` correlates a JSON array you collected yourself.
 
-## MCP Tools (13 — 6 read, 7 write)
+## MCP Tools (14 — 7 read, 7 write)
 
 **Correlation** — stateless, for a single look:
 
@@ -115,6 +115,7 @@ a recommended plan.
 |---|---|
 | `case_open` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
 | `case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
+| `case_knowledge` | [READ] Which knowledge formats are accepted, what is mounted, and which entries apply to a case |
 | `case_plan` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
 | `case_list` | [READ] Cases, newest first |
 | `case_get` | [READ] One case: scope, ledger sizes, grade history |
@@ -178,6 +179,52 @@ so the gap is visible now rather than when the conclusion refuses to firm up.
 "storage reaches Probable, hardware reaches Candidate" can be acted on;
 "readiness 78%" cannot. Two classes served by the *same* skill count as one
 source, so it agrees with what `case_grade` will actually award.
+
+### Mounting a knowledge library
+
+`case_knowledge` answers "what can I add" without anyone reading this file.
+Entries go under `$OPS_HOME/knowledge/{kb,runbook,sr,cases}/`:
+
+| Format | How metadata travels |
+|---|---|
+| `.md` `.markdown` | YAML front-matter between `---` fences, body below — **preferred** |
+| `.yaml` `.yml` | the whole file is one entry |
+| `.json` | one entry per file |
+| `.jsonl` | one JSON object per line — what ticketing systems export |
+| `.csv` `.tsv` | one entry per row; use dotted columns (`driver.version`) for nested constraints |
+| `.txt` `.log` | a sibling `<name>.yaml` carries the metadata |
+
+PDF, DOCX, PPTX and HTML must be converted to Markdown first — `case_knowledge`
+names them rather than ignoring them.
+
+**Every entry needs an `applies_to` block to be decisive:**
+
+```yaml
+---
+id: KB-2026-0417
+applies_to:
+  product: vsphere
+  build: ">=8.0.3, <9.0"
+  driver: {name: nvme_pcie, version: ">=1.2.4"}
+  firmware: {vendor: dell, version: ">=52.26"}
+---
+```
+
+`product`, `build`, `driver` and `firmware` are the constraints the checker
+evaluates. **Any other key leaves the entry non-decisive** — including a typo —
+because an unverified constraint is not a satisfied one, and `case_knowledge`
+names the key it could not check.
+
+Knowledge evidence must say **which** entry it is
+(`case_submit_evidence(source_skill="knowledge-kb", knowledge_entry_id="KB-…")`)
+— "some applicable entry is mounted somewhere" is a different claim from "this
+one applies", and only the second can carry a conclusion.
+
+Matching is **by version applicability, never by similarity** — an entry written
+for the wrong build reads exactly like the right one, and similarity is the only
+thing that would let it through. An entry with no `applies_to` can support a
+hypothesis but can never make a case Confirmed. A constraint the case scope
+cannot answer is not a match either: silence is not a pass.
 
 > **On a stock install the ceiling is Probable.** Confirmed needs a decisive
 > source, and there is neither a hardware-diagnostic channel (no Redfish/BMC, no

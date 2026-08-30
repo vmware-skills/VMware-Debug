@@ -59,6 +59,11 @@ class Evidence:
     #: "we looked and found nothing" (a gap) from "we found the thing that
     #: proves it was not this" (an exclusion). Only the latter can exclude.
     falsifies: tuple[str, ...] = ()
+    #: Which knowledge entry this item IS, when it came from the knowledge
+    #: layer. Required for such an item to be decisive: "some applicable entry
+    #: is mounted somewhere" is a different claim from "this one applies", and
+    #: only the second can carry a conclusion.
+    knowledge_entry_id: str | None = None
     evidence_id: str = ""
 
     def __post_init__(self) -> None:
@@ -95,6 +100,7 @@ class Evidence:
             "time_source": self.time_source,
             "clock_skew_s": self.clock_skew_s,
             "falsifies": list(self.falsifies),
+            "knowledge_entry_id": self.knowledge_entry_id,
             "summary": self.summary,
         }
 
@@ -111,6 +117,7 @@ class Evidence:
             time_source=d.get("time_source"),
             clock_skew_s=d.get("clock_skew_s"),
             falsifies=tuple(d.get("falsifies") or ()),
+            knowledge_entry_id=d.get("knowledge_entry_id"),
             summary=d.get("summary", ""),
         )
 
@@ -225,6 +232,7 @@ def _with_id(evidence: Evidence, evidence_id: str) -> Evidence:
         time_source=evidence.time_source,
         clock_skew_s=evidence.clock_skew_s,
         falsifies=tuple(evidence.falsifies),
+        knowledge_entry_id=evidence.knowledge_entry_id,
         evidence_id=evidence_id,
     )
 

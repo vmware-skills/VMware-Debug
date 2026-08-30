@@ -24,6 +24,7 @@ from typing import Any
 from vmware_policy.paths import ops_path
 
 from vmware_debug.ops.cases.evidence import load_evidence, load_gaps
+from vmware_debug.ops.cases.store import load_case
 
 PACKAGED_RULES = Path(__file__).resolve().parents[2] / "rules" / "grading_rules.yaml"
 
@@ -155,6 +156,10 @@ def grade_case(case_id: str) -> GradeResult:
     grades = rules.get("grades") or {}
     evidence = load_evidence(case_id)
     gaps = load_gaps(case_id)
+    # The scope carries the versions a knowledge entry's applies_to is checked
+    # against; without it, an entry for the wrong build is indistinguishable
+    # from the right one.
+    scope = load_case(case_id).scope
 
     sources = {e.source_skill for e in evidence}
     blocking = tuple(g for g in gaps if g.blocks)
@@ -191,6 +196,7 @@ def grade_case(case_id: str) -> GradeResult:
                 blocking,
                 reasons,
                 prerequisite_met=True,
+                scope=scope,
             )
             else "probable"
         )
@@ -200,6 +206,7 @@ def grade_case(case_id: str) -> GradeResult:
         blocking,
         reasons,
         prerequisite_met=False,
+        scope=scope,
     ):
         # Only reachable when the rules file relaxes `confirmed.requires`.
         # Mutation-testing found that key was never read: changing it looked
@@ -248,12 +255,77 @@ def _why_not_probable(rule: dict[str, Any], sources: set[str], falsifiable: tupl
     )
 
 
+#: Decisive sources that are knowledge entries rather than instrument readings.
+#: These are the ones whose applicability has to be proved: a hardware
+#: diagnostic is a measurement of THIS machine, while a knowledge-base entry is
+#: a claim about some machine, and which one is the whole question.
+_KNOWLEDGE_SOURCES = frozenset({"knowledge-kb", "knowledge-sr"})
+
+
+def _applicable(hits: tuple, scope, reasons: list[str]) -> tuple:
+    """Drop knowledge evidence whose ``applies_to`` does not match this case.
+
+    An entry that is real, well-formed and about the right product but written
+    for a different build is indistinguishable from a correct one by similarity
+    — and similarity was all that stood between it and a Confirmed, which is the
+    outcome these rules exist to prevent.
+
+    Hardware diagnostics are exempt: a reading taken from this machine has no
+    applicability left to establish.
+    """
+    from pathlib import Path
+
+    from vmware_debug.ops.cases.knowledge import applies_to_scope, load_knowledge
+
+    if scope is None or not any(e.source_skill in _KNOWLEDGE_SOURCES for e in hits):
+        return hits
+
+    entries = {e.entry_id: e for e in load_knowledge()}
+    by_filename = {Path(e.path).name: e for e in entries.values()}
+
+    kept: list = []
+    dropped: list[str] = []
+    for item in hits:
+        if item.source_skill not in _KNOWLEDGE_SOURCES:
+            kept.append(item)
+            continue
+        cited = item.knowledge_entry_id
+        if not cited:
+            dropped.append(
+                f"{item.evidence_id} does not say which entry it is, so its "
+                f"applicability could not be checked"
+            )
+            continue
+        entry = entries.get(cited) or by_filename.get(cited)
+        if entry is None:
+            dropped.append(
+                f"{item.evidence_id} cites {cited!r}, which is not mounted under the knowledge root"
+            )
+            continue
+        verdict = applies_to_scope(entry, scope)
+        if verdict.decisive:
+            kept.append(item)
+        else:
+            dropped.append(f"{item.evidence_id} cites {cited}: {verdict.reason}")
+
+    if dropped:
+        reasons.append(
+            "Knowledge evidence not counted as decisive — "
+            + "; ".join(dropped)
+            + ". Matching is by applies_to against the case scope, never by "
+            "similarity: an entry written for the wrong build reads exactly "
+            "like the right one."
+        )
+    return tuple(kept)
+
+
 def _meets_confirmed(
     rule: dict[str, Any],
     evidence: tuple,
     blocking: tuple,
     reasons: list[str],
     prerequisite_met: bool,
+    scope=None,
 ) -> bool:
     """Decisive evidence, no hole of either kind, and the prerequisite grade.
 
@@ -283,6 +355,7 @@ def _meets_confirmed(
         return False
     decisive_names = set(rule.get("decisive_sources") or ())
     hits = tuple(e for e in evidence if e.source_skill in decisive_names)
+    hits = _applicable(hits, scope, reasons)
     if len(hits) < int(rule.get("min_decisive_sources", 1)):
         return False
     reasons.append(

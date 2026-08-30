@@ -33,6 +33,7 @@ from vmware_debug.ops.cases.evidence import (
 )
 from vmware_debug.ops.cases.grading import grade_case
 from vmware_debug.ops.cases.hypotheses import add_hypothesis, hypothesis_ledger
+from vmware_debug.ops.cases.knowledge import knowledge_status as _knowledge_status
 from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.plan import plan_next as _plan_next
 from vmware_debug.ops.cases.readiness import readiness as _readiness
@@ -132,6 +133,7 @@ def submit_evidence(
     time_source: str | None = None,
     clock_skew_s: float | None = None,
     falsifies: list[str] | None = None,
+    knowledge_entry_id: str | None = None,
     payload: Any = None,
 ) -> dict[str, Any]:
     """Step 02/03. Record one retrieved fact and report where that leaves the case."""
@@ -146,6 +148,7 @@ def submit_evidence(
         time_source=time_source,
         clock_skew_s=clock_skew_s,
         falsifies=tuple(falsifies or ()),
+        knowledge_entry_id=knowledge_entry_id,
     )
     stored = record_evidence(case_id, item, payload=payload)
     result = grade_case(case_id)
@@ -260,3 +263,35 @@ def timeline(
 def close(case_id: str, at: str | None = None) -> dict[str, Any]:
     """Step 08. Record the final grade, archive, and name what was left open."""
     return _close_case(case_id, at=at or utc_now())
+
+
+def knowledge(case_id: str | None = None) -> dict[str, Any]:
+    """What the knowledge layer accepts, and what is mounted right now.
+
+    Pass a case id to also see which mounted entries apply to it — the same
+    check that decides whether an entry can make that case Confirmed.
+    """
+    status = _knowledge_status()
+    if case_id is None:
+        return status
+
+    from vmware_debug.ops.cases.knowledge import applies_to_scope, load_knowledge
+    from vmware_debug.ops.cases.store import load_case
+
+    scope = load_case(case_id).scope
+    rows = []
+    for entry in load_knowledge():
+        verdict = applies_to_scope(entry, scope)
+        rows.append(
+            {
+                "entry_id": entry.entry_id,
+                "source": entry.source,
+                "path": entry.path,
+                "decisive_here": verdict.decisive,
+                "why": verdict.reason,
+            }
+        )
+    status["case_id"] = case_id
+    status["applicable"] = rows
+    status["decisive_here"] = sum(1 for r in rows if r["decisive_here"])
+    return status

@@ -9,13 +9,14 @@
           "list_symptom_categories",
           "case_open",
           "case_list",
-          "case_readiness"
+          "case_readiness",
+          "case_knowledge"
         ],
         "reachable_on_surface": 8,
         "reachable_only_via_description": 0,
         "required_entity_params": 8,
         "required_params_classified": "8/17",
-        "tool_count": 13
+        "tool_count": 14
       },
       "maximum": 8,
       "pct": 100.0,
@@ -43,12 +44,12 @@
     },
     "entry_point_availability": {
       "detail": {
-        "full_entry_points": 5
+        "full_entry_points": 6
       },
-      "maximum": 13,
-      "pct": 38.5,
+      "maximum": 14,
+      "pct": 42.9,
       "unit": "entry points",
-      "value": 5
+      "value": 6
     },
     "error_actionability": {
       "detail": {
@@ -77,7 +78,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:281"
+            "where": "evidence.py:289"
           },
           {
             "message": "gaps.json in case {} is not valid JSON: {}. It was hand-edited. Restore it rather than deleting it \u2014",
@@ -85,7 +86,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:283"
+            "where": "evidence.py:291"
           },
           {
             "message": "Cannot read grading_rules.yaml at {}: {}",
@@ -93,7 +94,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "grading.py:55"
+            "where": "grading.py:56"
           },
           {
             "message": "grading_rules.yaml at {} is not valid YAML: {}. Fix it rather than deleting it \u2014 falling back to the",
@@ -101,7 +102,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "grading.py:57"
+            "where": "grading.py:58"
           },
           {
             "message": "A hypothesis needs a statement \u2014 what you think happened, in one line. An unnamed hypothesis cannot ",
@@ -195,18 +196,18 @@
           "case_open": 354,
           "case_plan": 360,
           "case_record_gap": 337,
-          "case_submit_evidence": 549,
+          "case_submit_evidence": 621,
           "incident_timeline": 329
         },
-        "manifest_tokens": 3428,
-        "mean_tokens_per_tool": 263.7,
+        "manifest_tokens": 3777,
+        "mean_tokens_per_tool": 269.8,
         "reference_context": 16384,
-        "tool_count": 13
+        "tool_count": 14
       },
       "maximum": 16384,
-      "pct": 79.1,
+      "pct": 76.9,
       "unit": "tokens",
-      "value": 12956
+      "value": 12607
     },
     "parameter_documentation_coverage": {
       "detail": {
@@ -226,10 +227,10 @@
           ]
         }
       },
-      "maximum": 43,
-      "pct": 83.7,
+      "maximum": 45,
+      "pct": 84.4,
       "unit": "parameters",
-      "value": 36
+      "value": 38
     },
     "per_tool_token_discipline": {
       "detail": {
@@ -237,13 +238,13 @@
         "over_ceiling": {
           "case_open": 354,
           "case_plan": 360,
-          "case_submit_evidence": 549
+          "case_submit_evidence": 621
         }
       },
-      "maximum": 13,
-      "pct": 76.9,
+      "maximum": 14,
+      "pct": 78.6,
       "unit": "tools",
-      "value": 10
+      "value": 11
     },
     "read_only_manifest_saving": {
       "detail": {
@@ -263,10 +264,10 @@
       "detail": {
         "unmarked": []
       },
-      "maximum": 13,
+      "maximum": 14,
       "pct": 100.0,
       "unit": "points",
-      "value": 13
+      "value": 14
     },
     "remedy_survives_truncation": {
       "detail": {
@@ -277,10 +278,10 @@
           "envelope.py:138",
           "conclusion.py:135",
           "conclusion.py:144",
-          "evidence.py:172",
-          "evidence.py:204",
-          "evidence.py:240",
-          "grading.py:65",
+          "evidence.py:179",
+          "evidence.py:211",
+          "evidence.py:248",
+          "grading.py:66",
           "hypotheses.py:47",
           "hypotheses.py:70"
         ]
@@ -300,14 +301,14 @@
     "tool_description_quality": {
       "detail": {
         "per_dimension_pct": {
-          "args": 76.9,
-          "gotcha": 84.6,
+          "args": 78.6,
+          "gotcha": 85.7,
           "marker": 100.0,
-          "next_hop": 61.5,
+          "next_hop": 57.1,
           "what": 100.0,
-          "when": 92.3
+          "when": 92.9
         },
-        "tools_graded": 13,
+        "tools_graded": 14,
         "weakest_tools": {
           "case_close": [
             "next_hop"
@@ -317,6 +318,9 @@
           ],
           "case_grade": [
             "args",
+            "next_hop"
+          ],
+          "case_knowledge": [
             "next_hop"
           ],
           "case_list": [
@@ -332,29 +336,26 @@
           ],
           "case_submit_evidence": [
             "args"
-          ],
-          "case_timeline": [
-            "args"
           ]
         }
       },
-      "maximum": 78,
-      "pct": 85.9,
+      "maximum": 84,
+      "pct": 85.7,
       "unit": "points",
-      "value": 67
+      "value": 72
     },
     "tool_failure_payload_quality": {
       "detail": {
         "bare_string_error_lines": [],
-        "carries_hint": 12,
-        "dict_shaped": 12,
-        "error_return_sites": 12,
-        "hint_names_artifact": 12
+        "carries_hint": 13,
+        "dict_shaped": 13,
+        "error_return_sites": 13,
+        "hint_names_artifact": 13
       },
-      "maximum": 36,
+      "maximum": 39,
       "pct": 100.0,
       "unit": "checks",
-      "value": 36
+      "value": 39
     }
   }
 }

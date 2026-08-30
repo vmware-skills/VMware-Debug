@@ -1,3 +1,45 @@
+## v1.10.0 — the knowledge layer is implemented, not just described
+
+v1.9.0 shipped the investigation layer with `applies_to` documented as the thing
+that makes a knowledge entry decisive. Nothing parsed a knowledge file and
+nothing checked applicability. Any file at all under the knowledge root raised
+the reported ceiling, and anything labelled `knowledge-kb` counted as decisive.
+The route to a wrong Confirmed that the design was written to close was open the
+whole time, and the metric said zero only because no fixture walked it.
+
+`case_knowledge` (the 14th tool) answers the first question anyone mounting a
+library asks — which formats are taken — without them reading a design document:
+
+    .md .markdown   YAML front-matter between --- fences, body below (preferred)
+    .yaml .yml      the whole file is one entry
+    .json           one entry per file
+    .jsonl          one JSON object per line (what ticketing systems export)
+    .csv .tsv       one entry per row; dotted columns for nested constraints
+    .txt .log       a sibling <name>.yaml carries the metadata
+
+PDF, DOCX, PPTX and HTML are named as needing conversion rather than ignored,
+and a file that cannot be parsed is reported rather than skipped.
+
+**An entry is decisive only if its own `applies_to` was checked against the
+case's recorded versions and passed.** Three things follow, each found by
+reviewing the version before it:
+
+* Knowledge evidence must say WHICH entry it is. "Some applicable entry is
+  mounted somewhere" is a different claim from "this one applies", and the first
+  version accepted it — an agent citing the entry written for 9.x could confirm
+  a case about 8.0.3 as long as an unrelated entry happened to match.
+* A constraint the case scope cannot answer is not a match. Silence is not a
+  pass; reading it as one is how an entry for different hardware ends a case.
+* **A constraint the checker cannot evaluate is not a pass either.** The first
+  version understood product, build, driver and firmware and treated every other
+  key as satisfied, so `build` without a `product`, a `hardware_model` list, and
+  an outright typo all came back decisive. Unknown and satisfied must never be
+  the same answer.
+
+Given two entries that read identically — one for `>=8.0, <9.0`, one for
+`>=9.0` — a case scoped to vSphere 8.0.3 now reaches Confirmed citing the first
+and stays at Probable citing the second, naming the range that excluded it.
+
 ## v1.9.0 — the investigation layer: 2 tools become 13
 
 Correlating events answers "what happened together". A case answers "what do we

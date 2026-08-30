@@ -52,6 +52,7 @@ from vmware_debug.ops.cases.api import (  # noqa: E402  (grouped with its sectio
     get_case as case_get,
     grade as case_grade,
     hypotheses as case_hypotheses,
+    knowledge as case_knowledge,
     list_open_cases as case_list,
     open_case as case_open,
     plan as case_plan,
@@ -73,4 +74,5 @@ __all__ = [
     "case_hypotheses",
     "case_timeline",
     "case_close",
+    "case_knowledge",
 ]

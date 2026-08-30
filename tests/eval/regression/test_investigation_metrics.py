@@ -114,12 +114,17 @@ def test_wrong_confirmed_rate_is_zero(label, sources, gaps, _unused):
     assert grade != "confirmed", f"{label!r} reached Confirmed — grade was {grade}"
 
 
-def test_the_only_route_to_confirmed_is_the_intended_one():
+def test_the_only_route_to_confirmed_is_the_intended_one(tmp_path):
     """The counterpart. A metric that can only fail is not measuring anything —
-    if nothing can reach Confirmed, 'wrong-Confirmed rate is zero' is vacuous."""
-    cid = _case()
+    if nothing can reach Confirmed, 'wrong-Confirmed rate is zero' is vacuous.
+
+    Reaching it now takes a mounted entry whose applies_to matches, which is
+    exactly the bar the design sets.
+    """
+    _kb(tmp_path, "KB-ok.md", "applies_to:\n  product: vsphere\n")
+    cid = _scoped_case({"vsphere": "8.0.3"})
     _ev(cid, "vmware-monitor")
-    _ev(cid, "knowledge-sr")
+    _ev(cid, "knowledge-sr", knowledge_entry_id="KB-ok.md")
     assert grade_case(cid).grade == "confirmed"
 
 
@@ -215,3 +220,97 @@ def test_every_unreachable_source_carries_a_remedy():
         cid = _case()
         for u in plan_next(cid, category=category)["unavailable"]:
             assert u["how_to_supply"], f"{category}: {u['evidence_class']} has no remedy"
+
+
+# ── Metric 1, continued: the route the design says must not exist ──────────
+#
+# Added after the knowledge layer was implemented. Until then `applies_to` was
+# prose: any file at all raised the ceiling and anything labelled `knowledge-kb`
+# counted as decisive. The wrong-Confirmed metric passed only because no fixture
+# exercised the one route a wrong Confirmed actually takes.
+
+
+def _kb(tmp_path, name, applies_block):
+    p = tmp_path / "vmware" / "knowledge" / "kb" / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(f"---\nid: {name}\n{applies_block}---\nbody\n")
+
+
+def _scoped_case(versions):
+    cid = create_case(
+        Scope(
+            summary=f"scoped {next(_SEQ)}",
+            determined_by="test",
+            product_versions=versions,
+        ),
+        at=AT,
+    ).case_id
+    add_hypothesis(cid, "failing device")
+    return cid
+
+
+def test_a_knowledge_entry_for_the_wrong_build_cannot_confirm(tmp_path):
+    """The canonical wrong Confirmed. The entry is real, well-formed, and about
+    the right product — and it is for 9.x while this estate runs 8.0.3."""
+    _kb(tmp_path, "KB-1.md", "applies_to:\n  product: vsphere\n  build: '>=9.0'\n")
+    cid = _scoped_case({"vsphere": "8.0.3"})
+    _ev(cid, "vmware-monitor")
+    _ev(cid, "knowledge-kb")
+    assert grade_case(cid).grade != "confirmed"
+
+
+def test_a_knowledge_entry_with_no_applies_to_cannot_confirm(tmp_path):
+    _kb(tmp_path, "KB-2.md", "")
+    cid = _scoped_case({"vsphere": "8.0.3"})
+    _ev(cid, "vmware-monitor")
+    _ev(cid, "knowledge-kb")
+    assert grade_case(cid).grade != "confirmed"
+
+
+def test_a_matching_entry_does_confirm(tmp_path):
+    """The counterpart, so the rule above is a filter and not a wall."""
+    _kb(tmp_path, "KB-3.md", "applies_to:\n  product: vsphere\n  build: '>=8.0, <9.0'\n")
+    cid = _scoped_case({"vsphere": "8.0.3"})
+    _ev(cid, "vmware-monitor")
+    _ev(cid, "knowledge-kb", knowledge_entry_id="KB-3.md")
+    assert grade_case(cid).grade == "confirmed"
+
+
+def test_citing_the_wrong_entry_does_not_borrow_a_matching_one(tmp_path):
+    """Caught reviewing the applicability filter.
+
+    The first version passed when ANY mounted entry applied, so an agent citing
+    the entry written for 9.x could confirm a case about 8.0.3 as long as some
+    unrelated entry happened to match. "An entry is decisive only if ITS
+    applies_to passed" was true of the docstring and not of the code.
+
+    Knowledge evidence now has to say which entry it is, and that entry is the
+    one checked.
+    """
+    _kb(tmp_path, "KB-right.md", "applies_to:\n  product: vsphere\n  build: '>=8.0, <9.0'\n")
+    _kb(tmp_path, "KB-wrong.md", "applies_to:\n  product: vsphere\n  build: '>=9.0'\n")
+    cid = _scoped_case({"vsphere": "8.0.3"})
+    _ev(cid, "vmware-monitor")
+    _ev(cid, "knowledge-kb", knowledge_entry_id="KB-wrong.md")
+    assert grade_case(cid).grade != "confirmed"
+
+
+def test_citing_the_right_entry_confirms(tmp_path):
+    _kb(tmp_path, "KB-right.md", "applies_to:\n  product: vsphere\n  build: '>=8.0, <9.0'\n")
+    _kb(tmp_path, "KB-wrong.md", "applies_to:\n  product: vsphere\n  build: '>=9.0'\n")
+    cid = _scoped_case({"vsphere": "8.0.3"})
+    _ev(cid, "vmware-monitor")
+    _ev(cid, "knowledge-kb", knowledge_entry_id="KB-right.md")
+    assert grade_case(cid).grade == "confirmed"
+
+
+def test_knowledge_evidence_that_names_no_entry_is_not_decisive(tmp_path):
+    """Without the id there is nothing to check, and 'something applicable
+    exists somewhere' is not the same claim."""
+    _kb(tmp_path, "KB-right.md", "applies_to:\n  product: vsphere\n---\n")
+    cid = _scoped_case({"vsphere": "8.0.3"})
+    _ev(cid, "vmware-monitor")
+    _ev(cid, "knowledge-kb")
+    r = grade_case(cid)
+    assert r.grade != "confirmed"
+    assert any("which entry" in x for x in r.reasons), r.reasons
