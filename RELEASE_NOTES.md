@@ -1,6 +1,6 @@
-## Unreleased — the resolver hijack, the discarded event identifier, and a parameter that did nothing
+## v1.11.2 — the resolver hijack, the discarded event identifier, and a parameter that did nothing
 
-Three findings from the 2026-08-30 real-hardware re-test. No version bump yet.
+Three findings from the 2026-08-30 real-hardware re-test. 
 
 **Importing this package no longer disables another skill's policy rules.**
 `vmware_debug.mcp_server.server` registered a `vmware_policy` environment
