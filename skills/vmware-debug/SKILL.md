@@ -100,7 +100,7 @@ a recommended plan.
 - **MCP** (in an agent): the agent calls the other skills' read tools, then `incident_timeline` to correlate. This is the primary mode — that's where the cross-skill "联动" happens.
 - **CLI** (humans): `vmware-debug triage --events events.json` correlates a JSON array you collected yourself.
 
-## MCP Tools (10 — 6 read, 4 write)
+## MCP Tools (13 — 6 read, 7 write)
 
 **Correlation** — stateless, for a single look:
 
@@ -118,9 +118,12 @@ a recommended plan.
 | `case_plan` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
 | `case_list` | [READ] Cases, newest first |
 | `case_get` | [READ] One case: scope, ledger sizes, grade history |
+| `case_hypotheses` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
 | `case_submit_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
 | `case_record_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
+| `case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
 | `case_grade` | [WRITE] Recompute the conclusion grade from the ledger and record it |
+| `case_close` | [WRITE] Record the final grade, archive, and name what was left open |
 
 The four writes go to `$OPS_HOME` (default `~/.vmware/cases/`) and nowhere else.
 
@@ -148,6 +151,11 @@ how a conclusion was reached with none of this installed:
 ├── conclusion.md the grade, appended — including every time it went down
 └── timeline.md · hypotheses.md · plan.jsonl · case.json
 ```
+
+Hypotheses get ids (H1, H2, …), and those ids are what `case_record_gap(blocks=…)`
+and `case_submit_evidence(falsifies=…)` refer to. **An id that was never
+registered is refused, not ignored** — a dangling reference blocks nothing and
+falsifies nothing, which quietly reports a stronger case than you have.
 
 **You cannot state a conclusion level.** `case_grade` has no parameter for one;
 the grade is recomputed from the ledger on every call. To change it, change the

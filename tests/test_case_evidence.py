@@ -21,6 +21,7 @@ from vmware_debug.ops.cases.evidence import (
     record_evidence,
     record_gap,
 )
+from vmware_debug.ops.cases.hypotheses import add_hypothesis
 from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.store import CaseNotFound, case_dir, create_case
 
@@ -34,7 +35,9 @@ def isolated_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def case():
-    return create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    cid = create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    add_hypothesis(cid, "failing device")  # the gaps below block it
+    return cid
 
 
 def an_evidence(**kw):

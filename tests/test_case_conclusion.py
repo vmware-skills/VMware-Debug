@@ -13,6 +13,7 @@ import pytest
 from vmware_debug.ops.cases.conclusion import grade_history, record_grade
 from vmware_debug.ops.cases.evidence import Evidence, Gap, record_evidence, record_gap
 from vmware_debug.ops.cases.grading import grade_case
+from vmware_debug.ops.cases.hypotheses import add_hypothesis
 from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.store import case_dir, create_case, load_case
 
@@ -26,7 +27,9 @@ def isolated_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def case():
-    return create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    cid = create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    add_hypothesis(cid, "failing device")  # referenced by the gaps below
+    return cid
 
 
 def ev(skill):

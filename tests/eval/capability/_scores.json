@@ -11,16 +11,16 @@
           "case_list",
           "case_readiness"
         ],
-        "reachable_on_surface": 5,
+        "reachable_on_surface": 8,
         "reachable_only_via_description": 0,
-        "required_entity_params": 5,
-        "required_params_classified": "5/14",
-        "tool_count": 10
+        "required_entity_params": 8,
+        "required_params_classified": "8/17",
+        "tool_count": 13
       },
-      "maximum": 5,
+      "maximum": 8,
       "pct": 100.0,
       "unit": "required entity params",
-      "value": 5
+      "value": 8
     },
     "entity_reachability_read_only": {
       "detail": {
@@ -45,15 +45,15 @@
       "detail": {
         "full_entry_points": 5
       },
-      "maximum": 10,
-      "pct": 50.0,
+      "maximum": 13,
+      "pct": 38.5,
       "unit": "entry points",
       "value": 5
     },
     "error_actionability": {
       "detail": {
         "composed_hint_sites": [],
-        "dead_end_count": 11,
+        "dead_end_count": 15,
         "dead_end_errors": [
           {
             "message": "Cannot read conclusion.md for case {}: {}. The case directory may have been moved or its permissions",
@@ -77,7 +77,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:271"
+            "where": "evidence.py:281"
           },
           {
             "message": "gaps.json in case {} is not valid JSON: {}. It was hand-edited. Restore it rather than deleting it \u2014",
@@ -85,7 +85,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:273"
+            "where": "evidence.py:283"
           },
           {
             "message": "Cannot read grading_rules.yaml at {}: {}",
@@ -102,6 +102,23 @@
               "states_remedy"
             ],
             "where": "grading.py:57"
+          },
+          {
+            "message": "A hypothesis needs a statement \u2014 what you think happened, in one line. An unnamed hypothesis cannot ",
+            "missing": [
+              "names_artifact",
+              "names_input",
+              "states_remedy"
+            ],
+            "where": "hypotheses.py:88"
+          },
+          {
+            "message": "Cannot read hypotheses.md for case {}: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "hypotheses.py:60"
           },
           {
             "message": "Scope field {} is required and cannot be blank. It is what step 01 of the evidence loop produces; a ",
@@ -142,19 +159,35 @@
               "states_remedy"
             ],
             "where": "store.py:81"
+          },
+          {
+            "message": "Case {} is already closed. Its record is not rewritten \u2014 reopen the question by opening a new case t",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "timeline.py:140"
+          },
+          {
+            "message": "Cannot read case.json for {}: {}",
+            "missing": [
+              "names_artifact",
+              "states_remedy"
+            ],
+            "where": "timeline.py:154"
           }
         ],
         "per_dimension_pct": {
-          "names_artifact": 41.2,
-          "names_input": 97.1,
-          "states_remedy": 67.6
+          "names_artifact": 38.1,
+          "names_input": 95.2,
+          "states_remedy": 61.9
         },
-        "raise_sites": 34
+        "raise_sites": 42
       },
-      "maximum": 102,
-      "pct": 68.6,
+      "maximum": 126,
+      "pct": 65.1,
       "unit": "points",
-      "value": 70
+      "value": 82
     },
     "manifest_context_headroom": {
       "detail": {
@@ -165,15 +198,15 @@
           "case_submit_evidence": 549,
           "incident_timeline": 329
         },
-        "manifest_tokens": 2778,
-        "mean_tokens_per_tool": 277.8,
+        "manifest_tokens": 3428,
+        "mean_tokens_per_tool": 263.7,
         "reference_context": 16384,
-        "tool_count": 10
+        "tool_count": 13
       },
       "maximum": 16384,
-      "pct": 83.0,
+      "pct": 79.1,
       "unit": "tokens",
-      "value": 13606
+      "value": 12956
     },
     "parameter_documentation_coverage": {
       "detail": {
@@ -184,13 +217,19 @@
           "case_submit_evidence": [
             "fetched_at",
             "summary"
+          ],
+          "case_timeline": [
+            "bin_seconds",
+            "case_id",
+            "top_n",
+            "z_threshold"
           ]
         }
       },
-      "maximum": 36,
-      "pct": 91.7,
+      "maximum": 43,
+      "pct": 83.7,
       "unit": "parameters",
-      "value": 33
+      "value": 36
     },
     "per_tool_token_discipline": {
       "detail": {
@@ -201,10 +240,10 @@
           "case_submit_evidence": 549
         }
       },
-      "maximum": 10,
-      "pct": 70.0,
+      "maximum": 13,
+      "pct": 76.9,
       "unit": "tools",
-      "value": 7
+      "value": 10
     },
     "read_only_manifest_saving": {
       "detail": {
@@ -224,10 +263,10 @@
       "detail": {
         "unmarked": []
       },
-      "maximum": 10,
+      "maximum": 13,
       "pct": 100.0,
       "unit": "points",
-      "value": 10
+      "value": 13
     },
     "remedy_survives_truncation": {
       "detail": {
@@ -239,37 +278,40 @@
           "conclusion.py:135",
           "conclusion.py:144",
           "evidence.py:172",
-          "evidence.py:199",
-          "evidence.py:235",
+          "evidence.py:204",
+          "evidence.py:240",
           "grading.py:65",
-          "ids.py:43",
-          "ids.py:48"
+          "hypotheses.py:47",
+          "hypotheses.py:70"
         ]
       },
-      "maximum": 23,
+      "maximum": 27,
       "pct": 100.0,
       "unit": "messages",
-      "value": 23
+      "value": 27
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 34,
-      "pct": 41.2,
+      "maximum": 42,
+      "pct": 35.7,
       "unit": "messages",
-      "value": 14
+      "value": 15
     },
     "tool_description_quality": {
       "detail": {
         "per_dimension_pct": {
-          "args": 80.0,
-          "gotcha": 80.0,
+          "args": 76.9,
+          "gotcha": 84.6,
           "marker": 100.0,
-          "next_hop": 60.0,
+          "next_hop": 61.5,
           "what": 100.0,
-          "when": 90.0
+          "when": 92.3
         },
-        "tools_graded": 10,
+        "tools_graded": 13,
         "weakest_tools": {
+          "case_close": [
+            "next_hop"
+          ],
           "case_get": [
             "gotcha"
           ],
@@ -281,8 +323,6 @@
             "gotcha",
             "next_hop"
           ],
-          "case_open": [],
-          "case_plan": [],
           "case_readiness": [
             "next_hop"
           ],
@@ -292,26 +332,29 @@
           ],
           "case_submit_evidence": [
             "args"
+          ],
+          "case_timeline": [
+            "args"
           ]
         }
       },
-      "maximum": 60,
-      "pct": 85.0,
+      "maximum": 78,
+      "pct": 85.9,
       "unit": "points",
-      "value": 51
+      "value": 67
     },
     "tool_failure_payload_quality": {
       "detail": {
         "bare_string_error_lines": [],
-        "carries_hint": 9,
-        "dict_shaped": 9,
-        "error_return_sites": 9,
-        "hint_names_artifact": 9
+        "carries_hint": 12,
+        "dict_shaped": 12,
+        "error_return_sites": 12,
+        "hint_names_artifact": 12
       },
-      "maximum": 27,
+      "maximum": 36,
       "pct": 100.0,
       "unit": "checks",
-      "value": 27
+      "value": 36
     }
   }
 }

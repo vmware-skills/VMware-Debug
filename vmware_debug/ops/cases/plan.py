@@ -188,7 +188,8 @@ def _note(category, steps, already, unavailable, held_back) -> str:
     more = (
         f" {held_back} further step(s) are available for this category — pass a "
         f"larger max_steps to see them."
-        if held_back else ""
+        if held_back
+        else ""
     )
     if category is None:
         return (

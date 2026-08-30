@@ -189,6 +189,11 @@ def _next_id(existing: list[str], prefix: str) -> str:
 
 def record_evidence(case_id: str, evidence: Evidence, payload: Any = None) -> Evidence:
     """Append one item to the evidence ledger and return it with its id."""
+    # A `falsifies` id nothing recognises would exclude nothing and say nothing,
+    # so the reference is checked before the item is written.
+    from vmware_debug.ops.cases.hypotheses import require_hypotheses
+
+    require_hypotheses(case_id, evidence.falsifies)
     d = _case_dir_or_raise(case_id) / "evidence"
     d.mkdir(exist_ok=True)
     stems = [p.stem for p in d.glob("E*.json")]
@@ -242,6 +247,11 @@ def load_evidence(case_id: str) -> tuple[Evidence, ...]:
 
 def record_gap(case_id: str, gap: Gap) -> Gap:
     """Append one gap. Gaps accumulate; recording never replaces the list."""
+    # A `blocks` id nothing recognises would hold up nothing and say nothing,
+    # so the reference is checked before the gap is written.
+    from vmware_debug.ops.cases.hypotheses import require_hypotheses
+
+    require_hypotheses(case_id, gap.blocks)
     d = _case_dir_or_raise(case_id)
     existing = load_gaps(case_id)
     stamped = Gap(

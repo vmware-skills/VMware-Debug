@@ -27,6 +27,9 @@ _LEDGER_WRITERS = {
     "case_submit_evidence",
     "case_record_gap",
     "case_grade",
+    "case_hypotheses",
+    "case_timeline",
+    "case_close",
 }
 
 

@@ -19,6 +19,7 @@ import pytest
 
 from vmware_debug.ops.cases.evidence import Evidence, Gap, record_evidence, record_gap
 from vmware_debug.ops.cases.grading import grade_case, load_rules
+from vmware_debug.ops.cases.hypotheses import add_hypothesis
 from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.store import create_case
 
@@ -32,7 +33,15 @@ def isolated_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def case():
-    return create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    """A case with H1 already registered.
+
+    The gaps and observations below reference it, and a reference to an
+    unregistered hypothesis is now refused — a dangling id used to block and
+    falsify nothing while silently costing a grade level.
+    """
+    cid = create_case(Scope(summary="vsan latency", determined_by="alarm 42"), at=AT).case_id
+    add_hypothesis(cid, "failing device")
+    return cid
 
 
 def evidence(skill="vmware-monitor", tool="list_events", **kw):
@@ -238,3 +247,56 @@ class TestTheCeilingIsMeasuredNotAsserted:
         empty-result shape, one directory up."""
         (tmp_path / "vmware" / "knowledge" / "kb").mkdir(parents=True)
         assert grade_case(case).ceiling == "probable"
+
+
+class TestTheRulesFileHasNoDecorativeKnobs:
+    """Found by mutation-testing the section-7 metrics.
+
+    Changing `confirmed.requires` from `probable` to `candidate` in the rules
+    file changed nothing: the grader never read the key, and the corroboration
+    requirement came from control flow instead. A customer is expected to audit
+    that file and may edit it — a setting that looks like a knob and is wired to
+    nothing is worse than no setting, because it invites a change that appears
+    to take effect.
+    """
+
+    def _site(self, tmp_path, body):
+        p = tmp_path / "vmware" / "investigation" / "grading_rules.yaml"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(body)
+
+    def test_relaxing_the_prerequisite_actually_relaxes_it(self, case, tmp_path):
+        """One decisive source, no corroboration: Confirmed under the relaxed
+        rule, and not under the packaged one."""
+        record_evidence(case, evidence(skill="knowledge-sr"))
+        assert grade_case(case).grade == "candidate"
+
+        self._site(
+            tmp_path,
+            (
+                "grades:\n"
+                "  confirmed:\n"
+                "    requires: candidate\n"
+                "    min_decisive_sources: 1\n"
+                "    blocked_by_gaps: true\n"
+                "    decisive_sources: [knowledge-sr]\n"
+            ),
+        )
+        assert grade_case(case).grade == "confirmed"
+
+    def test_the_packaged_prerequisite_still_holds(self, case):
+        record_evidence(case, evidence(skill="knowledge-sr"))
+        assert grade_case(case).grade != "confirmed"
+
+    def test_an_unknown_prerequisite_is_refused_rather_than_ignored(self, case, tmp_path):
+        self._site(
+            tmp_path,
+            (
+                "grades:\n"
+                "  confirmed:\n"
+                "    requires: definitely\n"
+                "    decisive_sources: [knowledge-sr]\n"
+            ),
+        )
+        with pytest.raises(ValueError, match="definitely"):
+            grade_case(case)

@@ -32,10 +32,12 @@ from vmware_debug.ops.cases.evidence import (
     record_gap,
 )
 from vmware_debug.ops.cases.grading import grade_case
+from vmware_debug.ops.cases.hypotheses import add_hypothesis, hypothesis_ledger
 from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.plan import plan_next as _plan_next
 from vmware_debug.ops.cases.readiness import readiness as _readiness
 from vmware_debug.ops.cases.store import case_dir, create_case, list_cases, load_case
+from vmware_debug.ops.cases.timeline import build_case_timeline, close_case as _close_case
 
 
 def utc_now() -> str:
@@ -217,3 +219,44 @@ def plan(
 ) -> dict[str, Any]:
     """What to fetch next for this case, recomputed from its current state."""
     return _plan_next(case_id, category=category, available_skills=available_skills)
+
+
+def hypotheses(case_id: str, statement: str | None = None, at: str | None = None) -> dict[str, Any]:
+    """Step 06. Register a candidate explanation, or read the ledger.
+
+    One tool for both because they are one question — "what do we think, and
+    what does the evidence say about it" — and splitting them would make the
+    common case (register, then look) two calls.
+    """
+    added = None
+    if statement is not None:
+        added = add_hypothesis(case_id, statement, at=at or utc_now())
+    ledger = hypothesis_ledger(case_id)
+    return {
+        "case_id": case_id,
+        "added": added.hypothesis_id if added else None,
+        "hypotheses": ledger,
+        "note": (
+            "Refer to these ids from case_record_gap(blocks=[...]) and "
+            "case_submit_evidence(falsifies=[...]). An id that is not listed "
+            "here is refused rather than ignored: it would block and falsify "
+            "nothing, which reads as a stronger case than you have."
+        ),
+    }
+
+
+def timeline(
+    case_id: str,
+    bin_seconds: float | None = None,
+    z_threshold: float = 2.0,
+    top_n: int = 5,
+) -> dict[str, Any]:
+    """Steps 04/05. Correlate everything the case has collected."""
+    return build_case_timeline(
+        case_id, bin_seconds=bin_seconds, z_threshold=z_threshold, top_n=top_n
+    )
+
+
+def close(case_id: str, at: str | None = None) -> dict[str, Any]:
+    """Step 08. Record the final grade, archive, and name what was left open."""
+    return _close_case(case_id, at=at or utc_now())

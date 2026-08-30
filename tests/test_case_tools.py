@@ -31,9 +31,11 @@ def isolated_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def case():
-    return t.case_open(summary="vsan latency on cluster-01", determined_by="alarm 42", at=AT)[
+    cid = t.case_open(summary="vsan latency on cluster-01", determined_by="alarm 42", at=AT)[
         "case_id"
     ]
+    t.case_hypotheses(case_id=cid, statement="failing device")
+    return cid
 
 
 def submit(case, skill="vmware-monitor", **kw):

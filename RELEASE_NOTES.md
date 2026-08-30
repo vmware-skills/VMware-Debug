@@ -1,3 +1,55 @@
+## v1.9.0 — the investigation layer: 2 tools become 13
+
+Correlating events answers "what happened together". A case answers "what do we
+believe, on what evidence, and what is still missing" — and keeps answering it
+across sessions and across people. The case folder is the deliverable: everything
+but the index is plain text, so a customer can take it away and audit how a
+conclusion was reached with none of this installed.
+
+Eleven new tools implement the eight-step evidence loop:
+
+    case_open · case_readiness · case_plan · case_hypotheses
+    case_submit_evidence · case_record_gap · case_timeline
+    case_grade · case_close · case_list · case_get
+
+**You cannot state a conclusion level.** `case_grade` has no parameter for one;
+the grade is recomputed from the ledger on every call. That is vmware-harden
+v1.9.0's lesson applied before the fact rather than after: any route left open
+for a program to announce its own verdict gets used.
+
+**Recording a gap is free.** A missing confirmation caps the grade; only a gap
+that could *overturn* a hypothesis holds a case at Candidate. If writing down
+what you could not get cost two grades, the cheapest move would be not writing
+it down — and the gap ledger is the one thing here that must never have a
+cheaper alternative.
+
+**A reference to an unregistered hypothesis is refused, not ignored.** A
+dangling id used to block nothing and falsify nothing, quietly reporting a
+stronger case than the investigator had.
+
+**On a stock install the ceiling is Probable**, and every tool that can reach it
+says so. Confirmed needs a decisive source — a direct hardware diagnostic, a
+version-checked knowledge-base entry, or a vendor SR — and this family has no
+hardware-diagnostic channel and ships no knowledge library. Mount one under
+$OPS_HOME/knowledge/ and the ceiling rises on its own; it is measured, not
+asserted.
+
+Routing lives in `rules/evidence_sources.yaml` rather than in a prompt, and
+family_smoke checks every tool it names against the live MCP registries of all
+fifteen skills — so routing that points at a tool nobody exposes fails a gate
+instead of becoming advice an agent follows into a failure.
+
+Design section 7's four metrics ship as checks that can go red: wrong-Confirmed
+rate (must be zero), key-evidence recall, time-to-first-useful-evidence, and
+next-step actionability. Mutation-testing them found `confirmed.requires` in the
+rules file was never read — a knob wired to nothing, in a file customers are
+expected to audit. It is load-bearing now, and an unrecognised value is refused
+rather than silently ignored.
+
+Verified end to end against a live vCenter 8.0.3: real alarms and events
+submitted, six events correlated into a timeline, and the case closed at
+Probable with its open gap named.
+
 ## v1.8.9 — two wrong numbers: the server's own version, and the advertised tool count
 
 Both defects were invisible to the test suites and both were user-facing.

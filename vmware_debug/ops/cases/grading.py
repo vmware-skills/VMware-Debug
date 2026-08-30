@@ -185,9 +185,26 @@ def grade_case(case_id: str) -> GradeResult:
     elif _meets_probable(grades.get("probable") or {}, sources, falsifiable):
         grade = (
             "confirmed"
-            if _meets_confirmed(grades.get("confirmed") or {}, evidence, blocking, reasons)
+            if _meets_confirmed(
+                grades.get("confirmed") or {},
+                evidence,
+                blocking,
+                reasons,
+                prerequisite_met=True,
+            )
             else "probable"
         )
+    elif _meets_confirmed(
+        grades.get("confirmed") or {},
+        evidence,
+        blocking,
+        reasons,
+        prerequisite_met=False,
+    ):
+        # Only reachable when the rules file relaxes `confirmed.requires`.
+        # Mutation-testing found that key was never read: changing it looked
+        # like it worked and did nothing, which is worse than not offering it.
+        grade = "confirmed"
     else:
         grade = "candidate"
         reasons.append(_why_not_probable(grades.get("probable") or {}, sources, falsifiable))
@@ -232,9 +249,31 @@ def _why_not_probable(rule: dict[str, Any], sources: set[str], falsifiable: tupl
 
 
 def _meets_confirmed(
-    rule: dict[str, Any], evidence: tuple, blocking: tuple, reasons: list[str]
+    rule: dict[str, Any],
+    evidence: tuple,
+    blocking: tuple,
+    reasons: list[str],
+    prerequisite_met: bool,
 ) -> bool:
-    """Decisive evidence, and no hole of either kind left open."""
+    """Decisive evidence, no hole of either kind, and the prerequisite grade.
+
+    ``prerequisite_met`` says whether the case already reached the grade named
+    by ``confirmed.requires``. The packaged rules say ``probable``, so a single
+    vendor SR cannot carry a case alone; a site that lowers it to ``candidate``
+    genuinely gets the looser behaviour, which is the point of it being in a
+    file the customer can read.
+    """
+    requires = str(rule.get("requires", "probable")).lower()
+    valid = {"candidate", "probable"}
+    if requires not in valid:
+        raise ValueError(
+            f"grading_rules.yaml: confirmed.requires is {requires!r}; expected "
+            f"one of {sorted(valid)}. A prerequisite nobody recognises would be "
+            f"silently ignored, and the file would describe rules that are not "
+            f"the ones in force."
+        )
+    if requires == "probable" and not prerequisite_met:
+        return False
     if rule.get("blocked_by_gaps", True) and blocking:
         reasons.append(
             "Held at Probable rather than Confirmed: "

@@ -506,6 +506,86 @@ def build_server() -> FastMCP:
         except Exception as exc:
             return _case_error(exc, "case_plan")
 
+    @server.tool(name="case_hypotheses", annotations=_WRITE_LOCAL)
+    def _case_hypotheses_impl(case_id: str, statement: Optional[str] = None) -> dict:
+        """[WRITE] Register a candidate explanation, or read the ledger — step 06.
+
+        WHEN: as soon as you have a theory worth testing, and again to see where
+        each one stands. Pass `statement` to add one; omit it to just read.
+
+        Every hypothesis gets an id (H1, H2, …). Those ids are what
+        case_record_gap(blocks=[...]) and case_submit_evidence(falsifies=[...])
+        refer to, and an id that was never registered is REFUSED rather than
+        ignored — a dangling reference blocks nothing and falsifies nothing,
+        which quietly reports a stronger case than you have.
+
+        RETURNS: {case_id, added, hypotheses, note}. Each entry carries its
+        status and what produced it: `refuted` (an observation ruled it out,
+        with the evidence id), `blocked` (a gap is in the way, with the gap id
+        and how to close it), or `open`. Status is computed from what points at
+        the hypothesis — a hypothesis does not get to claim it is well
+        supported, the same way a case does not get to state its own grade.
+
+        GOTCHAS: refuted outranks blocked. Once an observation settles the
+        question, a missing measurement no longer matters."""
+        try:
+            return t.case_hypotheses(case_id=case_id, statement=statement)
+        except Exception as exc:
+            return _case_error(exc, "case_hypotheses")
+
+    @server.tool(name="case_timeline", annotations=_WRITE_LOCAL)
+    def _case_timeline_impl(
+        case_id: str,
+        bin_seconds: Optional[float] = None,
+        z_threshold: float = 2.0,
+        top_n: int = 5,
+    ) -> dict:
+        """[WRITE] Correlate everything this case has collected — steps 04/05.
+
+        WHEN: once evidence is in. Unlike incident_timeline, this takes no
+        events: it reads the payloads already submitted, so the result is
+        reproducible from the case folder alone months later, on a machine with
+        access to nothing.
+
+        RETURNS: {event_count, window, spikes, hypotheses, evidence_without_events,
+        rejected, note} and writes timeline.md.
+
+        GOTCHAS: `note` distinguishes three states that all show zero events —
+        no evidence submitted at all, evidence that carried none, and a genuinely
+        quiet window. `rejected` names any row that could not be read, with the
+        evidence item it came from; dropping those silently would shrink the
+        picture the conclusion rests on. Submit a read tool's raw result as
+        `payload` for its events to reach here."""
+        try:
+            return t.case_timeline(
+                case_id=case_id,
+                bin_seconds=bin_seconds,
+                z_threshold=z_threshold,
+                top_n=top_n,
+            )
+        except Exception as exc:
+            return _case_error(exc, "case_timeline")
+
+    @server.tool(name="case_close", annotations=_WRITE_LOCAL)
+    def _case_close_impl(case_id: str) -> dict:
+        """[WRITE] Record the final grade and archive the case — step 08.
+
+        WHEN: when the investigation is finished, or is being handed over.
+        Closing turns a working folder into a record other people rely on, so it
+        computes and records the grade rather than accepting one.
+
+        RETURNS: {case_id, state, grade, open_gaps, path, note}. `open_gaps`
+        names anything still blocking a hypothesis at the moment of closing —
+        stated here rather than left in the file for someone to find.
+
+        GOTCHAS: a closed case is not closed again and its record is never
+        rewritten. To reopen the question, open a new case that cites this one,
+        so the original conclusion and whatever changed it both stay readable."""
+        try:
+            return t.case_close(case_id=case_id)
+        except Exception as exc:
+            return _case_error(exc, "case_close")
+
     return server
 
 
