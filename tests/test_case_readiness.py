@@ -122,7 +122,7 @@ class TestReadiness:
         assert readiness()["classes"]["knowledge"]["available"] is False
         kb = tmp_path / "vmware" / "knowledge" / "kb"
         kb.mkdir(parents=True)
-        (kb / "KB-1.md").write_text("---\napplies_to: {}\n---\nbody\n")
+        (kb / "KB-1.md").write_text("---\napplies_to: {}\n---\nbody\n", encoding="utf-8")
         assert readiness()["classes"]["knowledge"]["available"] is True
 
     def test_hardware_stays_unavailable_no_matter_what_is_installed(self):

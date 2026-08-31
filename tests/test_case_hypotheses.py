@@ -67,7 +67,7 @@ class TestRegistering:
 
     def test_it_lands_in_hypotheses_md_as_readable_text(self, case):
         add_hypothesis(case, "failing NVMe device")
-        body = (case_dir(case) / "hypotheses.md").read_text()
+        body = (case_dir(case) / "hypotheses.md").read_text(encoding="utf-8")
         assert "H1" in body and "failing NVMe device" in body
         assert "_Empty." not in body
 

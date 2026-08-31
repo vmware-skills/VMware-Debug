@@ -65,7 +65,7 @@ def case_dir(case_id: str) -> Path:
 
 
 def _write_json(path: Path, payload: object) -> None:
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _read_json(path: Path, what: str) -> dict:
@@ -76,7 +76,7 @@ def _read_json(path: Path, what: str) -> dict:
     it would be at its most costly here.
     """
     try:
-        raw = path.read_text()
+        raw = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise CaseError(
             f"Cannot read {what} at {path}: {exc}. The case directory may have "
@@ -125,10 +125,10 @@ def create_case(scope: Scope, at: str) -> Case:
     (d / "evidence").mkdir()
 
     _write_json(d / "scope.json", scope.to_json())
-    (d / "plan.jsonl").write_text("")
+    (d / "plan.jsonl").write_text("", encoding="utf-8")
     _write_json(d / "gaps.json", {"gaps": []})
     for name, body in _SKELETON_MD.items():
-        (d / name).write_text(body)
+        (d / name).write_text(body, encoding="utf-8")
     _write_json(
         d / "case.json",
         {"case_id": case_id, "state": "open", "opened_at": at, "grade": None},

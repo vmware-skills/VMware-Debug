@@ -55,7 +55,7 @@ def load_hypotheses(case_id: str) -> tuple[Hypothesis, ...]:
     """Every registered hypothesis, in registration order."""
     path = _path(case_id)
     try:
-        body = path.read_text()
+        body = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise CaseError(f"Cannot read {_FILE} for case {case_id}: {exc}") from exc
     out = []
@@ -97,12 +97,12 @@ def add_hypothesis(case_id: str, statement: str, at: str = "") -> Hypothesis:
         statement=statement.strip(),
         at=at,
     )
-    body = path.read_text().replace(_PLACEHOLDER_MARK, "").rstrip("\n")
+    body = path.read_text(encoding="utf-8").replace(_PLACEHOLDER_MARK, "").rstrip("\n")
     machine = json.dumps(
         {"id": h.hypothesis_id, "statement": h.statement, "at": h.at},
         ensure_ascii=False,
     )
-    path.write_text(f"{body}\n\n## {h.hypothesis_id} — {h.statement}\n\n{_ENTRY.format(machine)}\n")
+    path.write_text(f"{body}\n\n## {h.hypothesis_id} — {h.statement}\n\n{_ENTRY.format(machine)}\n", encoding="utf-8")
     return h
 
 

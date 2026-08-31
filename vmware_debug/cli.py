@@ -20,6 +20,30 @@ from rich.table import Table
 from vmware_debug import __version__
 from vmware_debug.mcp.tools import incident_timeline, list_symptom_categories
 
+
+def _harden_console_encoding() -> None:
+    """Never let one unrepresentable glyph kill a command.
+
+    On a console whose encoding cannot carry the characters we print -- cp936 on
+    the Chinese Windows boxes this family is tested on, or any ASCII locale --
+    ``print`` raises ``UnicodeEncodeError`` and the whole command dies with a
+    traceback. ``--help`` died that way in four repos. A mangled dash is a
+    cosmetic loss; a dead ``--help`` is an outage, so the error handler is
+    relaxed rather than the vocabulary narrowed.
+
+    Best effort: ``reconfigure`` is absent when stdout has been replaced by a
+    plain object (pytest capture, some MCP hosts), and losing the hardening
+    there is not worth an exception at import.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="backslashreplace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
+_harden_console_encoding()
+
 app = typer.Typer(
     add_completion=False,
     help="VMware diagnostic brain — read-only incident triage and root-cause routing.",
@@ -54,7 +78,7 @@ def triage(
     top_n: int = typer.Option(5, help="Max hypotheses to return."),
 ) -> None:
     """Correlate a set of pre-collected events into a ranked incident timeline."""
-    raw = events_file.read_text() if events_file else sys.stdin.read()
+    raw = events_file.read_text(encoding="utf-8") if events_file else sys.stdin.read()
     try:
         events = json.loads(raw)
     except json.JSONDecodeError as exc:

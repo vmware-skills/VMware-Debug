@@ -52,7 +52,7 @@ def build_case_timeline(
     for item in evidence:
         path = d / f"{item.evidence_id}.json"
         try:
-            body = json.loads(path.read_text())
+            body = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             rejected.append(f"{item.evidence_id}: payload unreadable")
             continue
@@ -125,7 +125,7 @@ def _write_timeline_md(case_id: str, result: dict, rows: list) -> None:
     if result.get("rejected"):
         lines += ["", "## Could not be read", ""]
         lines += [f"- {r}" for r in result["rejected"]]
-    (case_dir(case_id) / "timeline.md").write_text("\n".join(lines) + "\n")
+    (case_dir(case_id) / "timeline.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def close_case(case_id: str, at: str) -> dict[str, Any]:
@@ -146,11 +146,11 @@ def close_case(case_id: str, at: str) -> dict[str, Any]:
     open_gaps = [g.gap_id for g in load_gaps(case_id) if g.blocks]
     index_path = case_dir(case_id) / "case.json"
     try:
-        index = json.loads(index_path.read_text())
+        index = json.loads(index_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise CaseError(f"Cannot read case.json for {case_id}: {exc}") from exc
     index.update({"state": "closed", "closed_at": at, "grade": result.grade})
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
+    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     note = f"Closed at {result.grade}."
     if open_gaps:

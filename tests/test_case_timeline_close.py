@@ -97,7 +97,7 @@ class TestTimeline:
     def test_it_writes_timeline_md(self, case):
         submit(case, payload=EVENTS)
         build_case_timeline(case)
-        body = (case_dir(case) / "timeline.md").read_text()
+        body = (case_dir(case) / "timeline.md").read_text(encoding="utf-8")
         assert "esxi-03" in body
         assert "_Empty." not in body
 
@@ -132,7 +132,7 @@ class TestClose:
     def test_the_grade_is_recorded_at_close_not_assumed(self, case):
         out = close_case(case, at=AT)
         assert out["grade"] == "candidate"
-        assert "candidate" in (case_dir(case) / "conclusion.md").read_text().lower()
+        assert "candidate" in (case_dir(case) / "conclusion.md").read_text(encoding="utf-8").lower()
 
     def test_closing_twice_is_refused_rather_than_rewriting_the_record(self, case):
         close_case(case, at=AT)

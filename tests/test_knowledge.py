@@ -38,7 +38,7 @@ def home(tmp_path, monkeypatch):
 def write(home, rel, body):
     p = home / rel
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(body)
+    p.write_text(body, encoding="utf-8")
     return p
 
 

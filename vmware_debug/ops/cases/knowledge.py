@@ -298,7 +298,7 @@ def _parse(path: Path, section: str) -> tuple[list[KnowledgeEntry], str | None]:
             return [one(row) for row in csv.DictReader(raw.splitlines(), delimiter=delim)], None
         if ext in (".txt", ".log"):
             sidecar = path.with_suffix(".yaml")
-            d = yaml.safe_load(sidecar.read_text()) if sidecar.is_file() else {}
+            d = yaml.safe_load(sidecar.read_text(encoding="utf-8")) if sidecar.is_file() else {}
             return [one(d or {}, raw.strip())], None
     except Exception as exc:
         return [], f"{path.name}: {type(exc).__name__}: {exc}"

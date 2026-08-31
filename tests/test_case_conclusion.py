@@ -54,18 +54,18 @@ class TestRecording:
 
     def test_conclusion_md_gains_an_entry(self, case):
         record_grade(case, grade_case(case), at="2026-08-28T09:30:00Z")
-        body = (case_dir(case) / "conclusion.md").read_text()
+        body = (case_dir(case) / "conclusion.md").read_text(encoding="utf-8")
         assert "candidate" in body.lower()
         assert "2026-08-28T09:30:00Z" in body
 
     def test_the_entry_names_the_rules_that_produced_it(self, case):
         record_grade(case, grade_case(case), at="2026-08-28T09:30:00Z")
-        assert "grading_rules.yaml" in (case_dir(case) / "conclusion.md").read_text()
+        assert "grading_rules.yaml" in (case_dir(case) / "conclusion.md").read_text(encoding="utf-8")
 
     def test_the_placeholder_is_gone_once_a_grade_exists(self, case):
-        assert "Not graded yet" in (case_dir(case) / "conclusion.md").read_text()
+        assert "Not graded yet" in (case_dir(case) / "conclusion.md").read_text(encoding="utf-8")
         record_grade(case, grade_case(case), at="2026-08-28T09:30:00Z")
-        assert "Not graded yet" not in (case_dir(case) / "conclusion.md").read_text()
+        assert "Not graded yet" not in (case_dir(case) / "conclusion.md").read_text(encoding="utf-8")
 
 
 class TestHistoryIsAppendOnly:
@@ -108,7 +108,7 @@ class TestHistoryIsAppendOnly:
     def test_every_entry_survives_in_the_file(self, case):
         for i, at in enumerate(["09:30", "09:40", "09:50"]):
             record_grade(case, grade_case(case), at=f"2026-08-28T{at}:00Z")
-        body = (case_dir(case) / "conclusion.md").read_text()
+        body = (case_dir(case) / "conclusion.md").read_text(encoding="utf-8")
         for at in ["09:30", "09:40", "09:50"]:
             assert f"2026-08-28T{at}:00Z" in body
 

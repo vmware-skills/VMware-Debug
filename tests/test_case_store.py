@@ -82,18 +82,18 @@ class TestCreate:
         differently to whoever opens the folder."""
         d = case_dir(create_case(a_scope(), at=AT).case_id)
         for name in ("timeline.md", "hypotheses.md", "conclusion.md"):
-            body = (d / name).read_text()
+            body = (d / name).read_text(encoding="utf-8")
             assert body.strip(), f"{name} is blank"
             assert body.lstrip().startswith("#"), f"{name} has no heading"
 
     def test_jsonl_and_json_start_valid_not_blank(self):
         d = case_dir(create_case(a_scope(), at=AT).case_id)
-        assert (d / "plan.jsonl").read_text() == ""
-        assert json.loads((d / "gaps.json").read_text()) == {"gaps": []}
+        assert (d / "plan.jsonl").read_text(encoding="utf-8") == ""
+        assert json.loads((d / "gaps.json").read_text(encoding="utf-8")) == {"gaps": []}
 
     def test_refuses_to_overwrite_an_existing_case(self):
         case = create_case(a_scope(), at=AT)
-        (case_dir(case.case_id) / "evidence" / "E001.json").write_text("{}")
+        (case_dir(case.case_id) / "evidence" / "E001.json").write_text("{}", encoding="utf-8")
         with pytest.raises(CaseExists) as e:
             create_case(a_scope(), at=AT)
         assert case.case_id in str(e.value)
@@ -133,7 +133,7 @@ class TestLoad:
 
     def test_a_case_whose_scope_is_unreadable_is_an_error_not_an_empty_scope(self):
         case = create_case(a_scope(), at=AT)
-        (case_dir(case.case_id) / "scope.json").write_text("{ this is not json")
+        (case_dir(case.case_id) / "scope.json").write_text("{ this is not json", encoding="utf-8")
         with pytest.raises(ValueError, match="scope.json"):
             load_case(case.case_id)
 

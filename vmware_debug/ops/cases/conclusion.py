@@ -76,7 +76,7 @@ def record_grade(case_id: str, result: GradeResult, at: str) -> GradeEntry:
     )
 
     try:
-        body = path.read_text()
+        body = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise CaseError(
             f"Cannot read conclusion.md for case {case_id}: {exc}. The case "
@@ -84,13 +84,13 @@ def record_grade(case_id: str, result: GradeResult, at: str) -> GradeEntry:
         ) from exc
 
     body = body.replace(_PLACEHOLDER + "\n\n", "").replace(_PLACEHOLDER + "\n", "")
-    path.write_text(body.rstrip("\n") + "\n\n" + _render(entry))
+    path.write_text(body.rstrip("\n") + "\n\n" + _render(entry), encoding="utf-8")
 
     index_path = d / "case.json"
-    index = json.loads(index_path.read_text())
+    index = json.loads(index_path.read_text(encoding="utf-8"))
     index["grade"] = result.grade
     index["graded_at"] = at
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
+    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     return entry
 
@@ -137,7 +137,7 @@ def grade_history(case_id: str) -> tuple[GradeEntry, ...]:
             f"incomplete; restore it from your copy rather than recreating it."
         )
     out = []
-    for m in _ENTRY_RE.finditer(path.read_text()):
+    for m in _ENTRY_RE.finditer(path.read_text(encoding="utf-8")):
         try:
             d = json.loads(m.group("json"))
         except json.JSONDecodeError as exc:

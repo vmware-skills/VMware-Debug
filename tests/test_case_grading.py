@@ -42,7 +42,7 @@ def mounted_kb(tmp_path):
     """
     p = tmp_path / "vmware" / "knowledge" / "kb" / "KB-fixture.md"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text("---\nid: KB-fixture\napplies_to:\n  product: vsphere\n---\nbody\n")
+    p.write_text("---\nid: KB-fixture\napplies_to:\n  product: vsphere\n---\nbody\n", encoding="utf-8")
     return p
 
 
@@ -229,7 +229,7 @@ class TestRules:
         site.parent.mkdir(parents=True)
         site.write_text(
             "grades:\n  probable:\n    min_independent_sources: 1\n    blocked_by_gaps: false\n"
-        )
+        , encoding="utf-8")
         record_evidence(case, evidence(skill="vmware-monitor"))
         r = grade_case(case)
         assert r.grade == "probable"
@@ -242,7 +242,7 @@ class TestRules:
     def test_a_broken_site_file_is_an_error_not_a_silent_fallback(self, tmp_path):
         site = tmp_path / "vmware" / "investigation" / "grading_rules.yaml"
         site.parent.mkdir(parents=True)
-        site.write_text("grades: [this is a list not a mapping")
+        site.write_text("grades: [this is a list not a mapping", encoding="utf-8")
         with pytest.raises(ValueError, match="grading_rules.yaml"):
             load_rules()
 
@@ -263,7 +263,7 @@ class TestTheCeilingIsMeasuredNotAsserted:
     def test_a_populated_knowledge_library_raises_the_ceiling(self, case, tmp_path):
         kb = tmp_path / "vmware" / "knowledge" / "kb"
         kb.mkdir(parents=True)
-        (kb / "KB-2026-0417.md").write_text("---\nid: KB-2026-0417\n---\nbody\n")
+        (kb / "KB-2026-0417.md").write_text("---\nid: KB-2026-0417\n---\nbody\n", encoding="utf-8")
         r = grade_case(case)
         assert r.ceiling == "confirmed"
 
@@ -288,7 +288,7 @@ class TestTheRulesFileHasNoDecorativeKnobs:
     def _site(self, tmp_path, body):
         p = tmp_path / "vmware" / "investigation" / "grading_rules.yaml"
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(body)
+        p.write_text(body, encoding="utf-8")
 
     def test_relaxing_the_prerequisite_actually_relaxes_it(self, case, tmp_path, mounted_kb):
         """One decisive source, no corroboration: Confirmed under the relaxed

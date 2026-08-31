@@ -233,7 +233,7 @@ def test_every_unreachable_source_carries_a_remedy():
 def _kb(tmp_path, name, applies_block):
     p = tmp_path / "vmware" / "knowledge" / "kb" / name
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(f"---\nid: {name}\n{applies_block}---\nbody\n")
+    p.write_text(f"---\nid: {name}\n{applies_block}---\nbody\n", encoding="utf-8")
 
 
 def _scoped_case(versions):

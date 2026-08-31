@@ -215,7 +215,7 @@ def record_evidence(case_id: str, evidence: Evidence, payload: Any = None) -> Ev
     body = stamped.to_json()
     if payload is not None:
         body["payload"] = payload
-    path.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return stamped
 
 
@@ -243,7 +243,7 @@ def load_evidence(case_id: str) -> tuple[Evidence, ...]:
     out = []
     for path in sorted(d.glob("E*.json")):
         try:
-            out.append(Evidence.from_json(json.loads(path.read_text())))
+            out.append(Evidence.from_json(json.loads(path.read_text(encoding="utf-8"))))
         except (OSError, json.JSONDecodeError) as exc:
             raise ValueError(
                 f"Evidence file {path.name} in case {case_id} is unreadable: "
@@ -271,7 +271,7 @@ def record_gap(case_id: str, gap: Gap) -> Gap:
         gap_id=_next_id([g.gap_id for g in existing], "G"),
     )
     payload = {"gaps": [g.to_json() for g in existing] + [stamped.to_json()]}
-    (d / _GAPS).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    (d / _GAPS).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return stamped
 
 
@@ -284,7 +284,7 @@ def load_gaps(case_id: str) -> tuple[Gap, ...]:
     """
     path = _case_dir_or_raise(case_id) / _GAPS
     try:
-        body = json.loads(path.read_text())
+        body = json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise ValueError(f"Cannot read {_GAPS} for case {case_id}: {exc}.") from exc
     except json.JSONDecodeError as exc:

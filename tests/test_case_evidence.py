@@ -73,7 +73,7 @@ class TestRecording:
 
     def test_the_payload_is_stored_beside_the_record(self, case):
         e = record_evidence(case, an_evidence(), payload={"rows": [1, 2, 3]})
-        body = json.loads((case_dir(case) / "evidence" / f"{e.evidence_id}.json").read_text())
+        body = json.loads((case_dir(case) / "evidence" / f"{e.evidence_id}.json").read_text(encoding="utf-8"))
         assert body["payload"] == {"rows": [1, 2, 3]}
 
     def test_recording_against_a_case_that_does_not_exist_is_an_error(self):
@@ -95,7 +95,7 @@ class TestTheTimeBasisContract:
 
     def test_an_unknown_time_source_is_explicit_not_missing(self, case):
         e = record_evidence(case, an_evidence(time_source=None, clock_skew_s=None))
-        body = json.loads((case_dir(case) / "evidence" / f"{e.evidence_id}.json").read_text())
+        body = json.loads((case_dir(case) / "evidence" / f"{e.evidence_id}.json").read_text(encoding="utf-8"))
         assert "time_source" in body and body["time_source"] is None
         assert "clock_skew_s" in body and body["clock_skew_s"] is None
 
