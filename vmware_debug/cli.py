@@ -1,9 +1,10 @@
-"""vmware-debug CLI — read-only incident triage from the terminal.
+"""vmware-debug CLI — offline incident triage from the terminal.
 
 Correlation is local and offline: feed it events you've already collected (a
 JSON file or stdin) and it returns a ranked timeline + next-check ideas. The
 `mcp` subcommand starts the stdio MCP server (entry point that does not touch
-the network, so it works behind corporate TLS proxies — CLAUDE.md 踩坑 #25).
+the network, so it works behind corporate TLS proxies — CLAUDE.md 踩坑 #25);
+its case_* tools write the local case ledger, which no other command does.
 """
 
 from __future__ import annotations
@@ -46,7 +47,7 @@ _harden_console_encoding()
 
 app = typer.Typer(
     add_completion=False,
-    help="VMware diagnostic brain — read-only incident triage and root-cause routing.",
+    help="VMware diagnostic brain — offline incident triage and root-cause routing.",
 )
 console = Console()
 

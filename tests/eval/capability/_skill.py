@@ -58,8 +58,8 @@ NOT_AN_ENTITY: frozenset[str] = frozenset()
 def get_server(module):
     """Return the FastMCP instance ``SERVER_MODULE`` exposes.
 
-    This skill builds its server in a factory rather than at import time, so the
-    read-only gate is applied per call. Declared here rather than probed with a
+    This skill builds its server in a factory rather than at import time.
+    Declared here rather than probed with a
     try/except chain — a fallback would let a server that stops exposing what
     this file says silently resolve to the other shape.
     """

@@ -246,8 +246,8 @@ def _record(board, tools, label: str) -> Score:
     reachable, broken = _assess(tools)
     total = len(reachable) + len(broken)
     strong = sum(1 for r in reachable if r["producer_on_surface"])
-    # A surface with no identifier parameters at all (vmware-debug has two tools
-    # and neither takes one) is navigable, not broken. Scoring it 0/1 would read
+    # A surface with no identifier parameters at all (vmware-debug's was, while
+    # it had only its two correlation tools) is navigable, not broken. Scoring it 0/1 would read
     # as the worst possible result for the best possible case. The callers assert
     # that the vocabulary is genuinely empty before trusting this branch, so it
     # cannot be reached by a vocabulary that simply failed to match.

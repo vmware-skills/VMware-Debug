@@ -33,10 +33,12 @@ routes fixes to (vmware-aiops, vmware-pilot).
 
 1. **Source Code** — https://github.com/vmware-skills/VMware-Debug (MIT).
 2. **Credentials** — none. debug holds no secrets and connects to nothing.
-3. **Network** — none. All tools are local pure functions over event data the
-   agent supplies.
+3. **Network** — none. The correlation tools are local pure functions over
+   event data the agent supplies; the case tools read and write local files.
 4. **Writes** — only to the local investigation ledger under `$OPS_HOME`
-   (the seven [WRITE] `case_*` tools, append-only). Nothing is written to any
+   (the seven [WRITE] `case_*` tools). Evidence, gaps, hypotheses and grade
+   history are only ever added to; `timeline.md` is regenerated from the evidence and
+   `case.json` holds the current grade and state. Nothing is written to any
    VMware system: debug only diagnoses and recommends; remediation is routed
    to vmware-aiops / vmware-pilot, where confirmation/approval/audit live.
 5. **No cross-skill coupling** — events arrive as plain dicts (the event
@@ -45,7 +47,9 @@ routes fixes to (vmware-aiops, vmware-pilot).
    that connect to a VMware estate may declare `environment:` (`production` /
    `staging` / `lab`) per target in their own `config.yaml` as an optional label
    an environment-scoped `deny` rule can match on. debug has no config and no
-   connection to declare one about, so it registers no environment resolver and
-   its calls stay unlabeled — it has no basis to answer for any target.
+   connection to declare one about, so it registers no environment resolver —
+   it has no basis to answer for any target. Its tools do not pass through the
+   policy engine either, so no policy rule, environment-scoped or not, applies
+   to them.
 7. **Static analysis** — `uvx bandit -r vmware_debug/` (release bar:
    0 Medium+).

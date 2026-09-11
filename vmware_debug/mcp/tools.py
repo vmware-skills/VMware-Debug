@@ -1,6 +1,8 @@
-"""vmware-debug MCP tool logic — pure, read-only correlation. No network, no
-writes, no cross-skill imports. The agent fetches events with the other skills'
-read tools and passes them here as plain dicts (the unified event envelope)."""
+"""vmware-debug MCP tool logic. No network, no credentials, no cross-skill
+imports. The agent fetches events with the other skills' read tools and passes
+them here as plain dicts (the unified event envelope). The two correlation
+tools are pure reads; the case_* tools read and write the local investigation
+ledger under $OPS_HOME, and nothing else."""
 
 from __future__ import annotations
 

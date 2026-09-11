@@ -31,7 +31,8 @@ metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["
 
 The diagnostic brain of the VMware skill family. You bring the symptom; this skill
 runs the investigation and points at the root cause. It **reads and reasons** — it
-never writes. Companion skills do the data collection and the fixing.
+never writes to vSphere; its only writes go to its own local case ledger.
+Companion skills do the data collection and the fixing.
 
 ## What This Skill Does
 
@@ -41,9 +42,11 @@ never writes. Companion skills do the data collection and the fixing.
 | Root-cause ranking | Score symptom clusters, surface the most likely cause first | Read |
 | Next-check ideas | Suggest exactly what to look at next (which skill/tool) when you're stuck | Read |
 | Remediation routing | Hand the fix to vmware-aiops (single) or vmware-pilot (gated, multi-step) | Read (routes only) |
+| Investigation ledger | Open a case; record evidence, gaps and hypotheses; grade and close it | Write (local ledger only) |
 
-**Zero write tools. Zero network access of its own.** It correlates data the agent
-has already gathered with the other skills' read tools.
+**No network access of its own, and no write to any VMware system.** It correlates
+data the agent has already gathered with the other skills' read tools; its seven
+write tools touch only the local case ledger.
 
 ## Quick Install
 
@@ -269,11 +272,13 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 ## Audit & Safety
 
 No network, nothing executed. The seven [WRITE] tools write only to the local case
-ledger under `$OPS_HOME`, append-only; nothing here touches a remote VMware estate.
-Remediation is always routed to aiops/pilot, where the double-confirm / approval / audit
-gates live (audit DB `~/.vmware/audit.db`). Policy rules scope by environment; debug has
-no config and no connection to declare one about, so it registers no environment
-resolver and its calls stay unlabeled. See `references/setup-guide.md`.
+ledger under `$OPS_HOME`; nothing here touches a remote VMware estate. Evidence, gaps,
+hypotheses and grade history are only ever added to — `timeline.md` is regenerated from
+the evidence and `case.json` holds the current grade and state. Remediation is always routed to
+aiops/pilot, where the double-confirm / approval / audit gates live (audit DB
+`~/.vmware/audit.db`). debug has no config and no connection, so it registers no
+environment resolver, and its tools do not pass through the policy engine — no policy
+rule applies to them. See `references/setup-guide.md`.
 
 ## License
 

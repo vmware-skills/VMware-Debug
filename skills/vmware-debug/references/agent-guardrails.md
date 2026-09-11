@@ -41,7 +41,7 @@ These are structural, so it cannot.
 
 | Guardrail you would otherwise prompt for | Now enforced by |
 |---|---|
-| "Work read-only and never modify anything" | **The tool surface itself.** No tool reaches a VMware system. The seven [WRITE] tools write only to this skill's own local case ledger (append-only), so there is nothing in vSphere to withhold and nothing to switch off. |
+| "Work read-only and never modify anything" | **The tool surface itself.** No tool reaches a VMware system. The seven [WRITE] tools write only to this skill's own local case ledger, so there is nothing in vSphere to withhold and nothing to switch off. |
 | "Diagnose only — never apply the fix you propose" | **Structural.** This skill has no tool that changes anything outside its own ledger, and it holds no connection to vCenter, NSX or anything else. Remediation is routed to vmware-aiops or vmware-pilot by the calling agent. |
 | "Do not fabricate a timeline — build it from the events I gave you" | **`incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
 | "Tell me when the symptom is outside what you can recognise" | **`list_symptom_categories`** states the catalogue, and unmatched symptoms come back as `uncategorized` rather than being forced into the nearest signature. |

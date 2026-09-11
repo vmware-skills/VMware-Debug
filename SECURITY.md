@@ -20,8 +20,12 @@ vmware-debug has **no network access and no credentials**. It does not connect t
 vCenter, NSX, Aria, or any appliance. Its tools work over event data the
 orchestrating agent has already fetched with the other skills' read tools. Seven
 of its fourteen MCP tools write — only to the local investigation ledger under
-`$OPS_HOME` (default `~/.vmware/cases`), append-only. There is no destructive
-surface against any VMware system and no secret to leak.
+`$OPS_HOME` (default `~/.vmware/cases`). Evidence, gaps, hypotheses and grade
+history are only ever added to; `timeline.md` is regenerated from the evidence
+and `case.json` holds the current grade and state. That holds for one writer per
+case: gaps and hypotheses are read, extended and rewritten without a lock, so two
+processes working one case in a shared `$OPS_HOME` can drop an entry. There is no destructive surface
+against any VMware system and no secret to leak.
 
 ### No remediation execution
 debug only *diagnoses* and *recommends*. Any fix is routed to vmware-aiops

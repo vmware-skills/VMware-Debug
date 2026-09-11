@@ -1,7 +1,13 @@
 """vmware-debug MCP server entry point.
 
-Tools are defined in vmware_debug.mcp.tools (so audit logs see skill=debug).
-This module wires them into a FastMCP server and provides the stdio entry point.
+Tool logic lives in vmware_debug.mcp.tools (the case tools' bodies in
+ops/cases/api.py). This module wires them into a FastMCP server and provides
+the stdio entry point.
+
+No tool here goes through vmware_policy's audit decorator, and that is
+deliberate: nothing in this skill acts on a VMware target, so there is no
+operation for the family audit DB (~/.vmware/audit.db) to record. The case
+tools' writes land in the investigation ledger, which is its own record.
 
 Note: signatures here use typing.Optional, never PEP 604 ``X | None`` — FastMCP
 reflects these at registration and ``X | None`` crashes on Python 3.10 + older
@@ -61,7 +67,7 @@ logger = logging.getLogger("mcp_server")
 # config and no connection to declare one about: its tools either correlate
 # event dicts the calling agent already fetched, or read and write the
 # investigation ledger under $OPS_HOME. The ledger tools are writes — to a
-# directory on this machine, at ``low`` risk, append-only — but "a write with no
+# directory on this machine, and nowhere else — but "a write with no
 # VMware target" is not the same claim as "every target in this process is in
 # environment local", and only the second one was being made. Having no basis to
 # answer for any target, the honest thing is to leave the slot alone and let
@@ -69,20 +75,17 @@ logger = logging.getLogger("mcp_server")
 # which matches no environment-scoped rule and is never refused for lack of a
 # label (HLD §6, D-3).
 #
-# Declining is a fix for this skill, not for the hazard. One global slot with
-# last-writer-wins semantics still means any skill that registers honestly can
-# be silently displaced by the next one imported, and ``vmware_policy`` only
-# logs a warning when that happens — a warning is not a control. The repair
-# belongs there, and the shape it should take is: key the resolver by the
-# registering skill so each skill's targets are resolved by its own lookup, and
-# make a second registration for a skill that already has one an error rather
-# than an overwrite. Fixing it here is not possible; every skill would have to
-# agree, and the one that forgets is the one that breaks the others.
+# Declining was a fix for this skill, not for the hazard, which lived in the
+# one global slot. vmware-policy 1.12.0 fixed that part: a resolver registered
+# with ``skill=`` is stored under that skill and answers only for it; the
+# unkeyed form still works and still warns. Debug still registers none — it
+# has no targets to answer for.
 
-#: Client-facing behaviour hints, matching the rest of the family. Both tools
-#: are [READ]: pure correlation over dicts the caller already fetched, with the
-#: same answer every time. These drive MCP client UI (e.g. whether a call needs
-#: a confirmation prompt).
+#: Client-facing behaviour hints, matching the rest of the family, for the seven
+#: [READ] tools: the two correlation tools (pure functions over dicts the caller
+#: already fetched) and the case_* reads over the ledger. Repeating a call
+#: changes nothing. These drive MCP client UI (e.g. whether a call needs a
+#: confirmation prompt).
 #:
 #: ``openWorldHint`` is False rather than the family's usual True: this skill
 #: has no network access at all, which is exactly the closed world the hint
@@ -97,9 +100,14 @@ _READ = {
 #: The case tools write to the local investigation ledger under $OPS_HOME.
 #: Still ``openWorldHint: False`` — the boundary this skill does not cross is
 #: the network, and these tools do not cross it either. ``destructiveHint`` is
-#: False because the ledger is append-only: opening a case refuses to overwrite
-#: one, evidence lands in its own file, and a grade is appended to the history
-#: rather than replacing it. Nothing here has anything to undo.
+#: False because nothing a caller recorded is ever lost: opening a case refuses
+#: to overwrite one, evidence lands in its own file, gaps and hypotheses are
+#: only added to, and a grade is appended to the history rather than replacing
+#: it. What is rewritten is derived — ``timeline.md`` is regenerated from the
+#: evidence, and ``case.json`` carries the current grade and state — so there
+#: is nothing to undo. That assumes one writer per case: gaps and hypotheses
+#: are read-modify-write with no lock, so concurrent writers on a shared
+#: $OPS_HOME can drop an entry.
 #:
 #: ``idempotentHint`` is False: submitting the same evidence twice records it
 #: twice, which is correct — two fetches of the same query at different times

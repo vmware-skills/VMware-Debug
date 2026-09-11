@@ -1,6 +1,8 @@
 # vmware-debug CLI Reference
 
-All commands are read-only and offline (no network, no credentials).
+All commands are offline (no network, no credentials). All but `mcp` are
+read-only; `mcp` starts the MCP server, whose seven `case_*` write tools record
+into the local case ledger.
 
 ## triage — correlate a set of collected events
 

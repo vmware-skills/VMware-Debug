@@ -60,9 +60,10 @@ def test_annotations_agree_with_the_docstring_marker():
         is_write = (tool.description or "").lstrip().startswith("[WRITE]")
         assert ann.readOnlyHint is not is_write, tool.name
         # Nothing here is destructive in either direction: the read tools cannot
-        # be, and the ledger is append-only — opening a case refuses to
+        # be, and no recorded fact is ever lost — opening a case refuses to
         # overwrite one, evidence lands in its own file, and a grade is appended
-        # to the history rather than replacing it.
+        # to the history rather than replacing it. Only derived files
+        # (timeline.md, the current grade/state in case.json) are rewritten.
         assert ann.destructiveHint is False, tool.name
 
 
