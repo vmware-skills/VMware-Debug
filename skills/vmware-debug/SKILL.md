@@ -10,7 +10,8 @@ description: >
   don't know where to start. Always use this skill for "diagnose this VMware
   issue", "why is my VM slow", "troubleshoot this vSphere error", "what does
   this log mean", "help me figure out what broke" when the context is explicitly
-  VMware/vSphere/ESXi/NSX. It is READ-ONLY: it never changes anything. Do NOT
+  VMware/vSphere/ESXi/NSX. It never touches vSphere: its only writes are to a
+  local case ledger. Do NOT
   use it to execute fixes — single fixes go to vmware-aiops, multi-step gated
   remediation goes to vmware-pilot. Do NOT use it for routine inventory or
   health checks with no problem to solve — use vmware-monitor.
@@ -267,11 +268,12 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 
 ## Audit & Safety
 
-Read-only by construction: no write tools, no network, nothing executed. Remediation
-is always routed to aiops/pilot, where the double-confirm / approval / audit gates live
-(audit DB `~/.vmware/audit.db`). Policy rules scope by environment; debug has no config
-and no connection to declare one about, so it reports a constant `local` — nothing here
-touches a remote VMware estate. See `references/setup-guide.md`.
+No network, nothing executed. The seven [WRITE] tools write only to the local case
+ledger under `$OPS_HOME`, append-only; nothing here touches a remote VMware estate.
+Remediation is always routed to aiops/pilot, where the double-confirm / approval / audit
+gates live (audit DB `~/.vmware/audit.db`). Policy rules scope by environment; debug has
+no config and no connection to declare one about, so it registers no environment
+resolver and its calls stay unlabeled. See `references/setup-guide.md`.
 
 ## License
 

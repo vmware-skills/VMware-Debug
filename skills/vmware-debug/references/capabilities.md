@@ -1,6 +1,9 @@
 # vmware-debug Capabilities
 
-Read-only, offline incident correlation. No network, no credentials, no writes.
+Offline incident correlation. No network, no credentials, no writes to any VMware
+system. This table covers the two stateless correlation tools; the twelve `case_*`
+investigation-ledger tools (seven of which write, to the local ledger only) are
+listed in `SKILL.md`, and their response sizes are not yet measured here.
 
 | Tool | What it returns | Typical response tokens |
 |---|---|---|

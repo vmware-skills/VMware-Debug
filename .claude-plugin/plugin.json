@@ -3,7 +3,7 @@
   "name": "vmware-debug",
   "displayName": "VMware Debug",
   "version": "1.11.3",
-  "description": "Read-only VMware incident correlation: timeline, spikes, root-cause routing. 2 MCP tools.",
+  "description": "VMware incident timeline, root-cause routing, local case ledger; no vSphere access. 14 MCP tools.",
   "author": {
     "name": "Wei Zhou",
     "email": "zhouwei008@gmail.com",

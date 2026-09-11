@@ -15,11 +15,13 @@ or by email to the maintainer. Please do not open public issues for security bug
 
 ## Security Design
 
-### Read-only and offline by construction
-vmware-debug has **no write tools, no network access, and no credentials**. It
-does not connect to vCenter, NSX, Aria, or any appliance. Its tools are pure
-functions over event data the orchestrating agent has already fetched with the
-other skills' read tools. There is no destructive surface and no secret to leak.
+### Offline by construction; writes only its own ledger
+vmware-debug has **no network access and no credentials**. It does not connect to
+vCenter, NSX, Aria, or any appliance. Its tools work over event data the
+orchestrating agent has already fetched with the other skills' read tools. Seven
+of its fourteen MCP tools write — only to the local investigation ledger under
+`$OPS_HOME` (default `~/.vmware/cases`), append-only. There is no destructive
+surface against any VMware system and no secret to leak.
 
 ### No remediation execution
 debug only *diagnoses* and *recommends*. Any fix is routed to vmware-aiops

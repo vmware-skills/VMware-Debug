@@ -2,10 +2,6 @@
 
 # VMware Debug
 
-> ⚠️ **Work in progress** — the core (event correlation engine, MCP tools, CLI)
-> is built and tested; README, `server.json`, full reference docs, and packaging
-> polish are still landing. Not yet published to PyPI.
-
 > **Disclaimer**: Community-maintained open-source project, **not affiliated with,
 > endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and
 > "vSphere" are trademarks of Broadcom. Source is publicly auditable under the MIT
@@ -14,20 +10,42 @@
 The diagnostic brain of the VMware skill family. You bring the symptom (an error,
 a log dump, a slow VM); this skill runs a systematic investigation, correlates
 events from the other skills into one timeline, ranks root-cause hypotheses, and
-tells you what to check next. It is **read-only** — it never changes anything and
-never executes fixes. Remediation is routed to `vmware-aiops` (single op) or
+tells you what to check next. It **never touches vSphere** — it connects to
+nothing and never executes fixes; its only writes are to a local case ledger
+under `$OPS_HOME`. Remediation is routed to `vmware-aiops` (single op) or
 `vmware-pilot` (multi-step, gated), mirroring the `vmware-harden → vmware-pilot`
 advisor/executor split.
 
 See [`skills/vmware-debug/SKILL.md`](skills/vmware-debug/SKILL.md) for the full
 methodology, the event-envelope contract, and symptom routing.
 
-## MCP tools
+## MCP tools (14 — 7 read, 7 write)
+
+The seven writes go to the local case ledger only; none reaches a VMware system.
+
+**Correlation** — stateless, for a single look:
 
 | Tool | What |
 |---|---|
 | `incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
 | `list_symptom_categories` | [READ] List recognised symptom categories + what to check for each |
+
+**Investigation ledger** — for an incident you will reason about over time:
+
+| Tool | What |
+|---|---|
+| `case_open` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
+| `case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
+| `case_knowledge` | [READ] Which knowledge formats are accepted, what is mounted, and which entries apply to a case |
+| `case_plan` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
+| `case_list` | [READ] Cases, newest first |
+| `case_get` | [READ] One case: scope, ledger sizes, grade history |
+| `case_hypotheses` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
+| `case_submit_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
+| `case_record_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
+| `case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
+| `case_grade` | [WRITE] Recompute the conclusion grade from the ledger and record it |
+| `case_close` | [WRITE] Record the final grade, archive, and name what was left open |
 
 ## Offline / Air-Gapped Install (from source)
 
