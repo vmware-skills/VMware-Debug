@@ -105,9 +105,9 @@ _READ = {
 #: only added to, and a grade is appended to the history rather than replacing
 #: it. What is rewritten is derived — ``timeline.md`` is regenerated from the
 #: evidence, and ``case.json`` carries the current grade and state — so there
-#: is nothing to undo. That assumes one writer per case: gaps and hypotheses
-#: are read-modify-write with no lock, so concurrent writers on a shared
-#: $OPS_HOME can drop an entry.
+#: is nothing to undo. That holds for concurrent writers on a shared $OPS_HOME
+#: too: every write takes the case's ledger lock (``store.ledger_lock``) and
+#: moves its file into place atomically, so no entry is lost to a race.
 #:
 #: ``idempotentHint`` is False: submitting the same evidence twice records it
 #: twice, which is correct — two fetches of the same query at different times

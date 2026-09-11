@@ -20,7 +20,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vmware_debug.ops.cases.store import CaseError, CaseNotFound, case_dir, cases_root
+from vmware_debug.ops.cases.store import (
+    CaseError,
+    CaseNotFound,
+    case_dir,
+    cases_root,
+    ledger_lock,
+    write_text_atomic,
+)
 
 _GAPS = "gaps.json"
 
@@ -186,9 +193,10 @@ def _case_dir_or_raise(case_id: str) -> Path:
 def _next_id(existing: list[str], prefix: str) -> str:
     """Continue the sequence from what is on disk, not from a counter in memory.
 
-    Two processes appending at once could still collide; the writer below
-    refuses to overwrite, so a collision surfaces as an error rather than as a
-    lost item.
+    Callers hold the case's ledger lock, so two writers do not read the same
+    sequence. A writer that skips the lock can still collide; the evidence
+    writer creates its file exclusively, so that surfaces as an error rather
+    than as a lost item.
     """
     used = [int(x[1:]) for x in existing if x[:1] == prefix and x[1:].isdigit()]
     return f"{prefix}{max(used, default=0) + 1:03d}"
@@ -203,19 +211,27 @@ def record_evidence(case_id: str, evidence: Evidence, payload: Any = None) -> Ev
     require_hypotheses(case_id, evidence.falsifies)
     d = _case_dir_or_raise(case_id) / "evidence"
     d.mkdir(exist_ok=True)
-    stems = [p.stem for p in d.glob("E*.json")]
-    stamped = _with_id(evidence, _next_id(stems, "E"))
-
-    path = d / f"{stamped.evidence_id}.json"
-    if path.exists():
-        raise EvidenceConflict(
-            f"Evidence {stamped.evidence_id} already exists in case {case_id}. "
-            f"Two writers appended at once; re-run the submission."
-        )
-    body = stamped.to_json()
-    if payload is not None:
-        body["payload"] = payload
-    path.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    with ledger_lock(case_id):
+        stems = [p.stem for p in d.glob("E*.json")]
+        stamped = _with_id(evidence, _next_id(stems, "E"))
+        body = stamped.to_json()
+        if payload is not None:
+            body["payload"] = payload
+        path = d / f"{stamped.evidence_id}.json"
+        # Exclusive publish, not a check followed by a write: the check and the
+        # write were two steps, and a writer that does not take the lock (an
+        # older vmware-debug on the same share) could land between them.
+        try:
+            write_text_atomic(
+                path, json.dumps(body, indent=2, ensure_ascii=False) + "\n", exclusive=True
+            )
+        except FileExistsError:
+            raise EvidenceConflict(
+                f"Evidence {stamped.evidence_id} already exists in case {case_id}: "
+                f"another writer landed it at the same moment without taking the "
+                f"ledger lock (an older vmware-debug on the same share?). Nothing "
+                f"was overwritten; re-run the submission."
+            ) from None
     return stamped
 
 
@@ -261,17 +277,20 @@ def record_gap(case_id: str, gap: Gap) -> Gap:
 
     require_hypotheses(case_id, gap.blocks)
     d = _case_dir_or_raise(case_id)
-    existing = load_gaps(case_id)
-    stamped = Gap(
-        what=gap.what,
-        why=gap.why,
-        blocks=tuple(gap.blocks),
-        could_falsify=gap.could_falsify,
-        how_to_close=gap.how_to_close,
-        gap_id=_next_id([g.gap_id for g in existing], "G"),
-    )
-    payload = {"gaps": [g.to_json() for g in existing] + [stamped.to_json()]}
-    (d / _GAPS).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    # The list is read, extended and written back whole, so the read and the
+    # write must not be split by another writer's.
+    with ledger_lock(case_id):
+        existing = load_gaps(case_id)
+        stamped = Gap(
+            what=gap.what,
+            why=gap.why,
+            blocks=tuple(gap.blocks),
+            could_falsify=gap.could_falsify,
+            how_to_close=gap.how_to_close,
+            gap_id=_next_id([g.gap_id for g in existing], "G"),
+        )
+        payload = {"gaps": [g.to_json() for g in existing] + [stamped.to_json()]}
+        write_text_atomic(d / _GAPS, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     return stamped
 
 

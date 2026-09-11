@@ -19,7 +19,13 @@ from vmware_debug.ops.cases.conclusion import record_grade
 from vmware_debug.ops.cases.evidence import load_evidence, load_gaps
 from vmware_debug.ops.cases.grading import grade_case
 from vmware_debug.ops.cases.payloads import describe_empty, inspect_payload
-from vmware_debug.ops.cases.store import CaseError, case_dir, load_case
+from vmware_debug.ops.cases.store import (
+    CaseError,
+    case_dir,
+    ledger_lock,
+    load_case,
+    write_text_atomic,
+)
 from vmware_debug.ops.timeline import incident_timeline
 
 
@@ -40,44 +46,48 @@ def build_case_timeline(
     """
     import json
 
-    evidence = load_evidence(case_id)
-    d = case_dir(case_id) / "evidence"
+    # Read and written under one lock: a timeline built from the evidence as
+    # it stood before another writer's submission must not replace the one
+    # built after it.
+    with ledger_lock(case_id):
+        evidence = load_evidence(case_id)
+        d = case_dir(case_id) / "evidence"
 
-    rows: list[dict] = []
-    rejected: list[str] = []
-    # Named, not merely counted. "N items carried no events" is the same
-    # unusable answer the tester was given; which items, and what they held
-    # instead, is what lets someone see they submitted a summary.
-    without_events: list[str] = []
-    for item in evidence:
-        path = d / f"{item.evidence_id}.json"
-        try:
-            body = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            rejected.append(f"{item.evidence_id}: payload unreadable")
-            continue
-        shape = inspect_payload(body.get("payload"))
-        if not shape.rows:
-            without_events.append(describe_empty(item.evidence_id, shape))
-            continue
-        for i, raw in enumerate(shape.rows):
+        rows: list[dict] = []
+        rejected: list[str] = []
+        # Named, not merely counted. "N items carried no events" is the same
+        # unusable answer the tester was given; which items, and what they held
+        # instead, is what lets someone see they submitted a summary.
+        without_events: list[str] = []
+        for item in evidence:
+            path = d / f"{item.evidence_id}.json"
             try:
-                rows.extend(normalize_events([raw]))
-            except Exception as exc:
-                rejected.append(f"{item.evidence_id}[{i}]: {exc}")
+                body = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                rejected.append(f"{item.evidence_id}: payload unreadable")
+                continue
+            shape = inspect_payload(body.get("payload"))
+            if not shape.rows:
+                without_events.append(describe_empty(item.evidence_id, shape))
+                continue
+            for i, raw in enumerate(shape.rows):
+                try:
+                    rows.extend(normalize_events([raw]))
+                except Exception as exc:
+                    rejected.append(f"{item.evidence_id}[{i}]: {exc}")
 
-    result: dict[str, Any] = (
-        incident_timeline(rows, bin_seconds=bin_seconds, z_threshold=z_threshold, top_n=top_n)
-        if rows
-        else {"event_count": 0, "window": None, "spikes": [], "hypotheses": []}
-    )
-    result["case_id"] = case_id
-    result["evidence_without_events"] = len(without_events)
-    result["evidence_without_events_detail"] = without_events
-    result["rejected"] = rejected
-    result["note"] = _note(len(evidence), len(rows), without_events, rejected)
+        result: dict[str, Any] = (
+            incident_timeline(rows, bin_seconds=bin_seconds, z_threshold=z_threshold, top_n=top_n)
+            if rows
+            else {"event_count": 0, "window": None, "spikes": [], "hypotheses": []}
+        )
+        result["case_id"] = case_id
+        result["evidence_without_events"] = len(without_events)
+        result["evidence_without_events_detail"] = without_events
+        result["rejected"] = rejected
+        result["note"] = _note(len(evidence), len(rows), without_events, rejected)
 
-    _write_timeline_md(case_id, result, rows)
+        _write_timeline_md(case_id, result, rows)
     return result
 
 
@@ -125,32 +135,39 @@ def _write_timeline_md(case_id: str, result: dict, rows: list) -> None:
     if result.get("rejected"):
         lines += ["", "## Could not be read", ""]
         lines += [f"- {r}" for r in result["rejected"]]
-    (case_dir(case_id) / "timeline.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # Called under build_case_timeline's lock; the atomic write keeps an
+    # unlocked reader from catching the file half-written.
+    write_text_atomic(case_dir(case_id) / "timeline.md", "\n".join(lines) + "\n")
 
 
 def close_case(case_id: str, at: str) -> dict[str, Any]:
     """Step 08. Record the final grade, archive, and say what was left open."""
     import json
 
-    case = load_case(case_id)
-    if case.state == "closed":
-        raise ValueError(
-            f"Case {case_id} is already closed. Its record is not rewritten — "
-            f"reopen the question by opening a new case that cites this one, so "
-            f"the original conclusion and what changed it both stay readable."
-        )
+    load_case(case_id)  # a missing case is reported by load_case, before any lock
+    # The "already closed?" check sits inside the lock with the writes it
+    # guards: two closes racing would otherwise both pass it, and the case
+    # would carry two final gradings. record_grade re-enters the same lock.
+    with ledger_lock(case_id):
+        case = load_case(case_id)
+        if case.state == "closed":
+            raise ValueError(
+                f"Case {case_id} is already closed. Its record is not rewritten — "
+                f"reopen the question by opening a new case that cites this one, so "
+                f"the original conclusion and what changed it both stay readable."
+            )
 
-    result = grade_case(case_id)
-    record_grade(case_id, result, at=at)
+        result = grade_case(case_id)
+        record_grade(case_id, result, at=at)
 
-    open_gaps = [g.gap_id for g in load_gaps(case_id) if g.blocks]
-    index_path = case_dir(case_id) / "case.json"
-    try:
-        index = json.loads(index_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise CaseError(f"Cannot read case.json for {case_id}: {exc}") from exc
-    index.update({"state": "closed", "closed_at": at, "grade": result.grade})
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        open_gaps = [g.gap_id for g in load_gaps(case_id) if g.blocks]
+        index_path = case_dir(case_id) / "case.json"
+        try:
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise CaseError(f"Cannot read case.json for {case_id}: {exc}") from exc
+        index.update({"state": "closed", "closed_at": at, "grade": result.grade})
+        write_text_atomic(index_path, json.dumps(index, indent=2, ensure_ascii=False) + "\n")
 
     note = f"Closed at {result.grade}."
     if open_gaps:

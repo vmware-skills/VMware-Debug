@@ -19,7 +19,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from vmware_debug.ops.cases.grading import GradeResult
-from vmware_debug.ops.cases.store import CaseError, case_dir, load_case
+from vmware_debug.ops.cases.store import (
+    CaseError,
+    case_dir,
+    ledger_lock,
+    load_case,
+    write_text_atomic,
+)
 
 _PLACEHOLDER = "_Not graded yet._"
 
@@ -63,34 +69,38 @@ def record_grade(case_id: str, result: GradeResult, at: str) -> GradeEntry:
     """
     d = case_dir(case_id)
     path = d / "conclusion.md"
-    history = grade_history(case_id)
-    previous = history[-1].grade if history else None
+    # `previous` and `direction` come from the history read here. Unserialised,
+    # two gradings both read an empty history and both record themselves as
+    # the "initial" one — the entries survive, the chain between them does not.
+    with ledger_lock(case_id):
+        history = grade_history(case_id)
+        previous = history[-1].grade if history else None
 
-    entry = GradeEntry(
-        at=at,
-        grade=result.grade,
-        previous=previous,
-        direction=_direction(previous, result.grade),
-        rules_source=result.rules_source,
-        reasons=tuple(result.reasons),
-    )
+        entry = GradeEntry(
+            at=at,
+            grade=result.grade,
+            previous=previous,
+            direction=_direction(previous, result.grade),
+            rules_source=result.rules_source,
+            reasons=tuple(result.reasons),
+        )
 
-    try:
-        body = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise CaseError(
-            f"Cannot read conclusion.md for case {case_id}: {exc}. The case "
-            f"directory may have been moved or its permissions changed."
-        ) from exc
+        try:
+            body = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise CaseError(
+                f"Cannot read conclusion.md for case {case_id}: {exc}. The case "
+                f"directory may have been moved or its permissions changed."
+            ) from exc
 
-    body = body.replace(_PLACEHOLDER + "\n\n", "").replace(_PLACEHOLDER + "\n", "")
-    path.write_text(body.rstrip("\n") + "\n\n" + _render(entry), encoding="utf-8")
+        body = body.replace(_PLACEHOLDER + "\n\n", "").replace(_PLACEHOLDER + "\n", "")
+        write_text_atomic(path, body.rstrip("\n") + "\n\n" + _render(entry))
 
-    index_path = d / "case.json"
-    index = json.loads(index_path.read_text(encoding="utf-8"))
-    index["grade"] = result.grade
-    index["graded_at"] = at
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        index_path = d / "case.json"
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        index["grade"] = result.grade
+        index["graded_at"] = at
+        write_text_atomic(index_path, json.dumps(index, indent=2, ensure_ascii=False) + "\n")
 
     return entry
 

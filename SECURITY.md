@@ -22,10 +22,17 @@ orchestrating agent has already fetched with the other skills' read tools. Seven
 of its fourteen MCP tools write — only to the local investigation ledger under
 `$OPS_HOME` (default `~/.vmware/cases`). Evidence, gaps, hypotheses and grade
 history are only ever added to; `timeline.md` is regenerated from the evidence
-and `case.json` holds the current grade and state. That holds for one writer per
-case: gaps and hypotheses are read, extended and rewritten without a lock, so two
-processes working one case in a shared `$OPS_HOME` can drop an entry. There is no destructive surface
-against any VMware system and no secret to leak.
+and `case.json` holds the current grade and state. That holds with several writers
+too: every write to a case takes that case's lock file (`.ledger.lock`, created
+exclusively), so two processes working one case in a shared `$OPS_HOME` are
+serialised rather than losing each other's entries, and every file is written to
+a temporary name and moved into place, so a reader never sees half of one (on a
+filesystem without hard links, a new evidence file is created in place instead:
+still never overwritten, but readable half-written). A lock left by a crashed
+process is reported with its holder and never removed automatically; delete it
+once nothing is writing the case. Released versions up to and including 1.11.3
+do not take the lock, so upgrade every machine that shares a cases folder. There
+is no destructive surface against any VMware system and no secret to leak.
 
 ### No remediation execution
 debug only *diagnoses* and *recommends*. Any fix is routed to vmware-aiops

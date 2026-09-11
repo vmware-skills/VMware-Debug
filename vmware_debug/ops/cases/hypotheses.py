@@ -17,7 +17,13 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from vmware_debug.ops.cases.store import CaseError, case_dir, cases_root
+from vmware_debug.ops.cases.store import (
+    CaseError,
+    case_dir,
+    cases_root,
+    ledger_lock,
+    write_text_atomic,
+)
 
 _FILE = "hypotheses.md"
 _PLACEHOLDER_MARK = "_Empty."
@@ -91,18 +97,21 @@ def add_hypothesis(case_id: str, statement: str, at: str = "") -> Hypothesis:
             "reported against."
         )
     path = _path(case_id)
-    existing = load_hypotheses(case_id)
-    h = Hypothesis(
-        hypothesis_id=f"H{len(existing) + 1}",
-        statement=statement.strip(),
-        at=at,
-    )
-    body = path.read_text(encoding="utf-8").replace(_PLACEHOLDER_MARK, "").rstrip("\n")
-    machine = json.dumps(
-        {"id": h.hypothesis_id, "statement": h.statement, "at": h.at},
-        ensure_ascii=False,
-    )
-    path.write_text(f"{body}\n\n## {h.hypothesis_id} — {h.statement}\n\n{_ENTRY.format(machine)}\n", encoding="utf-8")
+    # The id comes from the count read here; an unserialised second writer
+    # reads the same count and hands out the same id.
+    with ledger_lock(case_id):
+        existing = load_hypotheses(case_id)
+        h = Hypothesis(
+            hypothesis_id=f"H{len(existing) + 1}",
+            statement=statement.strip(),
+            at=at,
+        )
+        body = path.read_text(encoding="utf-8").replace(_PLACEHOLDER_MARK, "").rstrip("\n")
+        machine = json.dumps(
+            {"id": h.hypothesis_id, "statement": h.statement, "at": h.at},
+            ensure_ascii=False,
+        )
+        write_text_atomic(path, f"{body}\n\n## {h.hypothesis_id} — {h.statement}\n\n{_ENTRY.format(machine)}\n")
     return h
 
 

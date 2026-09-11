@@ -38,7 +38,7 @@ from vmware_debug.ops.cases.model import Scope
 from vmware_debug.ops.cases.payloads import inspect_payload, payload_note
 from vmware_debug.ops.cases.plan import DEFAULT_MAX_STEPS, plan_next as _plan_next
 from vmware_debug.ops.cases.readiness import readiness as _readiness
-from vmware_debug.ops.cases.store import case_dir, create_case, list_cases, load_case
+from vmware_debug.ops.cases.store import case_dir, create_case, ledger_lock, list_cases, load_case
 from vmware_debug.ops.cases.timeline import build_case_timeline, close_case as _close_case
 
 
@@ -208,8 +208,11 @@ def grade(case_id: str, at: str | None = None) -> dict[str, Any]:
     derived from what has been submitted; a caller that disagrees changes the
     ledger, not the verdict.
     """
-    result = grade_case(case_id)
-    entry = record_grade(case_id, result, at=at or utc_now())
+    # Computed and recorded under one lock: a gap landing between the two
+    # would put a grade on record that the ledger no longer supports.
+    with ledger_lock(case_id):
+        result = grade_case(case_id)
+        entry = record_grade(case_id, result, at=at or utc_now())
     return {
         "case_id": case_id,
         "grade": result.grade,
