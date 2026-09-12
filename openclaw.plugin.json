@@ -1,0 +1,24 @@
+{
+  "id": "vmware-debug",
+  "name": "VMware Debug",
+  "description": "VMware incident timeline, root-cause routing, local case ledger; no vSphere access. 14 MCP tools.",
+  "skills": [
+    "./skills"
+  ],
+  "mcpServers": {
+    "vmware-debug": {
+      "transport": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-debug==1.11.4",
+        "vmware-debug-mcp"
+      ]
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
