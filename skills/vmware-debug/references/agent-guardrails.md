@@ -16,7 +16,7 @@ vmware-debug are specific to this skill.
 
 vmware-debug exposes 14 MCP tools: 7 reads and 7 writes. It connects to nothing
 and holds no credentials — the calling agent gathers events from the other
-skills, normalises them, and hands them over. The four writes go to the local
+skills, normalises them, and hands them over. The seven writes go to the local
 investigation ledger under `~/.vmware/cases/`, never to a VMware system. That
 makes it the safest skill in the family to point a small model at — and the one
 most exposed to the model's reasoning, because its output *is* an
@@ -46,7 +46,7 @@ These are structural, so it cannot.
 | "Do not fabricate a timeline — build it from the events I gave you" | **`incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
 | "Tell me when the symptom is outside what you can recognise" | **`list_symptom_categories`** states the catalogue, and unmatched symptoms come back as `uncategorized` rather than being forced into the nearest signature. |
 | "Use explicit limits for queries that may return large amounts of data" | **The list envelope.** `list_symptom_categories` returns `{items, returned, limit, total, truncated, hint}` with `truncated` always `false` — which is the point: it states that the catalogue is complete instead of leaving you to infer it. |
-| "Log everything you looked at" | **The `@vmware_tool` decorator.** Every call is recorded to `~/.vmware/audit.db`, reads included. |
+| "Log everything you looked at" | **The case ledger, for investigations.** Evidence submitted to a case is recorded with its source skill, tool, query and fetch time. Debug's own tool calls are not written to `~/.vmware/audit.db`: none of them acts on a VMware target. |
 
 ---
 

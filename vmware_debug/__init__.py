@@ -6,4 +6,4 @@ remediation to vmware-aiops / vmware-pilot. Never writes to any VMware system
 and never executes fixes; its only writes go to the local case ledger.
 """
 
-__version__ = "1.11.3"
+__version__ = "1.11.4"

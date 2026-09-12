@@ -1,3 +1,28 @@
+## v1.11.4 — concurrent writers stop losing case entries
+
+Two agents on one case — a supported setup, since `OPS_HOME` can point at a shared folder — lost
+entries: six processes writing 150 gaps and hypotheses each kept 157 of 900 gaps and handed out
+duplicate hypothesis ids. Ledger writes are now serialised by a per-case lock (`.ledger.lock`
+in the case folder), and each write lands atomically. Versions up to and including 1.11.3 do not
+take the lock, so **every machine that shares an `OPS_HOME` needs this version** — one older
+writer on the share can still lose entries.
+
+The manifests advertised 2 tools (14 are registered), and the docs called the case-ledger writes
+read-only. Both are corrected, and the docs now say that case data is sensitive, owner-only, and
+kept until you delete the case folder.
+
+**OpenClaw hid this skill unless `vmware-debug` was on PATH.** `metadata.openclaw.requires` was
+only `bins: ["vmware-debug"]` — there was no `requires.config` or `requires.env`, unlike most of the
+family. OpenClaw hides a skill whose required binary is missing, and a plugin install runs the
+server through uvx, which never puts `vmware-debug` on PATH, so there the skill was "needs setup / not
+visible to the model" (requirement semantics verified on OpenClaw 2026.6.35). `requires` is now
+`anyBins: ["vmware-debug", "uvx"]`; `optional.env` is unchanged, and the placeholder
+`primaryEnv: "NONE"` is gone.
+
+**Install commands in the skill pin this release.** ClawHub reviews SKILL.md and references/,
+not the package they install, so an unpinned `uv tool install` vouched for code nobody reviewed.
+Every install command for this package in the skill now names this version.
+
 ## v1.11.3 — 398 tests never ran
 
 

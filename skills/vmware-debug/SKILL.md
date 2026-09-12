@@ -20,7 +20,7 @@ installer:
   package: vmware-debug
 allowed-tools:
   - Bash
-metadata: {"openclaw":{"requires":{"bins":["vmware-debug"]},"optional":{"env":["VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"primaryEnv":"NONE","homepage":"https://github.com/vmware-skills/VMware-Debug","os":["macos","linux"]}}
+metadata: {"openclaw":{"requires":{"anyBins":["vmware-debug","uvx"]},"optional":{"env":["VMWARE_AUDIT_APPROVED_BY","VMWARE_AUDIT_RATIONALE"],"bins":["vmware-policy"]},"homepage":"https://github.com/vmware-skills/VMware-Debug","os":["macos","linux"]}}
 ---
 
 # VMware Debug
@@ -51,7 +51,7 @@ write tools touch only the local case ledger.
 ## Quick Install
 
 ```bash
-uv tool install vmware-debug
+uv tool install vmware-debug==1.11.4
 vmware-debug categories          # see what it can diagnose
 ```
 
@@ -130,7 +130,7 @@ a recommended plan.
 | `case_grade` | [WRITE] Recompute the conclusion grade from the ledger and record it |
 | `case_close` | [WRITE] Record the final grade, archive, and name what was left open |
 
-The four writes go to `$OPS_HOME` (default `~/.vmware/cases/`) and nowhere else.
+The seven writes go to `$OPS_HOME` (default `~/.vmware/cases/`) and nowhere else.
 
 **List envelope** (output of `list_symptom_categories`): `{items, returned, limit, total, truncated, hint}` — read the rows from `items`. `truncated` is always `false` here, which is the point: it states that the catalogue is complete instead of leaving you to infer it.
 
@@ -279,6 +279,12 @@ aiops/pilot, where the double-confirm / approval / audit gates live (audit DB
 `~/.vmware/audit.db`). debug has no config and no connection, so it registers no
 environment resolver, and its tools do not pass through the policy engine — no policy
 rule applies to them. See `references/setup-guide.md`.
+
+**Case data is sensitive and is kept until you delete it.** Each case lives in
+`$OPS_HOME/cases/<case-id>/` (default `~/.vmware/cases/`), created owner-only (`0700`).
+It holds whatever evidence was submitted — host names, addresses, log and event text.
+Nothing is deleted automatically: `case_close` records the grade and marks the case
+closed but keeps its files. Remove a case by deleting its folder.
 
 ## License
 

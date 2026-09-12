@@ -6,7 +6,7 @@ is a pure, offline correlation engine. There is no `config.yaml` and no `.env`.
 ## Install
 
 ```bash
-uv tool install vmware-debug
+uv tool install vmware-debug==1.11.4
 vmware-debug categories      # verify it runs
 ```
 
@@ -15,7 +15,7 @@ vmware-debug categories      # verify it runs
 ```json
 {
   "command": "uvx",
-  "args": ["--from", "vmware-debug", "vmware-debug-mcp"]
+  "args": ["--from", "vmware-debug==1.11.4", "vmware-debug-mcp"]
 }
 ```
 
@@ -41,6 +41,11 @@ routes fixes to (vmware-aiops, vmware-pilot).
    `case.json` holds the current grade and state. Nothing is written to any
    VMware system: debug only diagnoses and recommends; remediation is routed
    to vmware-aiops / vmware-pilot, where confirmation/approval/audit live.
+   Case data is sensitive: each case folder (`$OPS_HOME/cases/<case-id>/`, default
+   `~/.vmware/cases/`) is created owner-only (`0700`) and holds the submitted
+   evidence — host names, addresses, log and event text. There is no automatic
+   retention limit: `case_close` marks a case closed and keeps its files; delete
+   the folder to remove a case.
 5. **No cross-skill coupling** — events arrive as plain dicts (the event
    envelope); debug imports no other skill package at runtime.
 6. **Environment scoping** — policy rules can scope by environment, and skills
