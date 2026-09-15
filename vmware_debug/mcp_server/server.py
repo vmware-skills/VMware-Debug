@@ -588,7 +588,8 @@ def build_server() -> FastMCP:
         whether it is
         available, through which tools, and if not, `how_to_supply`. Per
         symptom category (storage, network, compute, ha_drs, configuration,
-        accelerator, kubernetes, hardware): a `ceiling` and the
+        accelerator, kubernetes, hardware, host_lifecycle, power_lifecycle,
+        auth, platform, licensing, data_collection): a `ceiling` and the
         `independent_sources` behind it. There is deliberately no single score —
         "readiness 78%" cannot be acted on, "storage reaches Probable, hardware
         reaches Candidate" can.

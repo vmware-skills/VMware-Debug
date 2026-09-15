@@ -50,6 +50,13 @@ So the change this file guards is not a bigger vocabulary. It is:
    know" and to go find that subsystem's read tools. For ``VmPoweredOnEvent``
    that is a wasted round trip after a false premise.
 
+**Re-measured 2026-09-15: reads 140, misses 287.** The 16 newly read types are
+the exception the paragraph above does not cover — 14 are licensing events
+(``LicenseExpiredEvent`` and its family) and 2 are password events, and licensing
+*was* a subsystem the taxonomy lacked. The category was added because real lab
+alert titles needed it (``test_real_alert_titles_classify``), not to move this
+number; the claim about the rest of the residue still holds.
+
 The numbers below are recorded, not required. If someone later raises coverage by
 padding ``_CATEGORY_SIGNATURES``, ``test_the_taxonomy_was_not_quietly_padded``
 fails and says so, because a coverage figure that goes up without an explanation
