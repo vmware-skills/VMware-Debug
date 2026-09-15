@@ -79,7 +79,7 @@ _CATEGORY_SIGNATURES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     (
         "auth",
         ("login", "authentication", "permission", "denied", "unauthorized",
-         "401", "403", "token", "certificate", "tls"),
+         "401", "403", "token", "certificate", "tls", "password"),
         "check the service account + credentials in config/.env; verify the "
         "target's certificate/time sync",
     ),
@@ -89,6 +89,34 @@ _CATEGORY_SIGNATURES: tuple[tuple[str, tuple[str, ...], str], ...] = (
          "not responding", "disconnected"),
         "vmware-monitor (host connection state + service health) + "
         "vmware-log-insight (vpxd/hostd logs around the first error)",
+    ),
+    # The three below are subsystems, not synonyms. Real alert titles from a lab
+    # estate ("Host TPM attestation alarm", "License will soon expire", "Objects
+    # are not receiving data from adapter instance") matched nothing because no
+    # category covered them at all — see test_real_alert_titles_classify.
+    (
+        "hardware",
+        ("tpm", "attestation", "ipmi", "sensor", "bmc"),
+        "vmware-monitor (get_host_sensors; host_log_scan for ipmi/cim errors — "
+        "no sensor data usually means no IPMI device or a stopped CIM service) + "
+        "the server's own BMC (iDRAC/iLO/XCC). A TPM attestation alarm is most "
+        "often a firmware setting (TPM 2.0 / TIS mode) rather than a failing part",
+    ),
+    (
+        "licensing",
+        ("license",),
+        "vmware-monitor (license_status: per-asset assignments show whether the "
+        "alarmed asset still holds the expiring key, or the alarm is stale) + "
+        "vmware-aria (an alert on 'Unlicensed Group' is Aria's own license, not "
+        "vCenter's)",
+    ),
+    (
+        "data_collection",
+        ("adapter instance", "not receiving data", "collector"),
+        "vmware-aria (list_adapters for when each adapter last collected, "
+        "list_collector_groups, get_aria_health; list_resources to find the "
+        "objects that stopped reporting) + vmware-monitor (whether the source "
+        "vCenter itself is reachable)",
     ),
 )
 
