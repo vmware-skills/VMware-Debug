@@ -1,4 +1,4 @@
-## Unreleased — real alert titles get a category
+## v1.12.0 — real alert titles get a category
 
 Eight alerts read off a lab vCenter 8.0.3 and Aria 8.18.7 were passed through `triage`, and six
 came back `uncategorized`; the top hypothesis was "uncategorized" itself. Five of them were not odd

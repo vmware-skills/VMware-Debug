@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "vmware-debug",
   "displayName": "VMware Debug",
-  "version": "1.11.4",
+  "version": "1.12.0",
   "description": "VMware incident timeline, root-cause routing, local case ledger; no vSphere access. 14 MCP tools.",
   "author": {
     "name": "Wei Zhou",
