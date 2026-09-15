@@ -20,6 +20,7 @@ from rich.table import Table
 
 from vmware_debug import __version__
 from vmware_debug.mcp.tools import incident_timeline, list_symptom_categories
+from vmware_policy import cli_local
 
 
 def _harden_console_encoding() -> None:
@@ -53,12 +54,14 @@ console = Console()
 
 
 @app.command()
+@cli_local("prints the installed version")
 def version() -> None:
     """Print the installed version."""
     console.print(f"vmware-debug {__version__}")
 
 
 @app.command()
+@cli_local("prints the built-in symptom catalogue; contacts nothing")
 def categories() -> None:
     """List the symptom categories debug recognises and what to check for each."""
     table = Table(title="vmware-debug symptom categories")
@@ -71,6 +74,7 @@ def categories() -> None:
 
 
 @app.command()
+@cli_local("correlates events read from a file or stdin; contacts nothing")
 def triage(
     events_file: Optional[Path] = typer.Option(
         None, "--events", "-e", help="JSON file of event envelopes; reads stdin if omitted."
@@ -99,6 +103,7 @@ def triage(
 
 
 @app.command()
+@cli_local("starts the MCP server; its tools audit themselves")
 def mcp() -> None:
     """Start the stdio MCP server (no network access; proxy-safe)."""
     from vmware_debug.mcp_server.server import main as _main
