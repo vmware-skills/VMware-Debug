@@ -53,8 +53,31 @@ routes fixes to (vmware-aiops, vmware-pilot).
    `staging` / `lab`) per target in their own `config.yaml` as an optional label
    an environment-scoped `deny` rule can match on. debug has no config and no
    connection to declare one about, so it registers no environment resolver —
-   it has no basis to answer for any target. Its tools do not pass through the
-   policy engine either, so no policy rule, environment-scoped or not, applies
-   to them.
-7. **Static analysis** — `uvx bandit -r vmware_debug/` (release bar:
+   it has no basis to answer for any target — and an environment-scoped rule
+   never matches its tools. Every other policy rule does apply: each MCP tool
+   and the `categories` / `triage` CLI commands pass through vmware-policy's
+   `guard()`. Verified behaviour:
+   - A `deny` rule naming a debug tool, or with no `operations` key at all,
+     refuses it (status `denied`, with the rule's reason).
+   - A malformed `~/.vmware/rules.yaml` fails closed: every tool is refused with
+     a reason naming the file and the way out (fix it, or
+     `VMWARE_POLICY_DISABLED=1`). The `categories` and `triage` commands exit 1
+     with a Python traceback whose last lines are that message; `version` and
+     `mcp` are unaffected.
+   - Runaway guard: within one MCP server process, the 26th call to the same
+     tool with identical arguments inside 120 s is refused (`budget_exceeded`).
+     Tune with `VMWARE_RUNAWAY_MAX` / `VMWARE_RUNAWAY_WINDOW_SEC`. The guard
+     compares a SHA-256 digest of the arguments the tool actually received
+     (vmware-policy ≥1.16.0), not the redacted copy in the audit row — so calls
+     with different `events` or `payload` are never counted as identical.
+   - A `maintenance_window` gates only `high`/`critical` risk operations; every
+     debug tool is `low`, so a window never blocks one.
+7. **Audit row contents** — one row per call in `~/.vmware/audit.db`: tool,
+   time, OS user, detected agent, arguments, status and result. `payload` and
+   `events` are stored as `***`. The results of `incident_timeline` and
+   `case_timeline` are not stored (`[redacted: return value declared
+   sensitive]`) because they quote event text; other results are stored after
+   credential scrubbing. The status is still truthful — a call that returns
+   `{"error": …}` is `error`.
+8. **Static analysis** — `uvx bandit -r vmware_debug/` (release bar:
    0 Medium+).

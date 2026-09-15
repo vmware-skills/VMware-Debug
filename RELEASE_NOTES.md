@@ -13,8 +13,22 @@ invented fetch times, and nothing could show when the calls had really been made
 * The CLI twins audit too: `categories` as `list_symptom_categories`, `triage` as
   `incident_timeline` — including a `triage` that fails on bad input. `version` and `mcp` still
   write no row.
-* Because the tools now pass through `guard()`, a policy rule that names a debug tool applies to
-  it. Environment-scoped rules still never match: debug has no targets.
+* **Event text is not copied into the row.** `incident_timeline` and `case_timeline` return event
+  text (`hypotheses[].sample_text`, `classification.unmatched_samples`, `rejected`), and a probe
+  with `password=…` and `https://user:pass@host` in an event stored both in the row's result. Both
+  tools now declare `sensitive_result`: the row keeps the call, arguments and status (a returned
+  `{"error": …}` is still `error`) and records the result as `[redacted: return value declared
+  sensitive]`. The other tools return ids, counts, grades and text you passed as an argument, and
+  are stored after vmware-policy's credential scrubbing.
+* Because the tools now pass through `guard()`, vmware-policy's rules apply to them: a `deny` rule
+  naming a debug tool, or with no `operations`, refuses it; a malformed `~/.vmware/rules.yaml`
+  refuses every tool (the `categories`/`triage` commands exit 1 with a traceback ending in the
+  reason); the runaway guard refuses the 26th identical call within 120 s. It compares a digest of the
+  arguments the tool received, not the audit row's redacted copy, so `incident_timeline` calls with
+  different events are not identical — this needs vmware-policy 1.16.0, which this release requires.
+  Environment-scoped rules still never match (debug has no targets), and maintenance windows never
+  gate a debug tool (all are `low` risk). `references/setup-guide.md` said the opposite — that no
+  policy rule applies — and is corrected.
 
 ## v1.12.1 — every CLI command declares what it reaches
 

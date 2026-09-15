@@ -189,3 +189,86 @@ def _structured(result) -> dict:
             return structured.get("result", structured)
         result = content
     return json.loads("".join(getattr(c, "text", "") for c in result))
+
+
+# ── Result bodies that carry event text are not copied (review D3) ──────────
+
+REDACTED_RESULT = json.dumps("[redacted: return value declared sensitive]")
+EVENT_MARKER = "EVENT-TEXT-MARKER-7d21"
+
+#: Tools whose result quotes event text the caller fetched from another system —
+#: vCenter event messages, log lines — which can carry anything, credentials
+#: included. incident_timeline returns it as hypotheses[].sample_text and
+#: classification.unmatched_samples; case_timeline returns the same structure
+#: rebuilt from the ledger, plus `rejected` entries that quote the offending row.
+#: Every other tool returns ids, counts, grades and text the caller wrote as an
+#: argument (a summary, a hypothesis statement, a gap's how_to_close), which the
+#: row already holds in `params`.
+SENSITIVE_RESULT_TOOLS = {"incident_timeline", "case_timeline"}
+
+
+def _events(text: str) -> list[dict]:
+    return [{"ts": AT, "source": "vcenter", "severity": "error", "entity": "vc01", "text": text}]
+
+
+def test_only_tools_that_return_event_text_declare_a_sensitive_result(server) -> None:
+    declared = {
+        name for name, tool in server._tool_manager._tools.items() if getattr(tool.fn, "_sensitive_result", False)
+    }
+    assert declared == SENSITIVE_RESULT_TOOLS
+
+
+def test_incident_timeline_result_body_is_not_copied(server) -> None:
+    returned = _structured(call(server, "incident_timeline", {"events": _events(f"{EVENT_MARKER} login failed")}))
+
+    assert any(EVENT_MARKER in h["sample_text"] for h in returned["hypotheses"]), "the caller must get the real result"
+    found = rows("incident_timeline")
+    assert len(found) == 1
+    assert found[0]["status"] == "ok"
+    assert EVENT_MARKER not in found[0]["result"], "event text was copied into audit.db"
+    assert found[0]["result"] == REDACTED_RESULT
+    assert json.loads(found[0]["params"])["top_n"] == 5
+
+
+def test_incident_timeline_returned_error_is_still_recorded_as_error(server) -> None:
+    call(server, "incident_timeline", {"events": [{"text": EVENT_MARKER}]})
+
+    found = rows("incident_timeline")
+    assert len(found) == 1
+    assert found[0]["status"] == "error", "declaring the result sensitive hid the failure"
+    assert EVENT_MARKER not in found[0]["result"]
+
+
+def test_case_timeline_result_body_is_not_copied(server) -> None:
+    case_id = _structured(call(server, "case_open", {"summary": "auth failures on vc01", "determined_by": "alarm"}))[
+        "case_id"
+    ]
+    call(
+        server,
+        "case_submit_evidence",
+        {
+            "case_id": case_id,
+            "source_skill": "vmware-monitor",
+            "source_tool": "get_events",
+            "summary": "one event",
+            "fetched_at": AT,
+            "payload": _events(f"{EVENT_MARKER} login failed"),
+        },
+    )
+
+    returned = _structured(call(server, "case_timeline", {"case_id": case_id}))
+
+    assert returned["event_count"] == 1
+    found = rows("case_timeline")
+    assert len(found) == 1
+    assert found[0]["status"] == "ok"
+    assert EVENT_MARKER not in found[0]["result"], "event text was copied into audit.db"
+    assert json.loads(found[0]["params"])["case_id"] == case_id
+
+
+def test_case_timeline_returned_error_is_still_recorded_as_error(server) -> None:
+    call(server, "case_timeline", {"case_id": "20990101-000000-no-such-case"})
+
+    found = rows("case_timeline")
+    assert len(found) == 1
+    assert found[0]["status"] == "error"

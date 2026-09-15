@@ -275,14 +275,32 @@ No network, nothing executed. The seven [WRITE] tools write only to the local ca
 ledger under `$OPS_HOME`; nothing here touches a remote VMware estate. Evidence, gaps,
 hypotheses and grade history are only ever added to — `timeline.md` is regenerated from
 the evidence and `case.json` holds the current grade and state. Remediation is always routed to
-aiops/pilot, where the double-confirm / approval gates live. Every debug tool call — a
-failed one included — writes one row to `~/.vmware/audit.db` through `@vmware_tool`, as
-do the `categories` and `triage` CLI commands under their MCP tools' names. The row
-records who, when, the arguments and the outcome; evidence `payload` and `events` stay
-out of it (they are in the case folder, or with you). debug has no config and no
-connection, so it registers no environment resolver: an environment-scoped policy rule
-never matches its tools, while a rule naming a debug tool does. See
-`references/setup-guide.md`.
+aiops/pilot, where the double-confirm / approval gates live.
+
+**What the audit row holds.** Every debug tool call — a failed one included — writes one
+row to `~/.vmware/audit.db` through `@vmware_tool`, as do the `categories` and `triage`
+CLI commands under their MCP tools' names. The row records the tool, time, OS user,
+detected agent, arguments, status (`ok`, `error`, `denied`, `budget_exceeded`,
+`interrupted`) and a result. Two arguments are stored as `***`: evidence `payload` and
+`incident_timeline` `events`. Two results are not stored at all — `incident_timeline` and
+`case_timeline` quote event text (`sample_text`, `unmatched_samples`, `rejected`), which
+can carry anything the source logged, so their row says
+`[redacted: return value declared sensitive]`. Every other result (ids, counts, grades,
+your own summaries and statements) is stored after credential scrubbing. The data itself
+is in the case folder, or with you.
+
+**What debug inherits from vmware-policy**, since its tools pass through `guard()`:
+- **Runaway guard** — the 26th call to one tool with identical arguments within 120 s is
+  refused (`budget_exceeded`; `VMWARE_RUNAWAY_MAX`, `VMWARE_RUNAWAY_WINDOW_SEC`). It
+  compares a digest of the arguments the tool received (vmware-policy ≥1.16.0), so
+  calls with different `events` are not identical.
+- **A malformed `~/.vmware/rules.yaml` fails closed** — every tool is refused with a reason
+  naming the file; `categories`/`triage` exit 1 with a traceback ending in that message.
+- **A `deny` rule without `operations`** matches every tool, debug's included.
+- **Environment-scoped rules never match** — debug registers no resolver (no targets).
+- **Maintenance windows** gate only `high`/`critical` risk; every debug tool is `low`.
+
+See `references/setup-guide.md`.
 
 **Case data is sensitive and is kept until you delete it.** Each case lives in
 `$OPS_HOME/cases/<case-id>/` (default `~/.vmware/cases/`), created owner-only (`0700`).

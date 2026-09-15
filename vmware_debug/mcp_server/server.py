@@ -12,7 +12,14 @@ as the record. The ledger records the investigation, not the calls — a live
 session submitted evidence with invented fetch times and nothing could show
 when the calls had really been made or which had failed. Large data the caller
 hands over (``payload``, ``events``) is kept out of the row via
-``sensitive_params``; it lives in the ledger or with the caller.
+``sensitive_params``; it lives in the ledger or with the caller. The two tools
+whose *result* quotes that event text — ``incident_timeline`` and
+``case_timeline`` (``hypotheses[].sample_text``, ``unmatched_samples``,
+``rejected``) — declare ``sensitive_result``, so their row keeps the call, the
+arguments and the status but not the result body: event text fetched from
+vCenter or a log can carry anything, credentials included (review D3,
+2026-09-15). The other tools return ids, counts, grades and text the caller
+wrote as an argument, which the row already holds.
 
 Note: signatures here use typing.Optional, never PEP 604 ``X | None`` — FastMCP
 reflects these at registration and ``X | None`` crashes on Python 3.10 + older
@@ -206,7 +213,7 @@ def build_server() -> FastMCP:
     # bin_seconds and z_threshold are exactly the two knobs a wrong guess makes
     # silently useless.
     @server.tool(name="incident_timeline", annotations=_READ)
-    @vmware_tool(risk_level="low", sensitive_params=["events"])
+    @vmware_tool(risk_level="low", sensitive_params=["events"], sensitive_result=True)
     def incident_timeline(
         events: list[dict],
         bin_seconds: Optional[float] = None,
@@ -728,7 +735,7 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_hypotheses")
 
     @server.tool(name="case_timeline", annotations=_WRITE_LOCAL)
-    @vmware_tool(risk_level="low")
+    @vmware_tool(risk_level="low", sensitive_result=True)
     def case_timeline(
         case_id: str,
         bin_seconds: Optional[float] = None,
