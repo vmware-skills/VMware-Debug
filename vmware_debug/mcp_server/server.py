@@ -648,7 +648,8 @@ def build_server() -> FastMCP:
             category: Force the symptom class instead of inferring it. Exactly
                 one of: storage, network, compute, ha_drs, configuration,
                 accelerator, kubernetes, hardware, host_lifecycle,
-                power_lifecycle, auth, platform. Omit to infer, then read
+                power_lifecycle, auth, platform, licensing,
+                data_collection. Omit to infer, then read
                 `category_signals` for the word that decided it.
             available_skills: Narrow to the skills actually installed, in either
                 spelling ("monitor" or "vmware-monitor"). Omit to assume all of

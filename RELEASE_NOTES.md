@@ -1,3 +1,28 @@
+## Unreleased — real alert titles get a category
+
+Eight alerts read off a lab vCenter 8.0.3 and Aria 8.18.7 were passed through `triage`, and five
+came back `uncategorized`; the top hypothesis was "uncategorized" itself. They were not odd spellings
+of subsystems the taxonomy already had — they were subsystems it had no category for:
+
+* **`hardware`** (tpm, attestation, ipmi, sensor, bmc) — "Host TPM attestation alarm". The catalogue
+  already routed `hardware`, but the classifier could never emit it.
+* **`licensing`** (license) — "License will soon expire", "Expired vCenter Server license". Routes to
+  vmware-monitor `license_status` (which asset holds which key) and vmware-aria alerts.
+* **`data_collection`** (adapter instance, not receiving data, collector) — "Objects are not receiving
+  data from adapter instance". Routes to Aria's adapters, collector groups, node health and resources,
+  plus vmware-monitor for whether the source vCenter is reachable.
+* **`auth`** now reads "password" — "Root user password expired".
+
+Seven of the eight now classify. "Group population health is degraded" stays uncategorized on purpose:
+it is a roll-up of member health and names no subsystem.
+
+**`case_readiness` recognises vmware-aiops.** It used to land in `unrecognised_skills` although routing
+sent power_lifecycle cases to it. A new `vm_operations` class lists only reads AIops performs itself
+(`vm_task_status`, `vm_list_snapshots`); its cluster summary and investigation bundles call
+vmware-monitor's code and would have counted monitor's data as a second source. With monitor and
+aiops, power_lifecycle now reaches Probable; licensing and data_collection reach Probable with monitor
+and aria.
+
 ## v1.11.4 — concurrent writers stop losing case entries
 
 Two agents on one case — a supported setup, since `OPS_HOME` can point at a shared folder — lost

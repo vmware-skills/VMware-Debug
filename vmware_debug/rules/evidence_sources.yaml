@@ -109,6 +109,39 @@ classes:
       - {tool: list_tkc_clusters, gives: "workload clusters and their phase"}
       - {tool: list_namespace_storage_usage, gives: "namespace storage pressure"}
 
+  # Same skill as virtualization_state, so never a second source for a monitor
+  # case. Separate only so a licensing plan asks for license_status and not
+  # for seven unrelated tools.
+  license_state:
+    label: License inventory and which asset holds which license
+    skill: vmware-monitor
+    decisive: false
+    tools:
+      - {tool: license_status, gives: "license expiry, and the license assigned to each vCenter and host"}
+      - {tool: get_alarms, gives: "whether the license alarm is active, and whether its condition still holds"}
+
+  collection_pipeline:
+    label: Aria's own collection pipeline (adapters, collectors, node health)
+    skill: vmware-aria
+    decisive: false
+    tools:
+      - {tool: list_adapters, gives: "each adapter instance and when it last collected"}
+      - {tool: list_collector_groups, gives: "collector groups and their members"}
+      - {tool: get_aria_health, gives: "Aria node and service health"}
+      - {tool: list_resources, gives: "objects under the adapter, to find the ones that stopped reporting"}
+
+  # Only reads vmware-aiops performs itself. Its cluster_health_summary,
+  # cross_vcenter_attention and *_investigation_bundle tools call
+  # vmware-monitor's code; listed here they would be monitor's data counted as
+  # a second, independent source.
+  vm_operations:
+    label: VM task history and snapshot tree
+    skill: vmware-aiops
+    decisive: false
+    tools:
+      - {tool: vm_task_status, gives: "state, progress and error of one task, by task id"}
+      - {tool: vm_list_snapshots, gives: "the VM's snapshot tree"}
+
   # ── The two that do not exist ──────────────────────────────────────────
   # Both are decisive: either one can take a conclusion to Confirmed. Neither
   # has a tool. Listing them empty is what lets case_readiness report an honest
@@ -188,7 +221,7 @@ routing:
     decisive: [knowledge]
 
   power_lifecycle:
-    supporting: [virtualization_state, logs]
+    supporting: [virtualization_state, logs, vm_operations]
     decisive: [knowledge]
 
   auth:
@@ -197,4 +230,14 @@ routing:
 
   platform:
     supporting: [virtualization_state, logs, metrics_and_anomalies]
+    decisive: [knowledge]
+
+  # Licensing and collection problems are usually seen from both sides: vCenter
+  # holds the licenses and the data, Aria raises the alert about them.
+  licensing:
+    supporting: [license_state, metrics_and_anomalies]
+    decisive: [knowledge]
+
+  data_collection:
+    supporting: [collection_pipeline, virtualization_state]
     decisive: [knowledge]
