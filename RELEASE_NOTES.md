@@ -1,4 +1,4 @@
-## Unreleased — every tool call is audited, failures included
+## v1.12.2 — every tool call is audited, failures included
 
 Until now no vmware-debug MCP tool wrote to `~/.vmware/audit.db`. The server said that was on
 purpose — nothing here acts on a VMware target — and the case ledger stood in as the record. It

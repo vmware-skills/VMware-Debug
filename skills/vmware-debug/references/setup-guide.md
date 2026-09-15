@@ -6,7 +6,7 @@ is a pure, offline correlation engine. There is no `config.yaml` and no `.env`.
 ## Install
 
 ```bash
-uv tool install vmware-debug==1.12.1
+uv tool install vmware-debug==1.12.2
 vmware-debug categories      # verify it runs
 ```
 
@@ -15,7 +15,7 @@ vmware-debug categories      # verify it runs
 ```json
 {
   "command": "uvx",
-  "args": ["--from", "vmware-debug==1.12.1", "vmware-debug-mcp"]
+  "args": ["--from", "vmware-debug==1.12.2", "vmware-debug-mcp"]
 }
 ```
 
