@@ -5,7 +5,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "vmware-debug==1.12.2",
+        "vmware-debug==1.13.0",
         "vmware-debug-mcp"
       ]
     }

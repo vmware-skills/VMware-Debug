@@ -1,3 +1,28 @@
+## v1.13.0 — exclusion is per hypothesis
+
+Found in a real investigation of an Aria "vCenter app health is affected" alert on 2026-09-15, then corrected
+after an independent review the same day.
+
+**Ruling out one hypothesis no longer excludes the case.** Two sources ruled out H2 (host memory reclaim) while the
+leading H1 stayed open behind three gaps, and `case_grade` graded the whole case Excluded — which reads as "the
+answer was ruled out". Now the case is Excluded only when every registered hypothesis is ruled out; otherwise it
+is graded for what remains.
+
+* **Only evidence that rules nothing out counts for the hypotheses still open.** Evidence records what it
+  falsifies, never what it supports. The first version of this change counted the observations that ruled H2 out
+  as corroboration for H1, and a hypothesis added with no evidence at all inherited Probable. Independent sources
+  and decisive items for the open hypotheses are now counted only from items with an empty `falsifies`.
+* A gap whose `blocks` lists only ruled-out hypotheses no longer holds the grade back; the reasons list it under
+  "No longer blocking" instead of "Blocking gap(s)".
+* **Behaviour change:** `case_grade` returns `hypotheses`, every registered hypothesis as `{id, status}` with
+  status `open` or `excluded`. A case directory without a readable `hypotheses.md` is graded as if none were
+  registered, with a reason, instead of failing.
+* Re-running the same investigation after the change: H2 and H3 excluded, H1 open, **Probable** from two sources
+  that rule nothing out, held below Confirmed by four open gaps.
+
+Known and unchanged: excluding a hypothesis still needs two independent sources across the whole case, not two
+that falsify that hypothesis; `case_hypotheses` marks a hypothesis refuted on a single falsifier.
+
 ## v1.12.2 — every tool call is audited, failures included
 
 Until now no vmware-debug MCP tool wrote to `~/.vmware/audit.db`. The server said that was on

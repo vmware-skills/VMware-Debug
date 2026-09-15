@@ -51,7 +51,7 @@ write tools touch only the local case ledger.
 ## Quick Install
 
 ```bash
-uv tool install vmware-debug==1.12.2
+uv tool install vmware-debug==1.13.0
 vmware-debug categories          # see what it can diagnose
 ```
 
@@ -175,7 +175,10 @@ ledger — submit the missing evidence, or record the gap that is blocking it.
 - **Confirmed** — that, plus a decisive item: a direct hardware diagnostic, a
   version-checked knowledge-base entry, or a vendor SR; and no gap left open
 - **Excluded** — an observation that actually rules it out. "We looked and found
-  nothing" is a gap, not an exclusion
+  nothing" is a gap, not an exclusion. Exclusion is per hypothesis: the case is
+  Excluded only when every registered hypothesis is ruled out. Otherwise
+  `case_grade` grades what remains, counting only evidence that rules nothing
+  out, and lists each hypothesis as `open` or `excluded` in `hypotheses`
 
 `case_plan` is not a checklist: submit evidence and the next plan is shorter,
 lose a source and it routes around it. Its `unavailable` half is the important

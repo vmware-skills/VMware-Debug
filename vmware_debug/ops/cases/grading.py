@@ -24,7 +24,8 @@ from typing import Any
 from vmware_policy.paths import ops_path
 
 from vmware_debug.ops.cases.evidence import load_evidence, load_gaps
-from vmware_debug.ops.cases.store import load_case
+from vmware_debug.ops.cases.hypotheses import load_hypotheses
+from vmware_debug.ops.cases.store import CaseError, load_case
 from vmware_debug.ops.skill_names import group_by_skill
 
 PACKAGED_RULES = Path(__file__).resolve().parents[2] / "rules" / "grading_rules.yaml"
@@ -41,6 +42,24 @@ class GradeResult:
     ceiling_reasons: tuple[str, ...]
     rules_source: str
     rules_origin: str
+    hypotheses: tuple[tuple[str, str], ...] = ()
+    """``(hypothesis_id, "open" | "excluded")`` for every registered hypothesis,
+    in registration order. The case is Excluded only when none is left open."""
+
+
+def _registered_hypotheses(case_id: str, reasons: list[str]) -> tuple[str, ...]:
+    """Hypothesis ids from the ledger; an unreadable ledger grades as none registered.
+
+    Grading worked on a case directory without ``hypotheses.md`` before
+    exclusion became per hypothesis. Refusing to grade it now would turn a
+    missing bookkeeping file into no conclusion at all, so the gap is said
+    instead.
+    """
+    try:
+        return tuple(h.hypothesis_id for h in load_hypotheses(case_id))
+    except CaseError as exc:
+        reasons.append(f"Hypothesis ledger unreadable, graded as if none were registered: {exc}")
+        return ()
 
 
 def site_rules_path() -> Path:
@@ -169,7 +188,6 @@ def grade_case(case_id: str) -> GradeResult:
     by_skill = group_by_skill([e.source_skill for e in evidence])
     sources = set(by_skill)
     blocking = tuple(g for g in gaps if g.blocks)
-    falsifiable = tuple(g for g in blocking if g.could_falsify)
     reasons: list[str] = []
 
     if evidence:
@@ -187,22 +205,87 @@ def grade_case(case_id: str) -> GradeResult:
             )
     else:
         reasons.append("No evidence recorded yet.")
-    if blocking:
+
+    # Exclusion is per hypothesis. A falsifying observation rules out the
+    # hypotheses it names, not the case: on 2026-09-15 two sources ruled out H2
+    # while the leading H1 was still open behind three gaps, and the whole case
+    # was graded Excluded — which reads as "the answer was ruled out".
+    excluded_ids: frozenset[str] = frozenset()
+    if _check_excluded(grades.get("excluded") or {}, evidence, sources, reasons):
+        excluded_ids = frozenset(h for e in evidence for h in e.falsifies)
+    registered = _registered_hypotheses(case_id, reasons)
+    still_open = tuple(h for h in registered if h not in excluded_ids)
+    statuses = tuple((h, "excluded" if h in excluded_ids else "open") for h in registered)
+    # A gap that blocks only ruled-out hypotheses no longer holds the case back.
+    live_blocking = tuple(g for g in blocking if any(h not in excluded_ids for h in g.blocks))
+    retired = tuple(g for g in blocking if g not in live_blocking)
+    falsifiable = tuple(g for g in live_blocking if g.could_falsify)
+    if live_blocking:
         reasons.append(
             "Blocking gap(s): "
             + "; ".join(
                 f"{g.gap_id} {g.what} (blocks {', '.join(g.blocks)}"
                 + (", could overturn it)" if g.could_falsify else ")")
-                for g in blocking
+                for g in live_blocking
             )
             + "."
         )
+    if retired:
+        reasons.append(
+            "No longer blocking, because every hypothesis they block is ruled out: "
+            + ", ".join(g.gap_id for g in retired)
+            + "."
+        )
 
-    excluded = _check_excluded(grades.get("excluded") or {}, evidence, sources, reasons)
-    if excluded:
+    if excluded_ids and not still_open:
         grade = "excluded"
-    elif _meets_probable(grades.get("probable") or {}, sources, falsifiable):
-        grade = (
+    else:
+        open_evidence = evidence
+        open_sources = sources
+        if excluded_ids:
+            # Evidence carries no link to the hypothesis it supports, only to the
+            # ones it falsifies. An item that ruled one hypothesis out says
+            # nothing for the others, so it must not buy them corroboration —
+            # otherwise the observations that excluded H2 promote H1 to
+            # Probable, and a brand-new hypothesis with no evidence at all
+            # inherits the same grade (independent review, 2026-09-15).
+            open_evidence = tuple(e for e in evidence if not e.falsifies)
+            open_sources = set(group_by_skill([e.source_skill for e in open_evidence]))
+            reasons.append(
+                f"Ruled out: {', '.join(sorted(excluded_ids))}. Still open: "
+                f"{', '.join(still_open)}. The grade is for what remains, counting "
+                f"only evidence that rules nothing out: {len(open_sources)} "
+                f"independent source(s)."
+            )
+        grade = _grade_open(
+            grades, open_evidence, open_sources, live_blocking, falsifiable, reasons, scope
+        )
+
+    ceiling, ceiling_reasons = _ceiling(rules)
+    return GradeResult(
+        case_id=case_id,
+        grade=grade,
+        reasons=tuple(reasons),
+        ceiling=ceiling,
+        ceiling_reasons=ceiling_reasons,
+        rules_source=source,
+        rules_origin=origin,
+        hypotheses=statuses,
+    )
+
+
+def _grade_open(
+    grades: dict[str, Any],
+    evidence: tuple,
+    sources: set[str],
+    blocking: tuple,
+    falsifiable: tuple,
+    reasons: list[str],
+    scope: Any,
+) -> str:
+    """Candidate / Probable / Confirmed for the hypotheses that are still open."""
+    if _meets_probable(grades.get("probable") or {}, sources, falsifiable):
+        return (
             "confirmed"
             if _meets_confirmed(
                 grades.get("confirmed") or {},
@@ -214,7 +297,7 @@ def grade_case(case_id: str) -> GradeResult:
             )
             else "probable"
         )
-    elif _meets_confirmed(
+    if _meets_confirmed(
         grades.get("confirmed") or {},
         evidence,
         blocking,
@@ -225,21 +308,9 @@ def grade_case(case_id: str) -> GradeResult:
         # Only reachable when the rules file relaxes `confirmed.requires`.
         # Mutation-testing found that key was never read: changing it looked
         # like it worked and did nothing, which is worse than not offering it.
-        grade = "confirmed"
-    else:
-        grade = "candidate"
-        reasons.append(_why_not_probable(grades.get("probable") or {}, sources, falsifiable))
-
-    ceiling, ceiling_reasons = _ceiling(rules)
-    return GradeResult(
-        case_id=case_id,
-        grade=grade,
-        reasons=tuple(reasons),
-        ceiling=ceiling,
-        ceiling_reasons=ceiling_reasons,
-        rules_source=source,
-        rules_origin=origin,
-    )
+        return "confirmed"
+    reasons.append(_why_not_probable(grades.get("probable") or {}, sources, falsifiable))
+    return "candidate"
 
 
 def _meets_probable(rule: dict[str, Any], sources: set[str], falsifiable: tuple) -> bool:

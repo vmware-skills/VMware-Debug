@@ -572,11 +572,17 @@ def build_server() -> FastMCP:
         decisive item: a direct hardware diagnostic, a version-checked
         knowledge-base entry, or a vendor SR, and no gap left open); Excluded
         (an observation that actually rules the hypothesis out — "we looked and
-        found nothing" is a gap, not an exclusion).
+        found nothing" is a gap, not an exclusion). Exclusion is per
+        hypothesis: ruling out H2 does not exclude the case while H1 is still
+        open. The case is Excluded only when every registered hypothesis is
+        ruled out; otherwise the grade is for what remains, and gaps that block
+        only ruled-out hypotheses no longer hold it back.
 
         RETURNS: {grade, previous, direction, reasons, ceiling, ceiling_reasons,
-        rules_source, rules_origin}. `direction` is initial/up/down/unchanged —
-        grades may go DOWN, and the history records it when they do.
+        rules_source, rules_origin, hypotheses}. `hypotheses` lists every
+        registered hypothesis as {id, status: open|excluded}. `direction` is
+        initial/up/down/unchanged — grades may go DOWN, and the history records
+        it when they do.
 
         GOTCHAS: on a stock install `ceiling` is "probable", because Confirmed
         needs a decisive source and there is neither a hardware-diagnostic

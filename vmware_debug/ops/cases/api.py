@@ -223,6 +223,7 @@ def grade(case_id: str, at: str | None = None) -> dict[str, Any]:
         "ceiling_reasons": list(result.ceiling_reasons),
         "rules_source": result.rules_source,
         "rules_origin": result.rules_origin,
+        "hypotheses": [{"id": h, "status": status} for h, status in result.hypotheses],
     }
 
 

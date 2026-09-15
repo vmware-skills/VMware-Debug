@@ -1,6 +1,6 @@
 {
   "name": "@zw008/vmware-debug",
-  "version": "1.12.2",
+  "version": "1.13.0",
   "description": "VMware incident timeline, root-cause routing, local case ledger; no vSphere access. 14 MCP tools.",
   "private": true,
   "license": "MIT",
