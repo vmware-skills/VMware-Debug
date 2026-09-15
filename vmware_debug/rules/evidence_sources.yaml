@@ -130,16 +130,29 @@ classes:
       - {tool: get_aria_health, gives: "Aria node and service health"}
       - {tool: list_resources, gives: "objects under the adapter, to find the ones that stopped reporting"}
 
+  # Same skill as virtualization_state, so never a second source. Separate so
+  # a hardware plan asks for the sensors and the CIM Server state that supplies
+  # them, which is what its suggested_check tells the reader to look at.
+  host_hardware:
+    label: Host hardware sensors and the CIM Server that supplies them
+    skill: vmware-monitor
+    decisive: false
+    tools:
+      - {tool: get_host_sensors, gives: "sensor readings per host, and hosts reporting none with their CIM Server state"}
+      - {tool: get_host_services, gives: "whether sfcbd-watchdog (CIM Server) is running on the host"}
+
   # Only reads vmware-aiops performs itself. Its cluster_health_summary,
   # cross_vcenter_attention and *_investigation_bundle tools call
   # vmware-monitor's code; listed here they would be monitor's data counted as
   # a second, independent source.
+  # vm_task_status is left out on purpose: it takes a task id, a plan only has
+  # VM names, and called with a name it answers "gone" with no error — a reply
+  # that would count as a second source while saying nothing.
   vm_operations:
-    label: VM task history and snapshot tree
+    label: VM snapshot tree
     skill: vmware-aiops
     decisive: false
     tools:
-      - {tool: vm_task_status, gives: "state, progress and error of one task, by task id"}
       - {tool: vm_list_snapshots, gives: "the VM's snapshot tree"}
 
   # ── The two that do not exist ──────────────────────────────────────────
@@ -202,7 +215,7 @@ routing:
     supporting: [kubernetes, virtualization_state, logs]
     decisive: [knowledge]
   hardware:
-    supporting: [virtualization_state, logs]
+    supporting: [host_hardware, virtualization_state, logs]
     decisive: [hardware]
 
   # The three below complete the set that ops/timeline.py's keyword classifier
@@ -232,11 +245,15 @@ routing:
     supporting: [virtualization_state, logs, metrics_and_anomalies]
     decisive: [knowledge]
 
-  # Licensing and collection problems are usually seen from both sides: vCenter
-  # holds the licenses and the data, Aria raises the alert about them.
+  # Licensing has one source here. An Aria alert about a vCenter license is
+  # built from vCenter's own data, so counting it would be one source twice —
+  # the same double-count vm_operations refuses for AIops's bundles.
   licensing:
-    supporting: [license_state, metrics_and_anomalies]
+    supporting: [license_state]
     decisive: [knowledge]
+
+  # Two observations: Aria's own collector state, and whether the vCenter it
+  # collects from is reachable.
 
   data_collection:
     supporting: [collection_pipeline, virtualization_state]

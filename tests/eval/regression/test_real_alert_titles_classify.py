@@ -1,7 +1,7 @@
 """Alert titles from a real estate, and what the taxonomy made of them.
 
 On 2026-09-14 eight alerts were read off the lab vCenter 8.0.3 and Aria 8.18.7
-and passed through ``triage``. Five came back ``uncategorized`` and the top
+and passed through ``triage``. Six came back ``uncategorized`` and the top
 hypothesis was "uncategorized" itself. Unlike the residue measured in
 ``test_classification_against_vsphere_vocabulary`` — events whose subsystem the
 taxonomy already had, spelled differently — these named subsystems it had no
@@ -71,12 +71,19 @@ def test_the_lab_stream_is_now_mostly_readable():
     assert coverage["unmatched_samples"] == [ROLLUP_ALERT]
 
 
-def test_a_new_category_does_not_steal_an_existing_match():
-    """Controls: the words added for the new categories must not outrank what
-    these texts were already about."""
-    assert classify_symptom("datastore latency high on vsan-01")[0] == "storage"
-    assert classify_symptom("Permission denied for user root@192.168.60.10")[0] == "auth"
-    assert classify_symptom("Host esx01 entered maintenance mode")[0] == "host_lifecycle"
+@pytest.mark.parametrize(
+    ("text", "category"),
+    [
+        # Each contains a word the new categories added, and was already about
+        # something else. A bare "collector" took the first two from platform.
+        ("The ESXi Dump Collector service is not running on vcsa01", "platform"),
+        ("vCenter Server Syslog Collector service stopped", "platform"),
+        ("vSAN license expired for datastore vsan-01", "storage"),
+        ("Password for user root@192.168.60.10 denied: authentication failed", "auth"),
+    ],
+)
+def test_a_new_category_does_not_steal_an_existing_match(text, category):
+    assert classify_symptom(text)[0] == category, classify_symptom(text)
 
 
 class TestReadiness:
@@ -109,15 +116,36 @@ class TestReadiness:
                 tools = {e["tool"] for e in spec["tools"]}
                 assert not tools & delegated, f"{name} lists delegated tools {tools & delegated}"
 
-    @pytest.mark.parametrize("category", ["licensing", "data_collection"])
-    def test_new_categories_reach_probable_with_monitor_and_aria(self, category):
-        out = readiness(["vmware-monitor", "vmware-aria"])["categories"][category]
+    def test_task_status_is_not_offered_as_evidence(self):
+        """It takes a task id; a plan has VM names. Called with a name it answers
+        "gone" and no error, which the grader would count as a second source."""
+        tools = {
+            e["tool"]
+            for spec in load_catalogue()["classes"].values()
+            if spec.get("skill") == "vmware-aiops"
+            for e in spec["tools"]
+        }
+        assert "vm_task_status" not in tools
+
+    def test_collection_reaches_probable_with_monitor_and_aria(self):
+        """Aria's collector state and vCenter's own reachability are two observations."""
+        out = readiness(["vmware-monitor", "vmware-aria"])["categories"]["data_collection"]
         assert out["ceiling"] == "probable"
 
-    @pytest.mark.parametrize("category", ["licensing", "data_collection"])
-    def test_one_skill_alone_is_still_one_source(self, category):
-        out = readiness(["vmware-aria"])["categories"][category]
+    def test_licensing_does_not_count_an_aria_alert_as_a_second_source(self):
+        """An Aria alert about a vCenter license is built from vCenter's data, so
+        monitor plus aria would be one source counted twice."""
+        out = readiness(["vmware-monitor", "vmware-aria"])["categories"]["licensing"]
         assert out["ceiling"] == "candidate"
+
+    def test_one_skill_alone_is_still_one_source(self):
+        out = readiness(["vmware-aria"])["categories"]["data_collection"]
+        assert out["ceiling"] == "candidate"
+
+    def test_a_hardware_plan_can_ask_for_the_sensors(self):
+        routed = load_catalogue()["routing"]["hardware"]["supporting"]
+        tools = {e["tool"] for c in routed for e in load_catalogue()["classes"][c]["tools"]}
+        assert {"get_host_sensors", "get_host_services"} <= tools
 
 
 @pytest.fixture(autouse=True)

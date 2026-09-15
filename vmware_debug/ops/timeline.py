@@ -112,7 +112,9 @@ _CATEGORY_SIGNATURES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ),
     (
         "data_collection",
-        ("adapter instance", "not receiving data", "collector"),
+        # Not a bare "collector": vCenter's own services are named that way
+        # ("ESXi Dump Collector service is not running") and belong to platform.
+        ("adapter instance", "not receiving data", "collector group", "cloud proxy"),
         "vmware-aria (list_adapters for when each adapter last collected, "
         "list_collector_groups, get_aria_health; list_resources to find the "
         "objects that stopped reporting) + vmware-monitor (whether the source "
