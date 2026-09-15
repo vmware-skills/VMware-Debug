@@ -46,7 +46,7 @@ These are structural, so it cannot.
 | "Do not fabricate a timeline — build it from the events I gave you" | **`incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
 | "Tell me when the symptom is outside what you can recognise" | **`list_symptom_categories`** states the catalogue, and unmatched symptoms come back as `uncategorized` rather than being forced into the nearest signature. |
 | "Use explicit limits for queries that may return large amounts of data" | **The list envelope.** `list_symptom_categories` returns `{items, returned, limit, total, truncated, hint}` with `truncated` always `false` — which is the point: it states that the catalogue is complete instead of leaving you to infer it. |
-| "Log everything you looked at" | **The case ledger, for investigations.** Evidence submitted to a case is recorded with its source skill, tool, query and fetch time. Debug's own tool calls are not written to `~/.vmware/audit.db`: none of them acts on a VMware target. |
+| "Log everything you looked at" | **`~/.vmware/audit.db` and the case ledger.** Every debug tool call, a failed one included, writes one audit row (who, when, arguments, outcome — evidence `payload` and `events` are kept out of the row). Evidence submitted to a case is also recorded in the ledger with its source skill, tool, query and fetch time — so pass the real fetch time, never a placeholder. |
 
 ---
 

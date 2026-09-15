@@ -4,10 +4,15 @@ Tool logic lives in vmware_debug.mcp.tools (the case tools' bodies in
 ops/cases/api.py). This module wires them into a FastMCP server and provides
 the stdio entry point.
 
-No tool here goes through vmware_policy's audit decorator, and that is
-deliberate: nothing in this skill acts on a VMware target, so there is no
-operation for the family audit DB (~/.vmware/audit.db) to record. The case
-tools' writes land in the investigation ledger, which is its own record.
+Every tool here goes through vmware_policy's ``@vmware_tool``, so each call —
+a failed one included — writes one row to ~/.vmware/audit.db (HLD §8.1, I-10,
+amended 2026-09-15b). Until then none did: this module said no audit was needed
+because nothing here acts on a VMware target, and the case ledger was offered
+as the record. The ledger records the investigation, not the calls — a live
+session submitted evidence with invented fetch times and nothing could show
+when the calls had really been made or which had failed. Large data the caller
+hands over (``payload``, ``events``) is kept out of the row via
+``sensitive_params``; it lives in the ledger or with the caller.
 
 Note: signatures here use typing.Optional, never PEP 604 ``X | None`` — FastMCP
 reflects these at registration and ``X | None`` crashes on Python 3.10 + older
@@ -19,7 +24,7 @@ import sys
 from typing import Optional, Union
 
 from mcp.server.fastmcp import FastMCP
-from vmware_policy import describe_tool_parameters, sanitize
+from vmware_policy import describe_tool_parameters, sanitize, vmware_tool
 
 from vmware_debug.mcp import tools as t
 from vmware_debug import __version__
@@ -201,7 +206,8 @@ def build_server() -> FastMCP:
     # bin_seconds and z_threshold are exactly the two knobs a wrong guess makes
     # silently useless.
     @server.tool(name="incident_timeline", annotations=_READ)
-    def _incident_timeline_impl(
+    @vmware_tool(risk_level="low", sensitive_params=["events"])
+    def incident_timeline(
         events: list[dict],
         bin_seconds: Optional[float] = None,
         z_threshold: float = 2.0,
@@ -262,7 +268,8 @@ def build_server() -> FastMCP:
             }
 
     @server.tool(name="list_symptom_categories", annotations=_READ)
-    def _list_symptom_categories_impl() -> dict:
+    @vmware_tool(risk_level="low")
+    def list_symptom_categories() -> dict:
         """[READ] List the symptom categories vmware-debug recognises, each with
         example keywords and a suggested next check (which skill/tool to run).
         Takes no parameters. Use this when you don't yet know what to look
@@ -287,7 +294,8 @@ def build_server() -> FastMCP:
         return {"error": _safe_error(exc, tool), "hint": _CASE_ERROR_HINT}
 
     @server.tool(name="case_open", annotations=_WRITE_LOCAL)
-    def _case_open_impl(
+    @vmware_tool(risk_level="low")
+    def case_open(
         summary: str,
         determined_by: str,
         objects: Optional[list[str]] = None,
@@ -339,7 +347,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_open")
 
     @server.tool(name="case_list", annotations=_READ)
-    def _case_list_impl(limit: int = 50) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_list(limit: int = 50) -> dict:
         """[READ] List investigation cases, newest first.
 
         WHEN: to find the id of a case you or someone else opened earlier.
@@ -359,7 +368,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_list")
 
     @server.tool(name="case_get", annotations=_READ)
-    def _case_get_impl(case_id: str) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_get(case_id: str) -> dict:
         """[READ] One case: its scope, its ledger sizes, and its grade history.
 
         WHEN: to pick up an investigation, or to see why a case sits at the
@@ -392,7 +402,8 @@ def build_server() -> FastMCP:
     # what a model fills with invention. Trim the prose here and the cost stays
     # while the explanation goes.
     @server.tool(name="case_submit_evidence", annotations=_WRITE_LOCAL)
-    def _case_submit_evidence_impl(
+    @vmware_tool(risk_level="low", sensitive_params=["payload"])
+    def case_submit_evidence(
         case_id: str,
         source_skill: str,
         source_tool: str,
@@ -485,7 +496,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_submit_evidence")
 
     @server.tool(name="case_record_gap", annotations=_WRITE_LOCAL)
-    def _case_record_gap_impl(
+    @vmware_tool(risk_level="low")
+    def case_record_gap(
         case_id: str,
         what: str,
         why: str,
@@ -535,7 +547,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_record_gap")
 
     @server.tool(name="case_grade", annotations=_WRITE_LOCAL)
-    def _case_grade_impl(case_id: str) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_grade(case_id: str) -> dict:
         """[WRITE] Compute and record the conclusion grade — steps 07/08.
 
         WHEN: when you think the investigation has reached a conclusion, or to
@@ -574,7 +587,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_grade")
 
     @server.tool(name="case_readiness", annotations=_READ)
-    def _case_readiness_impl(available_skills: Optional[list[str]] = None) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_readiness(available_skills: Optional[list[str]] = None) -> dict:
         """[READ] What strength of conclusion can this environment reach?
 
         WHEN: before starting an investigation, or when a case will not go
@@ -614,7 +628,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_readiness")
 
     @server.tool(name="case_plan", annotations=_READ)
-    def _case_plan_impl(
+    @vmware_tool(risk_level="low")
+    def case_plan(
         case_id: str,
         category: Optional[str] = None,
         available_skills: Optional[list[str]] = None,
@@ -675,7 +690,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_plan")
 
     @server.tool(name="case_hypotheses", annotations=_WRITE_LOCAL)
-    def _case_hypotheses_impl(case_id: str, statement: Optional[str] = None) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_hypotheses(case_id: str, statement: Optional[str] = None) -> dict:
         """[WRITE] Register a candidate explanation, or read the ledger — step 06.
 
         WHEN: as soon as you have a theory worth testing, and again to see where
@@ -712,7 +728,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_hypotheses")
 
     @server.tool(name="case_timeline", annotations=_WRITE_LOCAL)
-    def _case_timeline_impl(
+    @vmware_tool(risk_level="low")
+    def case_timeline(
         case_id: str,
         bin_seconds: Optional[float] = None,
         z_threshold: float = 2.0,
@@ -762,7 +779,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_timeline")
 
     @server.tool(name="case_close", annotations=_WRITE_LOCAL)
-    def _case_close_impl(case_id: str) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_close(case_id: str) -> dict:
         """[WRITE] Record the final grade and archive the case — step 08.
 
         WHEN: when the investigation is finished, or is being handed over.
@@ -788,7 +806,8 @@ def build_server() -> FastMCP:
             return _case_error(exc, "case_close")
 
     @server.tool(name="case_knowledge", annotations=_READ)
-    def _case_knowledge_impl(case_id: Optional[str] = None) -> dict:
+    @vmware_tool(risk_level="low")
+    def case_knowledge(case_id: Optional[str] = None) -> dict:
         """[READ] What the knowledge layer accepts, and what is mounted.
 
         WHEN: when someone asks what can be added to make conclusions stronger,

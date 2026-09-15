@@ -275,10 +275,14 @@ No network, nothing executed. The seven [WRITE] tools write only to the local ca
 ledger under `$OPS_HOME`; nothing here touches a remote VMware estate. Evidence, gaps,
 hypotheses and grade history are only ever added to — `timeline.md` is regenerated from
 the evidence and `case.json` holds the current grade and state. Remediation is always routed to
-aiops/pilot, where the double-confirm / approval / audit gates live (audit DB
-`~/.vmware/audit.db`). debug has no config and no connection, so it registers no
-environment resolver, and its tools do not pass through the policy engine — no policy
-rule applies to them. See `references/setup-guide.md`.
+aiops/pilot, where the double-confirm / approval gates live. Every debug tool call — a
+failed one included — writes one row to `~/.vmware/audit.db` through `@vmware_tool`, as
+do the `categories` and `triage` CLI commands under their MCP tools' names. The row
+records who, when, the arguments and the outcome; evidence `payload` and `events` stay
+out of it (they are in the case folder, or with you). debug has no config and no
+connection, so it registers no environment resolver: an environment-scoped policy rule
+never matches its tools, while a rule naming a debug tool does. See
+`references/setup-guide.md`.
 
 **Case data is sensitive and is kept until you delete it.** Each case lives in
 `$OPS_HOME/cases/<case-id>/` (default `~/.vmware/cases/`), created owner-only (`0700`).

@@ -1,3 +1,21 @@
+## Unreleased — every tool call is audited, failures included
+
+Until now no vmware-debug MCP tool wrote to `~/.vmware/audit.db`. The server said that was on
+purpose — nothing here acts on a VMware target — and the case ledger stood in as the record. It
+records the investigation, not the calls: in a live session case evidence was submitted with
+invented fetch times, and nothing could show when the calls had really been made or which failed.
+
+* All 14 MCP tools now go through `@vmware_tool`. Each call writes one row under the tool's own
+  name; a call that raises or returns `{"error": …}` is recorded as `error`.
+* `payload` (`case_submit_evidence`) and `events` (`incident_timeline`) are kept out of the row.
+  The row still has the case id, source skill and tool, query, fetch time and outcome; the data
+  itself is in the case folder, or with the caller.
+* The CLI twins audit too: `categories` as `list_symptom_categories`, `triage` as
+  `incident_timeline` — including a `triage` that fails on bad input. `version` and `mcp` still
+  write no row.
+* Because the tools now pass through `guard()`, a policy rule that names a debug tool applies to
+  it. Environment-scoped rules still never match: debug has no targets.
+
 ## v1.12.1 — every CLI command declares what it reaches
 
 Across the family, CLI reads never wrote `~/.vmware/audit.db`; they now do (`@audited`, under the

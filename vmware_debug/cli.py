@@ -20,7 +20,7 @@ from rich.table import Table
 
 from vmware_debug import __version__
 from vmware_debug.mcp.tools import incident_timeline, list_symptom_categories
-from vmware_policy import cli_local
+from vmware_policy import audited, cli_local
 
 
 def _harden_console_encoding() -> None:
@@ -61,7 +61,7 @@ def version() -> None:
 
 
 @app.command()
-@cli_local("prints the built-in symptom catalogue; contacts nothing")
+@audited(tool="list_symptom_categories")
 def categories() -> None:
     """List the symptom categories debug recognises and what to check for each."""
     table = Table(title="vmware-debug symptom categories")
@@ -74,7 +74,7 @@ def categories() -> None:
 
 
 @app.command()
-@cli_local("correlates events read from a file or stdin; contacts nothing")
+@audited(tool="incident_timeline")
 def triage(
     events_file: Optional[Path] = typer.Option(
         None, "--events", "-e", help="JSON file of event envelopes; reads stdin if omitted."
