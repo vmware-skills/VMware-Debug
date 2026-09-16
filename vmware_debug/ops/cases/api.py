@@ -31,7 +31,7 @@ from vmware_debug.ops.cases.evidence import (
     record_evidence,
     record_gap,
 )
-from vmware_debug.ops.cases.grading import grade_case
+from vmware_debug.ops.cases.grading import grade_case, load_rules
 from vmware_debug.ops.cases.hypotheses import add_hypothesis, hypothesis_ledger
 from vmware_debug.ops.cases.knowledge import knowledge_status as _knowledge_status
 from vmware_debug.ops.cases.model import Scope
@@ -260,6 +260,10 @@ def hypotheses(case_id: str, statement: str | None = None, at: str | None = None
     what does the evidence say about it" — and splitting them would make the
     common case (register, then look) two calls.
     """
+    # The ledger read below needs the grading rules. A broken rules file must
+    # fail before the write: failing after it left the hypothesis on disk, and
+    # a retry registered it twice (independent review, 2026-09-15).
+    load_rules()
     added = None
     if statement is not None:
         added = add_hypothesis(case_id, statement, at=at or utc_now())

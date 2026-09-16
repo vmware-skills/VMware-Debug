@@ -573,10 +573,10 @@ def build_server() -> FastMCP:
         knowledge-base entry, or a vendor SR, and no gap left open); Excluded
         (an observation that actually rules the hypothesis out — "we looked and
         found nothing" is a gap, not an exclusion). Exclusion is per
-        hypothesis: ruling out H2 does not exclude the case while H1 is still
-        open. The case is Excluded only when every registered hypothesis is
-        ruled out; otherwise the grade is for what remains, and gaps that block
-        only ruled-out hypotheses no longer hold it back.
+        hypothesis, counting only sources that falsify THAT hypothesis; the
+        case is Excluded only when every registered one is. A hypothesis
+        contradicted but not yet ruled out holds the case at Candidate.
+        Otherwise the grade counts only evidence that falsifies nothing.
 
         RETURNS: {grade, previous, direction, reasons, ceiling, ceiling_reasons,
         rules_source, rules_origin, hypotheses}. `hypotheses` lists every
@@ -717,11 +717,11 @@ def build_server() -> FastMCP:
         which quietly reports a stronger case than you have.
 
         RETURNS: {case_id, added, hypotheses, note}. Each entry carries its
-        status and what produced it: `refuted` (an observation ruled it out,
-        with the evidence id), `blocked` (a gap is in the way, with the gap id
-        and how to close it), or `open`. Status is computed from what points at
-        the hypothesis — a hypothesis does not get to claim it is well
-        supported, the same way a case does not get to state its own grade.
+        status: `refuted` (ruled out by case_grade's rule), `blocked` (a gap is
+        in the way, with the gap id and how to close it), or `open`.
+        `refuted_by` lists every falsifying item; the first next step says when
+        more sources are needed. Status is computed from what points at the
+        hypothesis, never asserted.
 
         GOTCHAS: refuted outranks blocked. Once an observation settles the
         question, a missing measurement no longer matters.

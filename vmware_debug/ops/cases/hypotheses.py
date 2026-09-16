@@ -78,6 +78,13 @@ def load_hypotheses(case_id: str) -> tuple[Hypothesis, ...]:
                 f"hand-edited. Restore the file — dropping the entry would erase "
                 f"a hypothesis the gaps and evidence still reference."
             ) from exc
+        if not isinstance(d, dict) or not isinstance(d.get("id"), str) or not d["id"]:
+            # Valid JSON that is not a hypothesis — `[]`, `null`, `{}` — used to
+            # escape as AttributeError, or register the id "" (review, 2026-09-15).
+            raise ValueError(
+                f"A hypothesis entry in {path} is corrupt: expected an object with "
+                f"an id, got {raw[:80]!r}. It was hand-edited. Restore the file."
+            )
         out.append(
             Hypothesis(
                 hypothesis_id=d.get("id", ""),
@@ -142,17 +149,28 @@ def hypothesis_ledger(case_id: str) -> list[dict[str, Any]]:
 
     Status is derived: an observation that rules a hypothesis out settles it, so
     ``refuted`` outranks ``blocked`` — once the answer is known, a missing
-    measurement no longer matters.
+    measurement no longer matters. Whether it is ruled out is decided by the
+    same rule ``case_grade`` uses (by default two independent sources against
+    that hypothesis; a site rules file can change it); a single falsifier marked it refuted
+    here while the grade kept it open (independent review, 2026-09-15).
+    ``refuted_by`` lists every falsifying item, enough or not.
     """
     from vmware_debug.ops.cases.evidence import load_evidence, load_gaps
+    from vmware_debug.ops.cases.grading import falsifications, load_rules
 
     evidence = load_evidence(case_id)
     gaps = load_gaps(case_id)
+    hypotheses = load_hypotheses(case_id)
+    rule = ((load_rules()[0].get("grades") or {}).get("excluded")) or {}
+    verdicts = {
+        v.hypothesis_id: v
+        for v in falsifications(rule, evidence, tuple(h.hypothesis_id for h in hypotheses))
+    }
     out: list[dict[str, Any]] = []
-    for h in load_hypotheses(case_id):
-        refuted = [e.evidence_id for e in evidence if h.hypothesis_id in e.falsifies]
+    for h in hypotheses:
+        verdict = verdicts[h.hypothesis_id]
         blocking = [g for g in gaps if h.hypothesis_id in g.blocks]
-        if refuted:
+        if verdict.excluded:
             status, steps = (
                 "refuted",
                 ["Ruled out. Record the remaining candidates, or open a new one."],
@@ -166,12 +184,14 @@ def hypothesis_ledger(case_id: str) -> list[dict[str, Any]]:
                 "Nothing is blocking this one. Run case_plan for the next "
                 "evidence to fetch, and record what you cannot get as a gap."
             ]
+        if verdict.evidence_ids and not verdict.excluded:
+            steps = [verdict.note, *steps]
         out.append(
             {
                 "hypothesis_id": h.hypothesis_id,
                 "statement": h.statement,
                 "status": status,
-                "refuted_by": refuted,
+                "refuted_by": list(verdict.evidence_ids),
                 "blocked_by": [g.gap_id for g in blocking],
                 "next_steps": steps,
             }

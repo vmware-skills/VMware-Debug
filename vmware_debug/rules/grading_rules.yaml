@@ -62,4 +62,6 @@ grades:
     # likely to be argued away in prose, so it is expressed as a required
     # non-empty field on a specific evidence item.
     requires_falsifying_evidence: true
+    # Counted per hypothesis: independent skills among the items that falsify
+    # THAT hypothesis, not anywhere in the case.
     min_independent_sources: 2

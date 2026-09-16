@@ -62,7 +62,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "conclusion.py:81"
+            "where": "conclusion.py:91"
           },
           {
             "message": "Evidence field {} is required and cannot be blank. {}",
@@ -70,7 +70,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:41"
+            "where": "evidence.py:48"
           },
           {
             "message": "Cannot read gaps.json for case {}: {}.",
@@ -78,7 +78,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:289"
+            "where": "evidence.py:308"
           },
           {
             "message": "gaps.json in case {} is not valid JSON: {}. It was hand-edited. Restore it rather than deleting it \u2014",
@@ -86,7 +86,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "evidence.py:291"
+            "where": "evidence.py:310"
           },
           {
             "message": "Cannot read grading_rules.yaml at {}: {}",
@@ -94,7 +94,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "grading.py:57"
+            "where": "grading.py:133"
           },
           {
             "message": "grading_rules.yaml at {} is not valid YAML: {}. Fix it rather than deleting it \u2014 falling back to the",
@@ -102,7 +102,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "grading.py:59"
+            "where": "grading.py:135"
           },
           {
             "message": "A hypothesis needs a statement \u2014 what you think happened, in one line. An unnamed hypothesis cannot ",
@@ -111,7 +111,7 @@
               "names_input",
               "states_remedy"
             ],
-            "where": "hypotheses.py:88"
+            "where": "hypotheses.py:101"
           },
           {
             "message": "Cannot read hypotheses.md for case {}: {}",
@@ -119,7 +119,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "hypotheses.py:60"
+            "where": "hypotheses.py:66"
           },
           {
             "message": "Scope field {} is required and cannot be blank. It is what step 01 of the evidence loop produces; a ",
@@ -159,7 +159,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "store.py:81"
+            "where": "store.py:293"
           },
           {
             "message": "Case {} is already closed. Its record is not rewritten \u2014 reopen the question by opening a new case t",
@@ -167,7 +167,7 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "timeline.py:137"
+            "where": "timeline.py:154"
           },
           {
             "message": "Cannot read case.json for {}: {}",
@@ -175,39 +175,39 @@
               "names_artifact",
               "states_remedy"
             ],
-            "where": "timeline.py:151"
+            "where": "timeline.py:168"
           }
         ],
         "per_dimension_pct": {
-          "names_artifact": 37.2,
-          "names_input": 95.3,
-          "states_remedy": 62.8
+          "names_artifact": 40.0,
+          "names_input": 95.6,
+          "states_remedy": 64.4
         },
-        "raise_sites": 43
+        "raise_sites": 45
       },
-      "maximum": 129,
-      "pct": 65.1,
+      "maximum": 135,
+      "pct": 66.7,
       "unit": "points",
-      "value": 84
+      "value": 90
     },
     "manifest_context_headroom": {
       "detail": {
         "heaviest_tools": {
           "case_open": 521,
-          "case_plan": 499,
+          "case_plan": 502,
           "case_record_gap": 410,
           "case_submit_evidence": 971,
           "incident_timeline": 521
         },
-        "manifest_tokens": 5160,
-        "mean_tokens_per_tool": 368.6,
+        "manifest_tokens": 5215,
+        "mean_tokens_per_tool": 372.5,
         "reference_context": 16384,
         "tool_count": 14
       },
       "maximum": 16384,
-      "pct": 68.5,
+      "pct": 68.2,
       "unit": "tokens",
-      "value": 11224
+      "value": 11169
     },
     "parameter_documentation_coverage": {
       "detail": {
@@ -248,7 +248,7 @@
         "ceiling": 350,
         "over_ceiling": {
           "case_open": 521,
-          "case_plan": 499,
+          "case_plan": 502,
           "case_record_gap": 410,
           "case_submit_evidence": 971,
           "case_timeline": 393,
@@ -290,27 +290,27 @@
         "remedy_after_interpolation": [
           "envelope.py:126",
           "envelope.py:138",
-          "conclusion.py:135",
-          "conclusion.py:144",
-          "evidence.py:179",
-          "evidence.py:211",
-          "evidence.py:248",
-          "grading.py:67",
-          "hypotheses.py:47",
-          "hypotheses.py:70"
+          "conclusion.py:145",
+          "conclusion.py:154",
+          "evidence.py:186",
+          "evidence.py:229",
+          "evidence.py:264",
+          "grading.py:143",
+          "hypotheses.py:53",
+          "hypotheses.py:76"
         ]
       },
-      "maximum": 28,
+      "maximum": 30,
       "pct": 100.0,
       "unit": "messages",
-      "value": 28
+      "value": 30
     },
     "teaching_error_rate": {
       "detail": {},
-      "maximum": 43,
-      "pct": 34.9,
+      "maximum": 45,
+      "pct": 37.8,
       "unit": "messages",
-      "value": 15
+      "value": 17
     },
     "tool_description_quality": {
       "detail": {

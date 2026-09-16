@@ -194,12 +194,19 @@ class TestExclusionNeedsAFalsifyingObservation:
         record_gap(case, blocking_gap())
         assert grade_case(case).grade != "excluded"
 
-    def test_a_falsifying_observation_excludes(self, case):
+    def test_falsifying_observations_from_two_skills_exclude(self, case):
         record_evidence(case, evidence(skill="vmware-monitor", falsifies=("H1",)))
-        record_evidence(case, evidence(skill="vmware-log-insight"))
+        record_evidence(case, evidence(skill="vmware-log-insight", falsifies=("H1",)))
         r = grade_case(case)
         assert r.grade == "excluded"
         assert any("E001" in reason for reason in r.reasons)
+
+    def test_one_falsifier_and_an_unrelated_source_do_not_exclude(self, case):
+        """The two sources have to be against the hypothesis, not anywhere in the
+        case (independent review, 2026-09-15)."""
+        record_evidence(case, evidence(skill="vmware-monitor", falsifies=("H1",)))
+        record_evidence(case, evidence(skill="vmware-log-insight"))
+        assert grade_case(case).grade != "excluded"
 
 
 class TestDemotion:

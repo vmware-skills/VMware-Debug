@@ -111,12 +111,25 @@ class TestTheLedgerIsComputed:
         assert h["refuted_by"] == [] and h["blocked_by"] == []
         assert h["status"] == "open"
 
-    def test_a_falsifying_observation_marks_it_refuted(self, case):
+    def test_falsifying_observations_from_two_skills_mark_it_refuted(self, case):
         add_hypothesis(case, "failing NVMe device")
         ev(case, falsifies=("H1",))
+        ev(case, skill="vmware-log-insight", falsifies=("H1",))
         [h] = hypothesis_ledger(case)
-        assert h["refuted_by"] == ["E001"]
+        assert h["refuted_by"] == ["E001", "E002"]
         assert h["status"] == "refuted"
+
+    def test_one_falsifying_source_is_not_yet_a_refutation(self, case):
+        """case_grade needs two independent sources to rule a hypothesis out. The
+        ledger saying "refuted" on one would contradict the grade for the same id
+        (independent review, 2026-09-15)."""
+        add_hypothesis(case, "failing NVMe device")
+        ev(case, falsifies=("H1",))
+        ev(case, falsifies=("H1",))  # the same skill again is still one source
+        [h] = hypothesis_ledger(case)
+        assert h["refuted_by"] == ["E001", "E002"]
+        assert h["status"] == "open"
+        assert any("independent" in step for step in h["next_steps"])
 
     def test_a_blocking_gap_is_reported_against_it(self, case):
         add_hypothesis(case, "failing NVMe device")
@@ -134,6 +147,7 @@ class TestTheLedgerIsComputed:
         add_hypothesis(case, "failing NVMe device")
         record_gap(case, Gap(what="SMART", why="no BMC", blocks=("H1",), how_to_close="x"))
         ev(case, falsifies=("H1",))
+        ev(case, skill="vmware-log-insight", falsifies=("H1",))
         assert hypothesis_ledger(case)[0]["status"] == "refuted"
 
     def test_each_entry_carries_its_next_step(self, case):

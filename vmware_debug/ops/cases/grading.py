@@ -47,18 +47,73 @@ class GradeResult:
     in registration order. The case is Excluded only when none is left open."""
 
 
+@dataclass(frozen=True)
+class Falsification:
+    """What speaks against one hypothesis, and whether it is enough to rule it out."""
+
+    hypothesis_id: str
+    evidence_ids: tuple[str, ...]
+    sources: int
+    excluded: bool
+    note: str
+
+
+def falsifications(
+    rule: dict[str, Any], evidence: tuple, hypothesis_ids: tuple[str, ...]
+) -> tuple[Falsification, ...]:
+    """Exclusion, decided one hypothesis at a time.
+
+    The independent sources an exclusion needs are counted among the items that
+    falsify THAT hypothesis. Counting them across the case let one observation
+    against H2 plus anything unrelated rule H2 out — which also retired the gap
+    holding the case back and promoted it (independent review, 2026-09-15).
+    ``case_hypotheses`` reads the same verdicts, so the ledger and the grade
+    cannot disagree about an id.
+
+    Exclusion still needs an observation that rules the hypothesis out, not a
+    missing one: "we looked and found nothing" is a gap.
+    """
+    required = int(rule.get("min_independent_sources", 2))
+    enabled = bool(rule.get("requires_falsifying_evidence", True))
+    out = []
+    for h in hypothesis_ids:
+        against = tuple(e for e in evidence if h in e.falsifies)
+        ids = ", ".join(e.evidence_id for e in against)
+        sources = len(group_by_skill([e.source_skill for e in against]))
+        excluded = enabled and bool(against) and sources >= required
+        if not against:
+            note = ""
+        elif excluded:
+            note = f"{h} ruled out by {ids}: {sources} independent source(s) against it."
+        elif not enabled:
+            note = (
+                f"{h} is contradicted by {ids}, but these grading rules never exclude "
+                f"(excluded.requires_falsifying_evidence is false)."
+            )
+        else:
+            note = (
+                f"{h} is contradicted by {ids} from {sources} independent source(s); "
+                f"ruling it out needs {required} against the same hypothesis. "
+                f"Corroborate from a different skill."
+            )
+        out.append(Falsification(h, tuple(e.evidence_id for e in against), sources, excluded, note))
+    return tuple(out)
+
+
 def _registered_hypotheses(case_id: str, reasons: list[str]) -> tuple[str, ...]:
     """Hypothesis ids from the ledger; an unreadable ledger grades as none registered.
 
     Grading worked on a case directory without ``hypotheses.md`` before
     exclusion became per hypothesis. Refusing to grade it now would turn a
     missing bookkeeping file into no conclusion at all, so the gap is said
-    instead.
+    instead. A corrupt entry raises ValueError, not CaseError, and is said the
+    same way (independent review, 2026-09-15). With none registered nothing can
+    be ruled out: see ``grade_case``.
     """
     try:
         return tuple(h.hypothesis_id for h in load_hypotheses(case_id))
-    except CaseError as exc:
-        reasons.append(f"Hypothesis ledger unreadable, graded as if none were registered: {exc}")
+    except (CaseError, ValueError) as exc:
+        reasons.append(f"Hypothesis ledger unreadable, so no hypothesis can be ruled out: {exc}")
         return ()
 
 
@@ -210,10 +265,10 @@ def grade_case(case_id: str) -> GradeResult:
     # hypotheses it names, not the case: on 2026-09-15 two sources ruled out H2
     # while the leading H1 was still open behind three gaps, and the whole case
     # was graded Excluded — which reads as "the answer was ruled out".
-    excluded_ids: frozenset[str] = frozenset()
-    if _check_excluded(grades.get("excluded") or {}, evidence, sources, reasons):
-        excluded_ids = frozenset(h for e in evidence for h in e.falsifies)
     registered = _registered_hypotheses(case_id, reasons)
+    verdicts = falsifications(grades.get("excluded") or {}, evidence, registered)
+    reasons.extend(_falsification_reasons(verdicts, evidence, registered))
+    excluded_ids = frozenset(v.hypothesis_id for v in verdicts if v.excluded)
     still_open = tuple(h for h in registered if h not in excluded_ids)
     statuses = tuple((h, "excluded" if h in excluded_ids else "open") for h in registered)
     # A gap that blocks only ruled-out hypotheses no longer holds the case back.
@@ -237,28 +292,42 @@ def grade_case(case_id: str) -> GradeResult:
             + "."
         )
 
-    if excluded_ids and not still_open:
+    if registered and not still_open:
+        # Only a registered list can be exhausted. With none registered (a
+        # missing or corrupt ledger, or a case older than the ledger) "every
+        # hypothesis is ruled out" is true of an empty list and says nothing
+        # (independent review, 2026-09-15).
         grade = "excluded"
     else:
         open_evidence = evidence
         open_sources = sources
-        if excluded_ids:
+        if any(e.falsifies for e in evidence):
             # Evidence carries no link to the hypothesis it supports, only to the
-            # ones it falsifies. An item that ruled one hypothesis out says
-            # nothing for the others, so it must not buy them corroboration —
-            # otherwise the observations that excluded H2 promote H1 to
-            # Probable, and a brand-new hypothesis with no evidence at all
-            # inherits the same grade (independent review, 2026-09-15).
+            # ones it falsifies. An item against one hypothesis says nothing for
+            # the others, so it must not buy them corroboration — whether or not
+            # it was enough to rule anything out. Otherwise the observations
+            # against H2 promote H1 to Probable, and a brand-new hypothesis with
+            # no evidence at all inherits the same grade (independent reviews,
+            # 2026-09-15).
             open_evidence = tuple(e for e in evidence if not e.falsifies)
             open_sources = set(group_by_skill([e.source_skill for e in open_evidence]))
+            ruled_out = [h for h in registered if h in excluded_ids]
             reasons.append(
-                f"Ruled out: {', '.join(sorted(excluded_ids))}. Still open: "
-                f"{', '.join(still_open)}. The grade is for what remains, counting "
-                f"only evidence that rules nothing out: {len(open_sources)} "
-                f"independent source(s)."
+                f"Ruled out: {', '.join(ruled_out) or 'none'}. Still open: "
+                f"{', '.join(still_open) or 'unknown, no hypothesis is registered'}. "
+                f"The grade is for what remains, counting only evidence that "
+                f"falsifies nothing: {len(open_sources)} independent source(s)."
             )
+        contested = tuple(v for v in verdicts if v.evidence_ids and not v.excluded)
         grade = _grade_open(
-            grades, open_evidence, open_sources, live_blocking, falsifiable, reasons, scope
+            grades,
+            open_evidence,
+            open_sources,
+            live_blocking,
+            falsifiable,
+            reasons,
+            scope,
+            contested,
         )
 
     ceiling, ceiling_reasons = _ceiling(rules)
@@ -282,8 +351,21 @@ def _grade_open(
     falsifiable: tuple,
     reasons: list[str],
     scope: Any,
+    contested: tuple[Falsification, ...],
 ) -> str:
     """Candidate / Probable / Confirmed for the hypotheses that are still open."""
+    if contested:
+        # An observation against an open hypothesis is stronger than a gap that
+        # merely could overturn it, and such a gap already holds the case here.
+        # Counting it for nothing kept Probable, and even Confirmed, with the
+        # observation still unanswered (independent review, 2026-09-15).
+        reasons.append(
+            "Held at Candidate: "
+            + " ".join(v.note for v in contested)
+            + " A contradicted hypothesis holds the case here; each note above "
+            "says whether these rules can rule it out and what that would take."
+        )
+        return "candidate"
     if _meets_probable(grades.get("probable") or {}, sources, falsifiable):
         return (
             "confirmed"
@@ -449,25 +531,23 @@ def _meets_confirmed(
     return True
 
 
-def _check_excluded(
-    rule: dict[str, Any], evidence: tuple, sources: set[str], reasons: list[str]
-) -> bool:
-    """Exclusion requires an observation that rules the hypothesis out.
-
-    Not a missing observation. "We looked and found nothing" is a gap, and
-    reading a gap as an exclusion is the family's empty-result-means-no-problem
-    failure in the one place where it would change the answer.
-    """
-    if not rule.get("requires_falsifying_evidence", True):
-        return False
-    falsifying = tuple(e for e in evidence if e.falsifies)
-    if not falsifying:
-        return False
-    if len(sources) < int(rule.get("min_independent_sources", 2)):
-        return False
-    reasons.append(
-        "Falsifying observation(s): "
-        + ", ".join(f"{e.evidence_id} rules out {', '.join(e.falsifies)}" for e in falsifying)
-        + "."
-    )
-    return True
+def _falsification_reasons(
+    verdicts: tuple[Falsification, ...], evidence: tuple, registered: tuple[str, ...]
+) -> list[str]:
+    """One line per contradicted hypothesis, plus falsifiers that name nothing registered."""
+    lines = [v.note for v in verdicts if v.note]
+    known = set(registered)
+    dangling = [
+        f"{e.evidence_id} names {', '.join(h for h in e.falsifies if h not in known)}"
+        for e in evidence
+        if any(h not in known for h in e.falsifies)
+    ]
+    # With none registered the ledger reason already says why nothing can be
+    # ruled out; naming every item as dangling would contradict it.
+    if dangling and registered:
+        lines.append(
+            "Rules nothing out, because the hypotheses named are not registered: "
+            + "; ".join(dangling)
+            + "."
+        )
+    return lines

@@ -1,3 +1,36 @@
+## v1.13.1 — a hypothesis is ruled out only by sources against it
+
+Corrections to 1.13.0, from a second independent review on 2026-09-15. Each case below was reproduced on 1.13.0
+and is now a test.
+
+* **Exclusion counts sources per hypothesis.** 1.13.0 counted the two independent sources an exclusion needs
+  across the whole case. One observation against H2 plus any unrelated evidence ruled H2 out, retired the gap that
+  blocked H2, and promoted the case from Candidate to Probable; H1 falsified by Aria and H2 by Monitor excluded
+  both. A hypothesis is now ruled out only when two independent skills falsify *that* hypothesis.
+* **No registered hypotheses never grades Excluded.** With a missing ledger, or a case older than the ledger,
+  "every hypothesis is ruled out" was true of an empty list, and the case was graded Excluded.
+* **A contradicted hypothesis holds the case at Candidate.** Evidence against an open hypothesis that is not yet
+  enough to rule it out now holds the case where a gap that could overturn it would. Without this, the stricter
+  count above made a lone falsifier count for nothing, and a case kept Probable, or Confirmed, with an observation
+  against a hypothesis still unanswered (third review, same day).
+* **A corrupt `hypotheses.md` is a reason, not a crash.** 1.13.0 handled a missing file but let a hand-edited
+  broken entry raise out of `case_grade`, including entries that are valid JSON but not a hypothesis (`[]`,
+  `null`, `{}`).
+* **Falsifying evidence never counts as support.** 1.13.0 took it out of the count only when an exclusion
+  succeeded, so under a site rule needing three sources two falsifiers of H2 graded the case Probable.
+* `case_hypotheses` loads the grading rules before registering a hypothesis, so a broken site
+  `grading_rules.yaml` fails the call without writing; a retry no longer registers it twice.
+* **Behaviour change:** `case_hypotheses` marks a hypothesis `refuted` by the same rule as `case_grade`. With one
+  falsifying source it stays `open` or `blocked`; `refuted_by` still lists the item, and the first next step says
+  how many more sources are needed. `case_grade` reasons name each contradicted hypothesis with its evidence and
+  source count. A site that sets `excluded.requires_falsifying_evidence: false` never excludes, so under that
+  setting a contradicted hypothesis holds its case at Candidate for as long as the contradiction stands — the
+  grade reason says so instead of promising a rule-out that cannot happen.
+
+Re-running the lab investigation of the same Aria alert on this code: the first observation against H2 held the
+case at Candidate ("H2 is contradicted by E007 from 1 independent source(s)"), a second skill ruled H2 out, H3
+went the same way, and the case ended **Probable** on H1, held below Confirmed by three open gaps.
+
 ## v1.13.0 — exclusion is per hypothesis
 
 Found in a real investigation of an Aria "vCenter app health is affected" alert on 2026-09-15, then corrected
