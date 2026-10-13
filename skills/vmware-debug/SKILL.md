@@ -51,7 +51,7 @@ write tools touch only the local case ledger.
 ## Quick Install
 
 ```bash
-uv tool install vmware-debug==1.13.1
+uv tool install vmware-debug==1.13.2
 vmware-debug categories          # see what it can diagnose
 ```
 
@@ -77,7 +77,7 @@ a recommended plan.
 | CPU / memory contention | vmware-aria (metrics/anomalies) | rightsizing via pilot |
 | HA / DRS / cluster | vmware-monitor, vmware-aiops | cluster remediation via pilot |
 | Power / clone / snapshot | vmware-aiops, vmware-monitor | task status, then fix via aiops |
-| Auth / cert / login | check creds & cert; (security) | fix config/.env |
+| Auth / cert / login | owning skill's `doctor`, cert, time sync | user fixes config |
 
 ## Common Workflows
 
@@ -255,6 +255,11 @@ vmware-debug connects to nothing and holds no credentials. The calling agent
 fetches with the other skills' read tools and submits the results here. Its only
 writes are to the local case ledger. Running with local or small models? See
 [`references/agent-guardrails.md`](references/agent-guardrails.md).
+
+**Never put a secret into a case.** For an auth symptom, record *that* a credential is
+missing, expired or rejected (the owning skill's `doctor` says which) — never a password,
+token, or the contents of a `.env` file, in any evidence `summary`, `query` or `payload`.
+Do not open `.env` files to diagnose; case folders are kept until you delete them.
 
 ## CLI Quick Reference
 

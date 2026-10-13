@@ -99,6 +99,10 @@ your agent's instruction block.
 - Report the timeline in the order the tool returned it.
 - If a requested field was not returned, show it as "not available".
 - When a response is long, report every item it contains.
+- Never record a secret. For an auth problem, record that a credential is
+  missing, expired or rejected (the owning skill's `doctor` reports which) —
+  never a password, token, or `.env` contents, in any evidence field. Do not
+  open `.env` files to diagnose.
 
 ## Analysis discipline
 

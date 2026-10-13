@@ -12,7 +12,7 @@ Keep this in sync with `_CATEGORY_SIGNATURES` in `vmware_debug/ops/timeline.py`
 | **ha_drs** | ha, high availability, drs, failover, admission control, isolation | vmware-monitor, vmware-aiops (cluster) | pilot |
 | **host_lifecycle** | maintenance mode, shut down of, host reboot, standby mode, lost connection to, cannot synchronize, not responding | vmware-monitor (host/cluster state), vmware-harden (drift — a host that left service on cue was told to), vmware-log-insight (vpxd/hostd) | pilot |
 | **power_lifecycle** | power on/off, failed to start, boot, vmx, ovf, clone, snapshot | vmware-aiops (snapshot tree), vmware-monitor | aiops |
-| **auth** | login, authentication, denied, 401, 403, token, certificate, tls, password | config/.env, target cert + time sync | config fix |
+| **auth** | login, authentication, denied, 401, 403, token, certificate, tls, password | the owning skill's `doctor` (reports whether a credential is set and whether login works — never its value), target cert + time sync | config fix (by the user) |
 | **platform** | vpxd, hostd, service restart, crash, 503, not responding, disconnected | vmware-monitor (connection/service), vmware-log-insight (vpxd/hostd) | pilot |
 | **hardware** | tpm, attestation, ipmi, sensor, bmc | vmware-monitor (host sensors and the CIM Server that supplies them, host logs for ipmi/cim), the server's BMC | site / vendor |
 | **licensing** | license | vmware-monitor (license_status — which asset holds which key); an Aria alert on "Unlicensed Group" is Aria's own license | license portal |
