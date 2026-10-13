@@ -1,3 +1,14 @@
+## v1.13.2 — auth diagnosis never reads or records a secret
+
+Docs only; no code change.
+
+* **The auth routing said to check "config/.env"** without limiting that to whether a credential is set, and nothing
+  told the agent to keep secret values out of case evidence, which is stored as submitted and kept until deleted.
+  The auth route now uses the owning skill's `doctor` (it reports whether a credential is set and whether login
+  works, never the value). SKILL.md and the small-model guardrails now forbid putting a password, token or `.env`
+  contents into any evidence field, and forbid opening `.env` files to diagnose. Raised by ClawHub's review of
+  1.13.1.
+
 ## v1.13.1 — a hypothesis is ruled out only by sources against it
 
 Corrections to 1.13.0, from a second independent review on 2026-09-15. Each case below was reproduced on 1.13.0
