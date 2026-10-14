@@ -42,7 +42,7 @@ vmware-debug mcp        # start the stdio MCP server (no network at startup)
 
 In an agent, the cross-skill correlation happens at the agent layer:
 
-1. Fetch events with the data-source skills (vmware-monitor `event_list`,
+1. Fetch events with the data-source skills (vmware-monitor `get_events`,
    vmware-log-insight `search_logs`/`aggregate_logs`, vmware-aria alerts/anomaly,
    vmware-nsx).
 2. Normalise each into the event envelope.

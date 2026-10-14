@@ -52,7 +52,7 @@ sources map with little or no adaptation.
 
 | Source tool (example) | ts | severity | entity | text |
 |---|---|---|---|---|
-| vmware-monitor `event_list` | `createdTime` | `severity` | `vm`/`host` | `fullFormattedMessage` |
+| vmware-monitor `get_events` | `createdTime` | `severity` | `vm`/`host` | `fullFormattedMessage` |
 | vmware-aria `alert_query` | `startTimeUTC` | `criticality` | `resourceName` | `alertDefinitionName` |
 | vmware-aria `anomaly` | `timestamp` | (derive) | `resourceName` | stat + value |
 | vmware-log-insight `search_logs` | `timestamp` | `severity`/derive | `hostname` | `text` |
