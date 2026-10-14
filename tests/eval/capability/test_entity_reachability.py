@@ -94,7 +94,7 @@ def _names_a_new_object(param: str, tool_name: str, entity: str) -> bool:
     """True when ``param`` names the object ``tool_name`` is about to create.
 
     Requires both a creation verb *and* the entity appearing in the tool's own
-    name, so ``create_vm_snapshot(snapshot_name=...)`` reads as invented while
+    name, so ``vm_create_snapshot(snapshot_name=...)`` reads as invented while
     ``batch_linked_clone_vms(snapshot_name=...)`` — which clones *from* an
     existing snapshot — correctly stays a lookup.
     """
@@ -123,7 +123,7 @@ def _entity_of(param: str, tool_name: str) -> str | None:
         is what shows when one has been missed.
     ``name``                      — takes its entity from the tool's own subject.
         Every token is tried, not just the first: vmware-aiops names tools
-        subject-first (``cluster_info``, before 2.0) while vmware-vks names them verb-first
+        subject-first (``cluster_info``) while vmware-vks names them verb-first
         (``get_namespace``), and reading only the first token resolves the latter
         to the verb and quietly drops the parameter.
     """
@@ -164,7 +164,7 @@ def _entry_points(tools) -> tuple:
 def _enumerated_entities(tool) -> tuple[str, ...]:
     """Entity tokens this tool plausibly enumerates, judged from its name."""
     name = tool.name.lower()
-    # `map` earns its place the hard way: vmware-avi's `list_ako_ingresses` really
+    # `map` earns its place the hard way: vmware-avi's `ako_ingress_map` really
     # does enumerate namespaces, but no keyword recognised it, so the only
     # producer on that surface was invisible and the chain read as broken. A
     # keyword list is a guess at naming convention; when a repo names a producer
@@ -182,7 +182,7 @@ def _producers(tools) -> dict[str, list[str]]:
     """Entity token -> tools that enumerate it and are themselves reachable.
 
     Computed to a fixpoint rather than restricted to entry points, because a
-    producer may legitimately need an input of its own: ``list_vm_snapshots``
+    producer may legitimately need an input of its own: ``vm_list_snapshots``
     requires a ``vm_name``, but once some tool supplies VM names it becomes a
     perfectly good source of snapshot names. Requiring producers to be entry
     points would report those second-hop chains as broken when a model can in
@@ -246,8 +246,8 @@ def _record(board, tools, label: str) -> Score:
     reachable, broken = _assess(tools)
     total = len(reachable) + len(broken)
     strong = sum(1 for r in reachable if r["producer_on_surface"])
-    # A surface with no identifier parameters at all (vmware-debug's was, while
-    # it had only its two correlation tools) is navigable, not broken. Scoring it 0/1 would read
+    # A surface with no identifier parameters at all (vmware-debug has two tools
+    # and neither takes one) is navigable, not broken. Scoring it 0/1 would read
     # as the worst possible result for the best possible case. The callers assert
     # that the vocabulary is genuinely empty before trusting this branch, so it
     # cannot be reached by a vocabulary that simply failed to match.
