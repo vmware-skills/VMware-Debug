@@ -349,7 +349,7 @@ class TestTheAdviceMatchesTheDiagnosis:
 
 
 class TestDocumentedReturnKeysExist:
-    """``incident_timeline``'s RETURNS list and its actual keys, both directions.
+    """``build_incident_timeline``'s RETURNS list and its actual keys, both directions.
 
     The re-test reported a missing ``causal_chains`` key "which the docs imply".
     No document in this repository promises one — the tool's RETURNS list is
@@ -364,7 +364,7 @@ class TestDocumentedReturnKeysExist:
     def _documented_and_actual():
         from vmware_debug.mcp_server.server import build_server
 
-        tool = build_server()._tool_manager._tools["incident_timeline"].fn
+        tool = build_server()._tool_manager._tools["build_incident_timeline"].fn
         returns = tool.__doc__.split("RETURNS:")[1].split("GOTCHAS:")[0]
         documented = set(re.findall(r"\b[a-z][a-z_]{3,}\b", returns))
         actual = set(

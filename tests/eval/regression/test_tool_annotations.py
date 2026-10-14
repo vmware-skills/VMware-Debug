@@ -23,13 +23,13 @@ from vmware_debug.mcp_server import server as server_module
 #: than derived from the marker, so that a tool silently gaining a ``[WRITE]``
 #: docstring shows up here as a failure and has to be added deliberately.
 _LEDGER_WRITERS = {
-    "case_open",
-    "case_submit_evidence",
-    "case_record_gap",
-    "case_grade",
-    "case_hypotheses",
-    "case_timeline",
-    "case_close",
+    "open_case",
+    "submit_case_evidence",
+    "record_case_gap",
+    "grade_case",
+    "record_case_hypothesis",
+    "get_case_timeline",
+    "close_case",
 }
 
 

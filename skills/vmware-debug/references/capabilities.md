@@ -1,13 +1,13 @@
 # vmware-debug Capabilities
 
 Offline incident correlation. No network, no credentials, no writes to any VMware
-system. This table covers the two stateless correlation tools; the twelve `case_*`
+system. This table covers the two stateless correlation tools; the twelve case
 investigation-ledger tools (seven of which write, to the local ledger only) are
 listed in `SKILL.md`, and their response sizes are not yet measured here.
 
 | Tool | What it returns | Typical response tokens |
 |---|---|---|
-| `incident_timeline` | `{event_count, window, spikes:[{start,end,count,zscore}], hypotheses:[{category, score, summary, evidence_count, first_seen, last_seen, sample_text, suggested_check}], next_checks:[...]}` | 300–2000 (scales with hypotheses) |
+| `build_incident_timeline` | `{event_count, window, spikes:[{start,end,count,zscore}], hypotheses:[{category, score, summary, evidence_count, first_seen, last_seen, sample_text, suggested_check}], next_checks:[...]}` | 300–2000 (scales with hypotheses) |
 | `list_symptom_categories` | `{items: [{category, example_keywords, suggested_check}], returned, limit, total, truncated, hint}` | ~400 |
 
 `list_symptom_categories` returns the family list envelope — read the rows from

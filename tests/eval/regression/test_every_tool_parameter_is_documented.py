@@ -7,7 +7,7 @@ the docstring body explains the tool; it says nothing about a *parameter*. A
 measurement across the family's 327 tools found ``description`` coverage on
 parameter schemas at 0% — every word of guidance was in prose the schema never
 carried — and every one of this skill's 45 parameters was undescribed — including
-``case_plan.category`` and ``case_submit_evidence.source_skill``, both of
+``plan_case.category`` and ``submit_case_evidence.source_skill``, both of
 which have a closed set of legal values that appeared nowhere in the schema.
 
 The failure that produces is silent twice over. Guess a parameter name wrong

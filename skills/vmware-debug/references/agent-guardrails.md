@@ -22,7 +22,7 @@ makes it the safest skill in the family to point a small model at — and the on
 most exposed to the model's reasoning, because its output *is* an
 interpretation.
 
-For a small model the ledger is more than bookkeeping: `case_grade` computes the
+For a small model the ledger is more than bookkeeping: `grade_case` computes the
 conclusion level from recorded evidence rather than accepting one, so a model
 that would happily narrate "root cause confirmed" cannot record that unless the
 evidence for it is actually in the folder.
@@ -43,10 +43,10 @@ These are structural, so it cannot.
 |---|---|
 | "Work read-only and never modify anything" | **The tool surface itself.** No tool reaches a VMware system. The seven [WRITE] tools write only to this skill's own local case ledger, so there is nothing in vSphere to withhold and nothing to switch off. |
 | "Diagnose only — never apply the fix you propose" | **Structural.** This skill has no tool that changes anything outside its own ledger, and it holds no connection to vCenter, NSX or anything else. Remediation is routed to vmware-aiops or vmware-pilot by the calling agent. |
-| "Do not fabricate a timeline — build it from the events I gave you" | **`incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
+| "Do not fabricate a timeline — build it from the events I gave you" | **`build_incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
 | "Tell me when the symptom is outside what you can recognise" | **`list_symptom_categories`** states the catalogue, and unmatched symptoms come back as `uncategorized` rather than being forced into the nearest signature. |
 | "Use explicit limits for queries that may return large amounts of data" | **The list envelope.** `list_symptom_categories` returns `{items, returned, limit, total, truncated, hint}` with `truncated` always `false` — which is the point: it states that the catalogue is complete instead of leaving you to infer it. |
-| "Log everything you looked at" | **`~/.vmware/audit.db` and the case ledger.** Every debug tool call, a failed one included, writes one audit row (tool, time, user, agent, arguments, status and result — evidence `payload` and `events` are stored as `***`, and the results of `incident_timeline` and `case_timeline`, which quote event text, are not stored at all). Evidence submitted to a case is also recorded in the ledger with its source skill, tool, query and fetch time — so pass the real fetch time, never a placeholder. |
+| "Log everything you looked at" | **`~/.vmware/audit.db` and the case ledger.** Every debug tool call, a failed one included, writes one audit row (tool, time, user, agent, arguments, status and result — evidence `payload` and `events` are stored as `***`, and the results of `build_incident_timeline` and `get_case_timeline`, which quote event text, are not stored at all). Evidence submitted to a case is also recorded in the ledger with its source skill, tool, query and fetch time — so pass the real fetch time, never a placeholder. |
 
 ---
 
@@ -59,7 +59,7 @@ your agent's instruction block.
 ## Tool use
 
 - Gather real events with the companion skills' read tools before calling
-  incident_timeline. Never answer from memory or assumption, and never
+  build_incident_timeline. Never answer from memory or assumption, and never
   hand-write events to represent what you believe happened.
 - Never describe a tool call, and never output a JSON example, instead of
   executing the tool. If you intend to call a tool, call it.

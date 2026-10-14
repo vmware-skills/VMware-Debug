@@ -196,7 +196,7 @@ def _steps_for(name: str, catalogue_spec: dict, ready_spec: dict, case) -> list[
             "objects": list(case.scope.objects),
             "window": window,
             "degraded": bool(ready_spec.get("degraded")),
-            "submit_with": "case_submit_evidence",
+            "submit_with": "submit_case_evidence",
         }
         for entry in tools
         if entry.get("tool")
@@ -224,7 +224,7 @@ def _unavailable(name: str, spec: dict, decisive: bool = False) -> dict:
         "why": spec.get("absent_because") or "not available here",
         "how_to_supply": spec.get("how_to_supply", ""),
         "record_as_gap": (
-            "If this blocks a hypothesis, record it with case_record_gap so the "
+            "If this blocks a hypothesis, record it with record_case_gap so the "
             "grade reflects what is actually missing."
         ),
     }
@@ -240,7 +240,7 @@ def _note(category, steps, already, unavailable, held_back, signals=()) -> str:
     if category is None:
         return (
             "No symptom category matched the scope summary, so this plan fetches "
-            "broad state first. Re-run case_plan once that evidence is in — the "
+            "broad state first. Re-run plan_case once that evidence is in — the "
             "category usually falls out of it. You can also pass one explicitly, "
             "or run list_symptom_categories to see what is recognised."
         )
@@ -248,17 +248,17 @@ def _note(category, steps, already, unavailable, held_back, signals=()) -> str:
         return (
             f"Category {category}.{_signal_sentence(category, list(signals))} Run each "
             f"step with the named skill's tool, then "
-            f"submit the result with case_submit_evidence. Anything you cannot "
-            f"get goes to case_record_gap — an unrecorded gap makes the case look "
+            f"submit the result with submit_case_evidence. Anything you cannot "
+            f"get goes to record_case_gap — an unrecorded gap makes the case look "
             f"better supported than it is." + more
         )
     if already and not unavailable:
         return (
             f"Every reachable source for {category} has already produced evidence. "
-            f"Run case_grade to see where that leaves the conclusion."
+            f"Run grade_case to see where that leaves the conclusion."
         )
     return (
         f"No further steps for {category} from this installation. What remains is "
-        f"listed under 'unavailable', each with how_to_supply. Run case_grade for "
+        f"listed under 'unavailable', each with how_to_supply. Run grade_case for "
         f"the grade this evidence supports."
     )

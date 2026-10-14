@@ -125,7 +125,7 @@ class TestLoad:
             load_case("20260828-091500-does-not-exist")
         msg = str(e.value)
         assert "20260828-091500-does-not-exist" in msg
-        assert "case_list" in msg
+        assert "list_cases" in msg
 
     def test_a_traversing_id_is_refused_before_it_touches_the_disk(self):
         with pytest.raises(CaseIdError):

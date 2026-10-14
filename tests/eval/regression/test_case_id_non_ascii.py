@@ -71,7 +71,7 @@ class TestTheCollisionMessageIsTrue:
         create_case(Scope(summary="vsan latency", determined_by="a"), at=AT)
         with pytest.raises(CaseExists) as exc:
             create_case(Scope(summary="vsan latency", determined_by="a"), at=AT)
-        assert "case_get" in str(exc.value)
+        assert "get_case" in str(exc.value)
 
 
 class TestControlReadabilityIsNotSacrificed:

@@ -26,7 +26,7 @@ from ..capability._scoring import undocumented_args, value_set_candidates
 from ..capability._skill import CLI_NAME
 from ..capability.test_error_actionability import _artifact_matcher
 
-SURFACE = ("cluster_info", "list_virtual_machines", "vm_power_on")
+SURFACE = ("get_cluster_info", "list_virtual_machines", "power_on_vm")
 
 
 def _names_artifact(text: str) -> bool:
@@ -34,12 +34,12 @@ def _names_artifact(text: str) -> bool:
 
 
 def test_credits_a_tool_that_is_on_the_surface():
-    assert _names_artifact("Host not in cluster. Run cluster_info to see its members.")
+    assert _names_artifact("Host not in cluster. Run get_cluster_info to see its members.")
 
 
 def test_credits_a_tool_whose_name_has_no_list_or_get_prefix():
     """The original blind spot: a real tool the prefix heuristic could not see."""
-    assert _names_artifact("Not found. Run vm_power_on after checking the state.")
+    assert _names_artifact("Not found. Run power_on_vm after checking the state.")
 
 
 def test_rejects_a_tool_that_is_not_on_the_surface():
@@ -172,7 +172,7 @@ def test_an_error_returned_via_a_local_is_still_seen(tmp_path):
     from ..capability.test_error_actionability import _error_returns_in_server
 
     (tmp_path / "server.py").write_text(
-        "_HINT = 'Run cluster_info to see members.'\n"
+        "_HINT = 'Run get_cluster_info to see members.'\n"
         "def direct():\n"
         "    try:\n"
         "        pass\n"
@@ -315,11 +315,11 @@ def _messages(src: str):
 
 def test_resolves_a_hint_hoisted_into_a_module_constant():
     (_f, _ln, text, _holes, composed), = _messages(
-        '_HINT = "Run cluster_info to see members."\n'
+        '_HINT = "Run get_cluster_info to see members."\n'
         'def f():\n'
         '    raise ValueError(f"Host {name} unknown. {_HINT}")\n'
     )
-    assert "cluster_info" in text
+    assert "get_cluster_info" in text
     assert composed is False, "a constant resolves exactly; nothing is approximated"
 
 
@@ -360,7 +360,7 @@ def test_flags_a_message_longer_than_the_cap():
 
 
 def test_accepts_a_message_within_the_cap():
-    over, _ = _truncation_findings(_graded("Not found. Run cluster_info."), budget=300)
+    over, _ = _truncation_findings(_graded("Not found. Run get_cluster_info."), budget=300)
     assert not over
 
 
@@ -376,20 +376,20 @@ def test_does_not_charge_a_composed_message_for_every_folded_branch():
     longest real message is a third of that — the union of one helper's branches,
     none of which is ever emitted whole.
     """
-    graded = [("f.py", 1, "Run cluster_info. " + "x" * 400, True, _TAUGHT)]
+    graded = [("f.py", 1, "Run get_cluster_info. " + "x" * 400, True, _TAUGHT)]
     over, _ = _truncation_findings(graded, budget=300)
     assert not over
 
 
 def test_flags_a_remedy_that_trails_an_interpolation():
     """A short template still loses its remedy when the value runs long."""
-    _, at_risk = _truncation_findings(_graded("Failed: {}. Run cluster_info."), budget=300)
+    _, at_risk = _truncation_findings(_graded("Failed: {}. Run get_cluster_info."), budget=300)
     assert at_risk == ["f.py:1"]
 
 
 def test_does_not_flag_a_remedy_placed_before_the_interpolation():
     """Putting the remedy first is the fix; it must read as safe."""
-    _, at_risk = _truncation_findings(_graded("Run cluster_info. Detail: {}"), budget=300)
+    _, at_risk = _truncation_findings(_graded("Run get_cluster_info. Detail: {}"), budget=300)
     assert not at_risk
 
 

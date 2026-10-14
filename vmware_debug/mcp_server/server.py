@@ -13,8 +13,8 @@ session submitted evidence with invented fetch times and nothing could show
 when the calls had really been made or which had failed. Large data the caller
 hands over (``payload``, ``events``) is kept out of the row via
 ``sensitive_params``; it lives in the ledger or with the caller. The two tools
-whose *result* quotes that event text — ``incident_timeline`` and
-``case_timeline`` (``hypotheses[].sample_text``, ``unmatched_samples``,
+whose *result* quotes that event text — ``build_incident_timeline`` and
+``get_case_timeline`` (``hypotheses[].sample_text``, ``unmatched_samples``,
 ``rejected``) — declare ``sensitive_result``, so their row keeps the call, the
 arguments and the status but not the result body: event text fetched from
 vCenter or a log can carry anything, credentials included (review D3,
@@ -95,7 +95,7 @@ logger = logging.getLogger("mcp_server")
 
 #: Client-facing behaviour hints, matching the rest of the family, for the seven
 #: [READ] tools: the two correlation tools (pure functions over dicts the caller
-#: already fetched) and the case_* reads over the ledger. Repeating a call
+#: already fetched) and the case reads over the ledger. Repeating a call
 #: changes nothing. These drive MCP client UI (e.g. whether a call needs a
 #: confirmation prompt).
 #:
@@ -132,13 +132,13 @@ _WRITE_LOCAL = {
 }
 
 
-#: Recovery step attached to every incident_timeline failure. Hoisted to a
+#: Recovery step attached to every build_incident_timeline failure. Hoisted to a
 #: constant so the wording stays in one place rather than drifting per call site.
 _TIMELINE_ERROR_HINT = (
-    "incident_timeline correlates events you have already fetched with other "
+    "build_incident_timeline correlates events you have already fetched with other "
     "skills' read tools — it fetches nothing itself, so a rejected event has to be "
     "corrected in the 'events' argument you pass. 'error' names the offending "
-    "entry and the expected form; fix it and call incident_timeline again. Run "
+    "entry and the expected form; fix it and call build_incident_timeline again. Run "
     "list_symptom_categories if you need to know which skill to pull events from."
 )
 
@@ -147,7 +147,7 @@ _CASE_ERROR_HINT = (
     "(default ~/.vmware/cases) and touch no VMware system, so a failure here is "
     "about the case id, the arguments, or the folder itself — never about "
     "vCenter connectivity. 'error' names what is wrong and what to do; "
-    "case_list shows the ids that exist. Note there is no 'items' key on a "
+    "list_cases shows the ids that exist. Note there is no 'items' key on a "
     "failure: a call that did not work must not read as an empty result."
 )
 
@@ -159,7 +159,7 @@ _CASE_ERROR_HINT = (
 #: expected form. ``CaseError`` covers the investigation ledger — a case that
 #: does not exist, a directory that cannot be read, an evidence id claimed
 #: twice. Those messages exist precisely to tell the caller what to do next
-#: ("run case_list to see the ids that exist"), and reducing them to
+#: ("run list_cases to see the ids that exist"), and reducing them to
 #: "CaseNotFound: operation failed." would throw away the part that helps. Both
 #: are bases, so their subclasses pass with them.
 #:
@@ -212,9 +212,9 @@ def build_server() -> FastMCP:
     # parameter description the schema an agent reads says only "number", and
     # bin_seconds and z_threshold are exactly the two knobs a wrong guess makes
     # silently useless.
-    @server.tool(name="incident_timeline", annotations=_READ)
+    @server.tool(name="build_incident_timeline", annotations=_READ)
     @vmware_tool(risk_level="low", sensitive_params=["events"], sensitive_result=True)
-    def incident_timeline(
+    def build_incident_timeline(
         events: list[dict],
         bin_seconds: Optional[float] = None,
         z_threshold: float = 2.0,
@@ -224,7 +224,7 @@ def build_server() -> FastMCP:
 
         WHEN: use this after you've pulled events for an incident from the
         data-source skills (vmware-monitor get_events/get_alarms, vmware-aria
-        list_alerts/list_anomalies, vmware-log-insight log_search/log_aggregate,
+        list_alerts/list_anomalies, vmware-log-insight search_logs/aggregate_logs,
         vmware-nsx) — feed them here to find what correlates and where to look
         next. Not sure which events to pull? Run list_symptom_categories
         first. This tool does NOT fetch anything itself.
@@ -263,14 +263,14 @@ def build_server() -> FastMCP:
                 capped separately at 20, true count in 'spikes_total'.
         """
         try:
-            return t.incident_timeline(events, bin_seconds, z_threshold, top_n)
+            return t.build_incident_timeline(events, bin_seconds, z_threshold, top_n)
         except Exception as exc:
             # Returned rather than raised, matching the rest of the family: the
             # caller gets a payload it can act on instead of a protocol fault,
             # and `hint` carries the recovery step the bare exception lacks.
             # No `items` key — a failed call must never read as an empty page.
             return {
-                "error": _safe_error(exc, "incident_timeline"),
+                "error": _safe_error(exc, "build_incident_timeline"),
                 "hint": _TIMELINE_ERROR_HINT,
             }
 
@@ -282,7 +282,7 @@ def build_server() -> FastMCP:
         Takes no parameters. Use this when you don't yet know what to look
         at — it turns "something's wrong" into concrete investigation steps.
         Then gather the events those checks name and pass them to
-        incident_timeline. Returns the family list envelope {items, returned,
+        build_incident_timeline. Returns the family list envelope {items, returned,
         limit, total, truncated, hint}; each item is {category,
         example_keywords, suggested_check}. The routing table is a fixed
         constant, so truncated is always false and total exact —
@@ -300,9 +300,9 @@ def build_server() -> FastMCP:
         """Return a failed call as a payload, never as an empty result."""
         return {"error": _safe_error(exc, tool), "hint": _CASE_ERROR_HINT}
 
-    @server.tool(name="case_open", annotations=_WRITE_LOCAL)
+    @server.tool(name="open_case", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low")
-    def case_open(
+    def open_case(
         summary: str,
         determined_by: str,
         objects: Optional[list[str]] = None,
@@ -313,7 +313,7 @@ def build_server() -> FastMCP:
         """[WRITE] Open an investigation case — step 01, define the event.
 
         WHEN: at the start of an incident you expect to reason about rather than
-        glance at. For a one-off lookup use incident_timeline alone.
+        glance at. For a one-off lookup use build_incident_timeline alone.
 
         RETURNS: {case_id, path, state, grade, ceiling, ceiling_reasons, next}.
         Read `ceiling` now — it is the best grade this install can reach at all.
@@ -322,7 +322,7 @@ def build_server() -> FastMCP:
         never over an existing case.
 
         Args:
-            summary: What is wrong, one line. case_plan reads it to infer the
+            summary: What is wrong, one line. plan_case reads it to infer the
                 symptom category, so name the symptom in the estate's own words
                 ("datastore latency on cluster-a"), not a diagnosis.
             determined_by: HOW the scope was decided — "user report", "vCenter
@@ -342,7 +342,7 @@ def build_server() -> FastMCP:
                 case Confirmed, since an unanswerable constraint is not a pass.
         """
         try:
-            return t.case_open(
+            return t.open_case(
                 summary=summary,
                 determined_by=determined_by,
                 objects=objects,
@@ -351,11 +351,11 @@ def build_server() -> FastMCP:
                 product_versions=product_versions,
             )
         except Exception as exc:
-            return _case_error(exc, "case_open")
+            return _case_error(exc, "open_case")
 
-    @server.tool(name="case_list", annotations=_READ)
+    @server.tool(name="list_cases", annotations=_READ)
     @vmware_tool(risk_level="low")
-    def case_list(limit: int = 50) -> dict:
+    def list_cases(limit: int = 50) -> dict:
         """[READ] List investigation cases, newest first.
 
         WHEN: to find the id of a case you or someone else opened earlier.
@@ -370,18 +370,18 @@ def build_server() -> FastMCP:
                 true the only way to reach older ones is a larger limit.
         """
         try:
-            return t.case_list(limit=limit)
+            return t.list_cases(limit=limit)
         except Exception as exc:
-            return _case_error(exc, "case_list")
+            return _case_error(exc, "list_cases")
 
-    @server.tool(name="case_get", annotations=_READ)
+    @server.tool(name="get_case", annotations=_READ)
     @vmware_tool(risk_level="low")
-    def case_get(case_id: str) -> dict:
+    def get_case(case_id: str) -> dict:
         """[READ] One case: its scope, its ledger sizes, and its grade history.
 
         WHEN: to pick up an investigation, or to see why a case sits at the
         grade it does. Returns counts and identifiers rather than the whole
-        ledger — read the case folder itself (the `path` from case_open) for
+        ledger — read the case folder itself (the `path` from open_case) for
         full evidence bodies.
 
         RETURNS: {case_id, path, state, grade, opened_at, scope, evidence_count,
@@ -390,13 +390,13 @@ def build_server() -> FastMCP:
         counted in.
 
         Args:
-            case_id: The case id returned by case_open, or listed by case_list.
+            case_id: The case id returned by open_case, or listed by list_cases.
                 An unknown id is an error, never an empty case.
         """
         try:
-            return t.case_get(case_id=case_id)
+            return t.get_case(case_id=case_id)
         except Exception as exc:
-            return _case_error(exc, "case_get")
+            return _case_error(exc, "get_case")
 
     # The widest signature here, and deliberately so. `per_tool_token_discipline`
     # flags it, but ~322 of its ~900 manifest tokens are the JSON schema for
@@ -408,9 +408,9 @@ def build_server() -> FastMCP:
     # with explicit nulls are what the design asks for, because an absent key is
     # what a model fills with invention. Trim the prose here and the cost stays
     # while the explanation goes.
-    @server.tool(name="case_submit_evidence", annotations=_WRITE_LOCAL)
+    @server.tool(name="submit_case_evidence", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low", sensitive_params=["payload"])
-    def case_submit_evidence(
+    def submit_case_evidence(
         case_id: str,
         source_skill: str,
         source_tool: str,
@@ -436,13 +436,13 @@ def build_server() -> FastMCP:
         reasons} — the resulting grade, so you need no second call to see
         whether this changed anything, and what the payload was read as, so a
         summary submitted in place of a result is visible here rather than as a
-        zero from case_timeline later.
+        zero from get_case_timeline later.
 
-        GOTCHAS: a fetch that failed or came back empty goes to case_record_gap,
+        GOTCHAS: a fetch that failed or came back empty goes to record_case_gap,
         not here.
 
         Args:
-            case_id: The case this fact belongs to (from case_open/case_list).
+            case_id: The case this fact belongs to (from open_case/list_cases).
                 Required.
             source_skill: The skill that produced it, as the family spells it —
                 "vmware-monitor", "vmware-aria", "vmware-log-insight". Required,
@@ -471,20 +471,20 @@ def build_server() -> FastMCP:
             falsifies: Hypothesis ids (H1, H2, …) this observation RULES OUT —
                 the only route to Excluded; "we looked and found nothing" is a
                 gap, not an exclusion. Ids must already exist via
-                case_hypotheses; an unregistered id is refused and nothing is
+                record_case_hypothesis; an unregistered id is refused and nothing is
                 written.
             knowledge_entry_id: Which mounted knowledge entry this item IS.
                 REQUIRED when source_skill is knowledge-kb or knowledge-sr —
                 without it the entry's applies_to cannot be checked, so it
                 counts as ordinary support and can never make the case
-                Confirmed. case_knowledge lists what is mounted.
+                Confirmed. get_case_knowledge lists what is mounted.
             payload: The read tool's RAW result, not a summary. For its events
-                to reach case_timeline it must be a list of event dicts, or
+                to reach get_case_timeline it must be a list of event dicts, or
                 carry them under 'items', 'events' or 'rows'. What was found
                 comes back as payload_events/payload_note.
         """
         try:
-            return t.case_submit_evidence(
+            return t.submit_case_evidence(
                 case_id=case_id,
                 source_skill=source_skill,
                 source_tool=source_tool,
@@ -500,11 +500,11 @@ def build_server() -> FastMCP:
                 payload=payload,
             )
         except Exception as exc:
-            return _case_error(exc, "case_submit_evidence")
+            return _case_error(exc, "submit_case_evidence")
 
-    @server.tool(name="case_record_gap", annotations=_WRITE_LOCAL)
+    @server.tool(name="record_case_gap", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low")
-    def case_record_gap(
+    def record_case_gap(
         case_id: str,
         what: str,
         why: str,
@@ -526,7 +526,7 @@ def build_server() -> FastMCP:
         it. Writing gaps down is meant to be free.
 
         Args:
-            case_id: The case this gap belongs to (from case_open/case_list).
+            case_id: The case this gap belongs to (from open_case/list_cases).
             what: The observation that could not be obtained — the thing you
                 wanted, not the error you got.
             why: Why it could not be had — refused, unreachable, collected by
@@ -535,14 +535,14 @@ def build_server() -> FastMCP:
                 system ("open a vendor SR"). A gap with no stated next action
                 reads like a to-do and gets skipped.
             blocks: Hypothesis ids (H1, H2, …) this gap holds up; they must
-                already exist via case_hypotheses. Empty is fine.
+                already exist via record_case_hypothesis. Empty is fine.
             could_falsify: Would OBTAINING this be able to prove the hypothesis
                 WRONG? false (default) is the ordinary case — missing
                 corroboration, capping the case below Confirmed. true means it
                 could overturn the hypothesis, holding it at Candidate.
         """
         try:
-            return t.case_record_gap(
+            return t.record_case_gap(
                 case_id=case_id,
                 what=what,
                 why=why,
@@ -551,11 +551,11 @@ def build_server() -> FastMCP:
                 could_falsify=could_falsify,
             )
         except Exception as exc:
-            return _case_error(exc, "case_record_gap")
+            return _case_error(exc, "record_case_gap")
 
-    @server.tool(name="case_grade", annotations=_WRITE_LOCAL)
+    @server.tool(name="grade_case", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low")
-    def case_grade(case_id: str) -> dict:
+    def grade_case(case_id: str) -> dict:
         """[WRITE] Compute and record the conclusion grade — steps 07/08.
 
         WHEN: when you think the investigation has reached a conclusion, or to
@@ -591,17 +591,17 @@ def build_server() -> FastMCP:
         rewritten.
 
         Args:
-            case_id: The case to grade (from case_open/case_list). This is the
+            case_id: The case to grade (from open_case/list_cases). This is the
                 only parameter — see above for why there is no grade parameter.
         """
         try:
-            return t.case_grade(case_id=case_id)
+            return t.grade_case(case_id=case_id)
         except Exception as exc:
-            return _case_error(exc, "case_grade")
+            return _case_error(exc, "grade_case")
 
-    @server.tool(name="case_readiness", annotations=_READ)
+    @server.tool(name="get_case_readiness", annotations=_READ)
     @vmware_tool(risk_level="low")
-    def case_readiness(available_skills: Optional[list[str]] = None) -> dict:
+    def get_case_readiness(available_skills: Optional[list[str]] = None) -> dict:
         """[READ] What strength of conclusion can this environment reach?
 
         WHEN: before starting an investigation, or when a case will not go
@@ -636,13 +636,13 @@ def build_server() -> FastMCP:
                 `unrecognised_skills` rather than being read as "not installed".
         """
         try:
-            return t.case_readiness(available_skills=available_skills)
+            return t.get_case_readiness(available_skills=available_skills)
         except Exception as exc:
-            return _case_error(exc, "case_readiness")
+            return _case_error(exc, "get_case_readiness")
 
-    @server.tool(name="case_plan", annotations=_READ)
+    @server.tool(name="plan_case", annotations=_READ)
     @vmware_tool(risk_level="low")
-    def case_plan(
+    def plan_case(
         case_id: str,
         category: Optional[str] = None,
         available_skills: Optional[list[str]] = None,
@@ -650,7 +650,7 @@ def build_server() -> FastMCP:
     ) -> dict:
         """[READ] What to fetch next for this case — step 02, recomputed each call.
 
-        WHEN: right after case_open, and again after each round of evidence. It
+        WHEN: right after open_case, and again after each round of evidence. It
         is not a checklist: submit something and the next plan is shorter, lose
         a source and it routes around it.
 
@@ -661,7 +661,7 @@ def build_server() -> FastMCP:
         which is what actually moves the grade.
         Each step is {evidence_class, skill, tool, purpose, objects, window,
         degraded} — call that skill's tool, then submit the result with
-        case_submit_evidence.
+        submit_case_evidence.
 
         GOTCHAS: `unavailable` is the important half. A source this install
         cannot reach is listed there with how_to_supply rather than left out, so
@@ -673,7 +673,7 @@ def build_server() -> FastMCP:
         that one word.
 
         Args:
-            case_id: The case to plan for (from case_open/case_list).
+            case_id: The case to plan for (from open_case/list_cases).
             category: Force the symptom class instead of inferring it. Exactly
                 one of: storage, network, compute, ha_drs, configuration,
                 accelerator, kubernetes, hardware, host_lifecycle,
@@ -693,31 +693,32 @@ def build_server() -> FastMCP:
                 "nothing left to fetch".
         """
         try:
-            return t.case_plan(
+            return t.plan_case(
                 case_id=case_id,
                 category=category,
                 available_skills=available_skills,
                 max_steps=max_steps,
             )
         except Exception as exc:
-            return _case_error(exc, "case_plan")
+            return _case_error(exc, "plan_case")
 
-    @server.tool(name="case_hypotheses", annotations=_WRITE_LOCAL)
+    @server.tool(name="record_case_hypothesis", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low")
-    def case_hypotheses(case_id: str, statement: Optional[str] = None) -> dict:
-        """[WRITE] Register a candidate explanation, or read the ledger — step 06.
+    def record_case_hypothesis(case_id: str, statement: Optional[str] = None) -> dict:
+        """[WRITE] Register a candidate explanation — step 06. Called without
+        `statement` it writes nothing and only reads the hypothesis ledger.
 
         WHEN: as soon as you have a theory worth testing, and again to see where
         each one stands. Pass `statement` to add one; omit it to just read.
 
         Every hypothesis gets an id (H1, H2, …). Those ids are what
-        case_record_gap(blocks=[...]) and case_submit_evidence(falsifies=[...])
+        record_case_gap(blocks=[...]) and submit_case_evidence(falsifies=[...])
         refer to, and an id that was never registered is REFUSED rather than
         ignored — a dangling reference blocks nothing and falsifies nothing,
         which quietly reports a stronger case than you have.
 
         RETURNS: {case_id, added, hypotheses, note}. Each entry carries its
-        status: `refuted` (ruled out by case_grade's rule), `blocked` (a gap is
+        status: `refuted` (ruled out by grade_case's rule), `blocked` (a gap is
         in the way, with the gap id and how to close it), or `open`.
         `refuted_by` lists every falsifying item; the first next step says when
         more sources are needed. Status is computed from what points at the
@@ -728,7 +729,7 @@ def build_server() -> FastMCP:
 
         Args:
             case_id: The case whose hypothesis ledger this is (from
-                case_open/case_list).
+                open_case/list_cases).
             statement: The candidate explanation, in one line. Pass it to
                 register a new hypothesis, which is assigned the next id (H1,
                 H2, …); omit it to read the ledger without changing it. There is
@@ -736,13 +737,13 @@ def build_server() -> FastMCP:
                 the evidence and gaps that point at it.
         """
         try:
-            return t.case_hypotheses(case_id=case_id, statement=statement)
+            return t.record_case_hypothesis(case_id=case_id, statement=statement)
         except Exception as exc:
-            return _case_error(exc, "case_hypotheses")
+            return _case_error(exc, "record_case_hypothesis")
 
-    @server.tool(name="case_timeline", annotations=_WRITE_LOCAL)
+    @server.tool(name="get_case_timeline", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low", sensitive_result=True)
-    def case_timeline(
+    def get_case_timeline(
         case_id: str,
         bin_seconds: Optional[float] = None,
         z_threshold: float = 2.0,
@@ -750,7 +751,7 @@ def build_server() -> FastMCP:
     ) -> dict:
         """[WRITE] Correlate everything this case has collected — steps 04/05.
 
-        WHEN: once evidence is in. Unlike incident_timeline, this takes no
+        WHEN: once evidence is in. Unlike build_incident_timeline, this takes no
         events: it reads the payloads already submitted, so the result is
         reproducible from the case folder alone months later, on a machine with
         access to nothing.
@@ -766,11 +767,11 @@ def build_server() -> FastMCP:
         evidence item it came from; dropping those silently would shrink the
         picture the conclusion rests on. Submit a read tool's raw result as
         `payload` for its events to reach here — a summary of the result carries
-        no rows, and case_submit_evidence says so at the time.
+        no rows, and submit_case_evidence says so at the time.
 
         Args:
             case_id: The case whose submitted payloads are correlated (from
-                case_open/case_list). Unlike incident_timeline this takes no
+                open_case/list_cases). Unlike build_incident_timeline this takes no
                 events — everything comes from the case folder.
             bin_seconds: Time-bin width in seconds. Omit and it is chosen from
                 event density (ladder 1..86400, finest width still averaging 4
@@ -782,18 +783,18 @@ def build_server() -> FastMCP:
                 capped separately at 20, true count in 'spikes_total'.
         """
         try:
-            return t.case_timeline(
+            return t.get_case_timeline(
                 case_id=case_id,
                 bin_seconds=bin_seconds,
                 z_threshold=z_threshold,
                 top_n=top_n,
             )
         except Exception as exc:
-            return _case_error(exc, "case_timeline")
+            return _case_error(exc, "get_case_timeline")
 
-    @server.tool(name="case_close", annotations=_WRITE_LOCAL)
+    @server.tool(name="close_case", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low")
-    def case_close(case_id: str) -> dict:
+    def close_case(case_id: str) -> dict:
         """[WRITE] Record the final grade and archive the case — step 08.
 
         WHEN: when the investigation is finished, or is being handed over.
@@ -809,18 +810,18 @@ def build_server() -> FastMCP:
         so the original conclusion and whatever changed it both stay readable.
 
         Args:
-            case_id: The case to close (from case_open/case_list). There is no
+            case_id: The case to close (from open_case/list_cases). There is no
                 grade parameter — closing recomputes the grade from the ledger.
                 An already-closed case is refused rather than closed again.
         """
         try:
-            return t.case_close(case_id=case_id)
+            return t.close_case(case_id=case_id)
         except Exception as exc:
-            return _case_error(exc, "case_close")
+            return _case_error(exc, "close_case")
 
-    @server.tool(name="case_knowledge", annotations=_READ)
+    @server.tool(name="get_case_knowledge", annotations=_READ)
     @vmware_tool(risk_level="low")
-    def case_knowledge(case_id: Optional[str] = None) -> dict:
+    def get_case_knowledge(case_id: Optional[str] = None) -> dict:
         """[READ] What the knowledge layer accepts, and what is mounted.
 
         WHEN: when someone asks what can be added to make conclusions stronger,
@@ -853,9 +854,9 @@ def build_server() -> FastMCP:
                 the reason each entry did or did not qualify.
         """
         try:
-            return t.case_knowledge(case_id=case_id)
+            return t.get_case_knowledge(case_id=case_id)
         except Exception as exc:
-            return _case_error(exc, "case_knowledge")
+            return _case_error(exc, "get_case_knowledge")
     # The docstrings above are the schema — see describe_tool_parameters.
     describe_tool_parameters(server._tool_manager._tools)
 

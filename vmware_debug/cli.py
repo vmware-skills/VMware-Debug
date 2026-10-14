@@ -4,7 +4,7 @@ Correlation is local and offline: feed it events you've already collected (a
 JSON file or stdin) and it returns a ranked timeline + next-check ideas. The
 `mcp` subcommand starts the stdio MCP server (entry point that does not touch
 the network, so it works behind corporate TLS proxies — CLAUDE.md 踩坑 #25);
-its case_* tools write the local case ledger, which no other command does.
+its case tools write the local case ledger, which no other command does.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.table import Table
 
 from vmware_debug import __version__
-from vmware_debug.mcp.tools import incident_timeline, list_symptom_categories
+from vmware_debug.mcp.tools import build_incident_timeline, list_symptom_categories
 from vmware_policy import audited, cli_local
 
 
@@ -74,7 +74,7 @@ def categories() -> None:
 
 
 @app.command()
-@audited(tool="incident_timeline")
+@audited(tool="build_incident_timeline")
 def triage(
     events_file: Optional[Path] = typer.Option(
         None, "--events", "-e", help="JSON file of event envelopes; reads stdin if omitted."
@@ -94,7 +94,7 @@ def triage(
         raise typer.Exit(code=2)
 
     try:
-        result = incident_timeline(events, bin_seconds=bin_seconds, top_n=top_n)
+        result = build_incident_timeline(events, bin_seconds=bin_seconds, top_n=top_n)
     except ValueError as exc:
         console.print(f"[red]Could not correlate events:[/red] {exc}")
         raise typer.Exit(code=2) from exc

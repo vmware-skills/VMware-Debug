@@ -67,7 +67,7 @@ def falsifications(
     falsify THAT hypothesis. Counting them across the case let one observation
     against H2 plus anything unrelated rule H2 out — which also retired the gap
     holding the case back and promoted it (independent review, 2026-09-15).
-    ``case_hypotheses`` reads the same verdicts, so the ledger and the grade
+    ``record_case_hypothesis`` reads the same verdicts, so the ledger and the grade
     cannot disagree about an id.
 
     Exclusion still needs an observation that rules the hypothesis out, not a

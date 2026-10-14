@@ -6,7 +6,7 @@ is a pure, offline correlation engine. There is no `config.yaml` and no `.env`.
 ## Install
 
 ```bash
-uv tool install vmware-debug==1.13.2
+uv tool install vmware-debug==2.0.0
 vmware-debug categories      # verify it runs
 ```
 
@@ -15,7 +15,7 @@ vmware-debug categories      # verify it runs
 ```json
 {
   "command": "uvx",
-  "args": ["--from", "vmware-debug==1.13.2", "vmware-debug-mcp"]
+  "args": ["--from", "vmware-debug==2.0.0", "vmware-debug-mcp"]
 }
 ```
 
@@ -36,7 +36,7 @@ routes fixes to (vmware-aiops, vmware-pilot).
 3. **Network** — none. The correlation tools are local pure functions over
    event data the agent supplies; the case tools read and write local files.
 4. **Writes** — only to the local investigation ledger under `$OPS_HOME`
-   (the seven [WRITE] `case_*` tools). Evidence, gaps, hypotheses and grade
+   (the seven [WRITE] case tools). Evidence, gaps, hypotheses and grade
    history are only ever added to; `timeline.md` is regenerated from the evidence and
    `case.json` holds the current grade and state. Nothing is written to any
    VMware system: debug only diagnoses and recommends; remediation is routed
@@ -44,7 +44,7 @@ routes fixes to (vmware-aiops, vmware-pilot).
    Case data is sensitive: each case folder (`$OPS_HOME/cases/<case-id>/`, default
    `~/.vmware/cases/`) is created owner-only (`0700`) and holds the submitted
    evidence — host names, addresses, log and event text. There is no automatic
-   retention limit: `case_close` marks a case closed and keeps its files; delete
+   retention limit: `close_case` marks a case closed and keeps its files; delete
    the folder to remove a case.
 5. **No cross-skill coupling** — events arrive as plain dicts (the event
    envelope); debug imports no other skill package at runtime.
@@ -74,8 +74,8 @@ routes fixes to (vmware-aiops, vmware-pilot).
      debug tool is `low`, so a window never blocks one.
 7. **Audit row contents** — one row per call in `~/.vmware/audit.db`: tool,
    time, OS user, detected agent, arguments, status and result. `payload` and
-   `events` are stored as `***`. The results of `incident_timeline` and
-   `case_timeline` are not stored (`[redacted: return value declared
+   `events` are stored as `***`. The results of `build_incident_timeline` and
+   `get_case_timeline` are not stored (`[redacted: return value declared
    sensitive]`) because they quote event text; other results are stored after
    credential scrubbing. The status is still truthful — a call that returns
    `{"error": …}` is `error`.

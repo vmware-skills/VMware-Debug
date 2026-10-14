@@ -105,11 +105,11 @@ class TestReadiness:
         code. Listed under aiops they would be monitor's data counted as a second
         source — a Probable bought with one source under two names."""
         delegated = {
-            "cluster_health_summary",
-            "cross_vcenter_attention",
-            "vm_investigation_bundle",
-            "host_investigation_bundle",
-            "datastore_investigation_bundle",
+            "get_cluster_health_summary",
+            "get_cross_vcenter_attention",
+            "investigate_vm",
+            "investigate_host",
+            "investigate_datastore",
         }
         for name, spec in load_catalogue()["classes"].items():
             if spec.get("skill") == "vmware-aiops":
@@ -125,7 +125,7 @@ class TestReadiness:
             if spec.get("skill") == "vmware-aiops"
             for e in spec["tools"]
         }
-        assert "vm_task_status" not in tools
+        assert "get_vm_task_status" not in tools
 
     def test_collection_reaches_probable_with_monitor_and_aria(self):
         """Aria's collector state and vCenter's own reachability are two observations."""

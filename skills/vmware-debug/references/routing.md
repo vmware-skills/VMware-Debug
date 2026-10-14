@@ -15,7 +15,7 @@ Keep this in sync with `_CATEGORY_SIGNATURES` in `vmware_debug/ops/timeline.py`
 | **auth** | login, authentication, denied, 401, 403, token, certificate, tls, password | the owning skill's `doctor` (reports whether a credential is set and whether login works — never its value), target cert + time sync | config fix (by the user) |
 | **platform** | vpxd, hostd, service restart, crash, 503, not responding, disconnected | vmware-monitor (connection/service), vmware-log-insight (vpxd/hostd) | pilot |
 | **hardware** | tpm, attestation, ipmi, sensor, bmc | vmware-monitor (host sensors and the CIM Server that supplies them, host logs for ipmi/cim), the server's BMC | site / vendor |
-| **licensing** | license | vmware-monitor (license_status — which asset holds which key); an Aria alert on "Unlicensed Group" is Aria's own license | license portal |
+| **licensing** | license | vmware-monitor (get_license_status — which asset holds which key); an Aria alert on "Unlicensed Group" is Aria's own license | license portal |
 | **data_collection** | adapter instance, not receiving data, collector group, cloud proxy | vmware-aria (adapters, collector groups, node health, objects that stopped reporting), vmware-monitor (is the source vCenter reachable) | aria admin |
 
 ## Remediation handoff (advisor → executor)

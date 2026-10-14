@@ -21,7 +21,7 @@ def test_mcp_exposes_expected_tools():
     #33: FastMCP must build their schemas without raising."""
     server = build_server()
     names = {t.name for t in asyncio.run(server.list_tools())}
-    assert {"incident_timeline", "list_symptom_categories"} <= names
+    assert {"build_incident_timeline", "list_symptom_categories"} <= names
 
 
 def test_incident_timeline_output_is_json_serializable():

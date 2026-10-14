@@ -91,7 +91,7 @@ class TestDanglingReferencesAreRefused:
         with pytest.raises(HypothesisNotFound) as e:
             ev(case, falsifies=("H7",))
         assert "H1" in str(e.value)
-        assert "case_hypotheses" in str(e.value)
+        assert "record_case_hypothesis" in str(e.value)
 
     def test_a_registered_id_is_accepted(self, case):
         add_hypothesis(case, "failing NVMe device")
@@ -120,7 +120,7 @@ class TestTheLedgerIsComputed:
         assert h["status"] == "refuted"
 
     def test_one_falsifying_source_is_not_yet_a_refutation(self, case):
-        """case_grade needs two independent sources to rule a hypothesis out. The
+        """grade_case needs two independent sources to rule a hypothesis out. The
         ledger saying "refuted" on one would contradict the grade for the same id
         (independent review, 2026-09-15)."""
         add_hypothesis(case, "failing NVMe device")

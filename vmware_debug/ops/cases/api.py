@@ -76,8 +76,8 @@ def open_case(
         "ceiling_reasons": list(result.ceiling_reasons),
         "next": (
             "Gather evidence with the data-source skills' read tools, then "
-            "submit each result with case_submit_evidence. Anything you could "
-            "not get goes to case_record_gap — an unrecorded gap makes the "
+            "submit each result with submit_case_evidence. Anything you could "
+            "not get goes to record_case_gap — an unrecorded gap makes the "
             "case look better supported than it is."
         ),
     }
@@ -140,12 +140,12 @@ def submit_evidence(
     """Step 02/03. Record one retrieved fact and report where that leaves the case.
 
     ``payload`` is the read tool's raw result. For its events to reach
-    case_timeline it has to be a list of event dicts, or a mapping carrying them
+    get_case_timeline it has to be a list of event dicts, or a mapping carrying them
     under ``items`` (the family list envelope), ``events`` or ``rows``; what was
     found is reported back as ``payload_events`` and ``payload_note``. This is
     the only moment at which a summary submitted in place of a result is
     knowable, and it used to pass unremarked — the mismatch then surfaced at
-    case_timeline as a zero, advising the caller to do what they had just done.
+    get_case_timeline as a zero, advising the caller to do what they had just done.
     """
     shape = inspect_payload(payload)
     item = Evidence(
@@ -273,8 +273,8 @@ def hypotheses(case_id: str, statement: str | None = None, at: str | None = None
         "added": added.hypothesis_id if added else None,
         "hypotheses": ledger,
         "note": (
-            "Refer to these ids from case_record_gap(blocks=[...]) and "
-            "case_submit_evidence(falsifies=[...]). An id that is not listed "
+            "Refer to these ids from record_case_gap(blocks=[...]) and "
+            "submit_case_evidence(falsifies=[...]). An id that is not listed "
             "here is refused rather than ignored: it would block and falsify "
             "nothing, which reads as a stronger case than you have."
         ),

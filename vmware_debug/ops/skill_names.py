@@ -7,7 +7,7 @@ catalogue names them ``vmware-monitor`` / ``vmware-aria`` /
 ``vmware-log-insight``, because that is what a package is called. Both are
 correct and neither is going away, so something has to hold them together.
 
-Nothing did. ``case_readiness(available_skills=["monitor"])`` reported every
+Nothing did. ``get_case_readiness(available_skills=["monitor"])`` reported every
 class unavailable and advised installing vmware-monitor, which was installed.
 That is the cheap half. The expensive half is the grader: it counts independent
 sources as distinct ``source_skill`` strings, so submitting ``monitor`` for one

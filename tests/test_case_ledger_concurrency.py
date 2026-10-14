@@ -178,7 +178,7 @@ class TestNoLostUpdates:
         ]
 
     def test_a_grade_is_recorded_for_the_ledger_it_was_computed_from(self, case, monkeypatch):
-        # case_grade computes, then records. A falsifying gap landing between
+        # grade_case computes, then records. A falsifying gap landing between
         # the two used to leave "probable" on record while the ledger at that
         # moment supported only "candidate".
         for skill in ("vmware-monitor", "vmware-log-insight"):

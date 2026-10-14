@@ -74,7 +74,7 @@ class TestValidationRejectsPaths:
             validate_case_id("nested/case")
         msg = str(e.value)
         assert "nested/case" in msg
-        assert "case_list" in msg
+        assert "list_cases" in msg
 
     def test_accepts_what_generation_produces(self):
         validate_case_id("20260828-091500-vsan-latency-on-cluster-01")

@@ -63,7 +63,7 @@ _CATEGORY_SIGNATURES: tuple[tuple[str, tuple[str, ...], str], ...] = (
          "shutting down host", "host reboot", "reboot of host",
          "lost connection to", "connection lost", "host connection",
          "not responding", "cannot synchronize", "sync failed", "host sync"),
-        "vmware-monitor (host connection state, cluster_health_summary for the "
+        "vmware-monitor (host connection state, get_cluster_health_summary for the "
         "hosts still up, and get_events on the cluster for what preceded the "
         "first transition) + vmware-harden (list_drift_events — a host that "
         "left service on cue was usually told to) + vmware-log-insight (vpxd "
@@ -97,7 +97,7 @@ _CATEGORY_SIGNATURES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     (
         "hardware",
         ("tpm", "attestation", "ipmi", "sensor", "bmc"),
-        "vmware-monitor (get_host_sensors; host_log_scan for ipmi/cim errors — "
+        "vmware-monitor (get_host_sensors; scan_host_logs for ipmi/cim errors — "
         "no sensor data usually means no IPMI device or a stopped CIM service) + "
         "the server's own BMC (iDRAC/iLO/XCC). A TPM attestation alarm is most "
         "often a firmware setting (TPM 2.0 / TIS mode) rather than a failing part",
@@ -105,7 +105,7 @@ _CATEGORY_SIGNATURES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     (
         "licensing",
         ("license",),
-        "vmware-monitor (license_status: per-asset assignments show whether the "
+        "vmware-monitor (get_license_status: per-asset assignments show whether the "
         "alarmed asset still holds the expiring key, or the alarm is stale) + "
         "vmware-aria (an alert on 'Unlicensed Group' is Aria's own license, not "
         "vCenter's)",
@@ -142,7 +142,7 @@ _UNCATEGORIZED_REMEDY = (
     "availability'). Two things follow. Pass each event's event_type if you have "
     "not — vmware-monitor's get_events returns it, it is matched too, and on an "
     "EventEx it is the only identity the event has. And if you already believe "
-    "which category applies, force it with case_plan(category=...) instead of "
+    "which category applies, force it with plan_case(category=...) instead of "
     "hunting for a subsystem that is not missing. The span of the window is not "
     "what makes a burst visible; the bin resolution is."
 )
@@ -232,7 +232,7 @@ def bin_events(events: list[Event], bin_seconds: float) -> list[Bucket]:
         raise ValueError(
             f"bin_seconds must be positive (got {bin_seconds!r}). Pass a width in "
             "seconds — e.g. bin_seconds=60 for one-minute bins — or omit it so "
-            "incident_timeline derives one from the event window."
+            "build_incident_timeline derives one from the event window."
         )
     ordered = build_timeline(events)
     start = ordered[0].ts
@@ -544,7 +544,7 @@ def incident_timeline(
             "next_checks": [
                 "No events supplied. Pull a starting set: vmware-monitor "
                 "get_events / get_alarms for the affected entity, then "
-                "vmware-log-insight log_search around the reported time."
+                "vmware-log-insight search_logs around the reported time."
             ],
         }
 

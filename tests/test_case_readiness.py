@@ -65,7 +65,7 @@ class TestCatalogue:
 
     def test_tools_for_class_returns_skill_qualified_names(self):
         got = tools_for_class("logs")
-        assert ("vmware-log-insight", "log_search") in got
+        assert ("vmware-log-insight", "search_logs") in got
 
     def test_an_unknown_class_raises_rather_than_returning_nothing(self):
         with pytest.raises(ValueError, match="evidence_classes"):
@@ -111,7 +111,7 @@ class TestReadiness:
         logs = r["classes"]["logs"]
         assert logs["available"] is True
         assert logs["degraded"] is True
-        assert "host_log_scan" in str(logs["via"])
+        assert "scan_host_logs" in str(logs["via"])
 
     def test_every_unavailable_class_says_how_to_supply_it(self):
         for name, spec in readiness()["classes"].items():

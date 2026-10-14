@@ -51,7 +51,7 @@ write tools touch only the local case ledger.
 ## Quick Install
 
 ```bash
-uv tool install vmware-debug==1.13.2
+uv tool install vmware-debug==2.0.0
 vmware-debug categories          # see what it can diagnose
 ```
 
@@ -82,16 +82,16 @@ a recommended plan.
 ## Common Workflows
 
 ### 1. "Here's a pile of logs / alarms — what broke?"
-1. Collect events with the data-source skills (e.g. `vmware-monitor event_list --vm web01 --since 1h`, `vmware-log-insight log_search ...`, `vmware-aria alert_query ...`).
-2. Pass them all to **`incident_timeline`** (envelope below). Read the top hypothesis + `next_checks`.
-3. Follow `next_checks` to pull more targeted data; re-run `incident_timeline` to confirm.
+1. Collect events with the data-source skills (e.g. `vmware-monitor event_list --vm web01 --since 1h`, `vmware-log-insight search_logs ...`, `vmware-aria alert_query ...`).
+2. Pass them all to **`build_incident_timeline`** (envelope below). Read the top hypothesis + `next_checks`.
+3. Follow `next_checks` to pull more targeted data; re-run `build_incident_timeline` to confirm.
 4. **Failure branch — no events come back:** the affected target may be unreachable. Run the source skill's `doctor`/health first; a 503/timeout is a *signal* (platform not ready), not a dead end.
 5. Produce a diagnosis + recommended fix. Route execution to aiops/pilot. **Do not fix here.**
 
 ### 2. "I don't even know what to check"
 1. Run **`list_symptom_categories`** (or `vmware-debug categories`) to see the catalogue.
 2. Describe the symptom; map it to a category; the `suggested_check` tells you which skill/tool to run first.
-3. Collect → `incident_timeline` → narrow. Loop until one hypothesis dominates.
+3. Collect → `build_incident_timeline` → narrow. Loop until one hypothesis dominates.
 
 ### 3. Hand off the fix (advisor → executor, like vmware-harden)
 1. Debug emits a structured diagnosis + a proposed remediation (steps).
@@ -101,7 +101,7 @@ a recommended plan.
 
 ## Usage Mode
 
-- **MCP** (in an agent): the agent calls the other skills' read tools, then `incident_timeline` to correlate. This is the primary mode — that's where the cross-skill "联动" happens.
+- **MCP** (in an agent): the agent calls the other skills' read tools, then `build_incident_timeline` to correlate. This is the primary mode — that's where the cross-skill "联动" happens.
 - **CLI** (humans): `vmware-debug triage --events events.json` correlates a JSON array you collected yourself.
 
 ## MCP Tools (14 — 7 read, 7 write)
@@ -110,31 +110,31 @@ a recommended plan.
 
 | Tool | What |
 |---|---|
-| `incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
+| `build_incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
 | `list_symptom_categories` | [READ] List recognised symptom categories + what to check for each |
 
 **Investigation ledger** — for an incident you will reason about over time:
 
 | Tool | What |
 |---|---|
-| `case_open` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
-| `case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
-| `case_knowledge` | [READ] Which knowledge formats are accepted, what is mounted, and which entries apply to a case |
-| `case_plan` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
-| `case_list` | [READ] Cases, newest first |
-| `case_get` | [READ] One case: scope, ledger sizes, grade history |
-| `case_hypotheses` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
-| `case_submit_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
-| `case_record_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
-| `case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
-| `case_grade` | [WRITE] Recompute the conclusion grade from the ledger and record it |
-| `case_close` | [WRITE] Record the final grade, archive, and name what was left open |
+| `open_case` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
+| `get_case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
+| `get_case_knowledge` | [READ] Which knowledge formats are accepted, what is mounted, and which entries apply to a case |
+| `plan_case` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
+| `list_cases` | [READ] Cases, newest first |
+| `get_case` | [READ] One case: scope, ledger sizes, grade history |
+| `record_case_hypothesis` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
+| `submit_case_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
+| `record_case_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
+| `get_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
+| `grade_case` | [WRITE] Recompute the conclusion grade from the ledger and record it |
+| `close_case` | [WRITE] Record the final grade, archive, and name what was left open |
 
 The seven writes go to `$OPS_HOME` (default `~/.vmware/cases/`) and nowhere else.
 
 **List envelope** (output of `list_symptom_categories`): `{items, returned, limit, total, truncated, hint}` — read the rows from `items`. `truncated` is always `false` here, which is the point: it states that the catalogue is complete instead of leaving you to infer it.
 
-**Event envelope** (input to `incident_timeline`): `{ts, source, severity, entity, text, fields}`.
+**Event envelope** (input to `build_incident_timeline`): `{ts, source, severity, entity, text, fields}`.
 See `references/event-envelope.md`. The agent normalises each source's events into this
 shape; debug stays source-agnostic and has no dependency on the other packages.
 Keep each event's `event_type` in `fields` — the classifier matches it as well as
@@ -160,12 +160,12 @@ how a conclusion was reached with none of this installed:
 └── timeline.md · hypotheses.md · plan.jsonl · case.json
 ```
 
-Hypotheses get ids (H1, H2, …), and those ids are what `case_record_gap(blocks=…)`
-and `case_submit_evidence(falsifies=…)` refer to. **An id that was never
+Hypotheses get ids (H1, H2, …), and those ids are what `record_case_gap(blocks=…)`
+and `submit_case_evidence(falsifies=…)` refer to. **An id that was never
 registered is refused, not ignored** — a dangling reference blocks nothing and
 falsifies nothing, which quietly reports a stronger case than you have.
 
-**You cannot state a conclusion level.** `case_grade` has no parameter for one;
+**You cannot state a conclusion level.** `grade_case` has no parameter for one;
 the grade is recomputed from the ledger on every call. To change it, change the
 ledger — submit the missing evidence, or record the gap that is blocking it.
 
@@ -178,23 +178,23 @@ ledger — submit the missing evidence, or record the gap that is blocking it.
   nothing" is a gap, not an exclusion. Exclusion is per hypothesis: two
   independent sources must falsify *that* hypothesis, and the case is Excluded
   only when every registered hypothesis is ruled out. A hypothesis contradicted
-  by too few sources holds the case at Candidate. Otherwise `case_grade`
+  by too few sources holds the case at Candidate. Otherwise `grade_case`
   grades what remains, counting only evidence that falsifies nothing, and lists
   each hypothesis as `open` or `excluded` in `hypotheses`
 
-`case_plan` is not a checklist: submit evidence and the next plan is shorter,
+`plan_case` is not a checklist: submit evidence and the next plan is shorter,
 lose a source and it routes around it. Its `unavailable` half is the important
 one — a source this install cannot reach is listed there with how to supply it,
 so the gap is visible now rather than when the conclusion refuses to firm up.
 
-`case_readiness` answers this per symptom category rather than as one number —
+`get_case_readiness` answers this per symptom category rather than as one number —
 "storage reaches Probable, hardware reaches Candidate" can be acted on;
 "readiness 78%" cannot. Two classes served by the *same* skill count as one
-source, so it agrees with what `case_grade` will actually award.
+source, so it agrees with what `grade_case` will actually award.
 
 ### Mounting a knowledge library
 
-`case_knowledge` answers "what can I add" without anyone reading this file.
+`get_case_knowledge` answers "what can I add" without anyone reading this file.
 Entries go under `$OPS_HOME/knowledge/{kb,runbook,sr,cases}/`:
 
 | Format | How metadata travels |
@@ -206,7 +206,7 @@ Entries go under `$OPS_HOME/knowledge/{kb,runbook,sr,cases}/`:
 | `.csv` `.tsv` | one entry per row; use dotted columns (`driver.version`) for nested constraints |
 | `.txt` `.log` | a sibling `<name>.yaml` carries the metadata |
 
-PDF, DOCX, PPTX and HTML must be converted to Markdown first — `case_knowledge`
+PDF, DOCX, PPTX and HTML must be converted to Markdown first — `get_case_knowledge`
 names them rather than ignoring them.
 
 **Every entry needs an `applies_to` block to be decisive:**
@@ -224,11 +224,11 @@ applies_to:
 
 `product`, `build`, `driver` and `firmware` are the constraints the checker
 evaluates. **Any other key leaves the entry non-decisive** — including a typo —
-because an unverified constraint is not a satisfied one, and `case_knowledge`
+because an unverified constraint is not a satisfied one, and `get_case_knowledge`
 names the key it could not check.
 
 Knowledge evidence must say **which** entry it is
-(`case_submit_evidence(source_skill="knowledge-kb", knowledge_entry_id="KB-…")`)
+(`submit_case_evidence(source_skill="knowledge-kb", knowledge_entry_id="KB-…")`)
 — "some applicable entry is mounted somewhere" is a different claim from "this
 one applies", and only the second can carry a conclusion.
 
@@ -272,11 +272,11 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 
 ## Troubleshooting
 
-- **`incident_timeline` raises "event[N] could not be normalised"** — event N is missing a timestamp or has an unparseable one. Every event needs `ts` (ISO-8601, epoch seconds, or millis).
+- **`build_incident_timeline` raises "event[N] could not be normalised"** — event N is missing a timestamp or has an unparseable one. Every event needs `ts` (ISO-8601, epoch seconds, or millis).
 - **Most events come back "uncategorized"** — read `classification` in the result: it says how many, what share, and quotes the texts that matched nothing. Do **not** widen the window; a wider window adds baseline, not signal. The spikes still tell you *when*, which is answerable without a category. If the samples name a subsystem the taxonomy does not know, add a signature (see `references/routing.md`).
 - **No spikes detected on an obvious burst** — check `binning` for the resolution you were given. The width is chosen from event density so that bins average ≥4 events; a burst shorter than one bin can still be flattened by it. Pass `bin_seconds` to narrow. Below three bins there is no baseline at all and nothing is reported.
-- **`case_timeline` says zero events after you submitted results** — check `payload_events` in each `case_submit_evidence` reply. Events are read from a bare list, or from `items`/`events`/`rows`; a *summary* of a tool's result carries none. `note` names which items carried nothing and what keys they held instead.
-- **`case_readiness` says a skill you have is not installed** — both spellings are accepted (`monitor` and `vmware-monitor`). A name it did not recognise comes back in `unrecognised_skills` rather than being read as missing.
+- **`get_case_timeline` says zero events after you submitted results** — check `payload_events` in each `submit_case_evidence` reply. Events are read from a bare list, or from `items`/`events`/`rows`; a *summary* of a tool's result carries none. `note` names which items carried nothing and what keys they held instead.
+- **`get_case_readiness` says a skill you have is not installed** — both spellings are accepted (`monitor` and `vmware-monitor`). A name it did not recognise comes back in `unrecognised_skills` rather than being read as missing.
 - **It won't execute the fix** — by design. Route to vmware-aiops or vmware-pilot.
 
 ## Audit & Safety
@@ -292,8 +292,8 @@ row to `~/.vmware/audit.db` through `@vmware_tool`, as do the `categories` and `
 CLI commands under their MCP tools' names. The row records the tool, time, OS user,
 detected agent, arguments, status (`ok`, `error`, `denied`, `budget_exceeded`,
 `interrupted`) and a result. Two arguments are stored as `***`: evidence `payload` and
-`incident_timeline` `events`. Two results are not stored at all — `incident_timeline` and
-`case_timeline` quote event text (`sample_text`, `unmatched_samples`, `rejected`), which
+`build_incident_timeline` `events`. Two results are not stored at all — `build_incident_timeline` and
+`get_case_timeline` quote event text (`sample_text`, `unmatched_samples`, `rejected`), which
 can carry anything the source logged, so their row says
 `[redacted: return value declared sensitive]`. Every other result (ids, counts, grades,
 your own summaries and statements) is stored after credential scrubbing. The data itself
@@ -315,7 +315,7 @@ See `references/setup-guide.md`.
 **Case data is sensitive and is kept until you delete it.** Each case lives in
 `$OPS_HOME/cases/<case-id>/` (default `~/.vmware/cases/`), created owner-only (`0700`).
 It holds whatever evidence was submitted — host names, addresses, log and event text.
-Nothing is deleted automatically: `case_close` records the grade and marks the case
+Nothing is deleted automatically: `close_case` records the grade and marks the case
 closed but keeps its files. Remove a case by deleting its folder.
 
 ## License

@@ -184,8 +184,8 @@ def _case_dir_or_raise(case_id: str) -> Path:
     d = case_dir(case_id)
     if not d.is_dir():
         raise CaseNotFound(
-            f"No case {case_id!r} under {cases_root()}. Open it with case_open "
-            f"before submitting evidence, or run case_list to find the right id."
+            f"No case {case_id!r} under {cases_root()}. Open it with open_case "
+            f"before submitting evidence, or run list_cases to find the right id."
         )
     return d
 

@@ -1,7 +1,7 @@
 """vmware-debug MCP tool logic. No network, no credentials, no cross-skill
 imports. The agent fetches events with the other skills' read tools and passes
 them here as plain dicts (the unified event envelope). The two correlation
-tools are pure reads; the case_* tools read and write the local investigation
+tools are pure reads; the case tools read and write the local investigation
 ledger under $OPS_HOME, and nothing else."""
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from vmware_debug.ops.timeline import category_routing
 from vmware_debug.ops.timeline import incident_timeline as _incident_timeline
 
 
-def incident_timeline(
+def build_incident_timeline(
     events: list[dict],
     bin_seconds: Optional[float] = None,
     z_threshold: float = 2.0,
@@ -48,33 +48,33 @@ def list_symptom_categories() -> dict:
 # an MCP server. These are the names the tool registrations bind to.
 
 from vmware_debug.ops.cases.api import (  # noqa: E402  (grouped with its section)
-    add_gap as case_record_gap,
-    close as case_close,
-    check_readiness as case_readiness,
-    get_case as case_get,
-    grade as case_grade,
-    hypotheses as case_hypotheses,
-    knowledge as case_knowledge,
-    list_open_cases as case_list,
-    open_case as case_open,
-    plan as case_plan,
-    submit_evidence as case_submit_evidence,
-    timeline as case_timeline,
+    add_gap as record_case_gap,
+    close as close_case,
+    check_readiness as get_case_readiness,
+    get_case,
+    grade as grade_case,
+    hypotheses as record_case_hypothesis,
+    knowledge as get_case_knowledge,
+    list_open_cases as list_cases,
+    open_case,
+    plan as plan_case,
+    submit_evidence as submit_case_evidence,
+    timeline as get_case_timeline,
 )
 
 __all__ = [
-    "incident_timeline",
+    "build_incident_timeline",
     "list_symptom_categories",
-    "case_open",
-    "case_get",
-    "case_list",
-    "case_submit_evidence",
-    "case_record_gap",
-    "case_grade",
-    "case_readiness",
-    "case_plan",
-    "case_hypotheses",
-    "case_timeline",
-    "case_close",
-    "case_knowledge",
+    "open_case",
+    "get_case",
+    "list_cases",
+    "submit_case_evidence",
+    "record_case_gap",
+    "grade_case",
+    "get_case_readiness",
+    "plan_case",
+    "record_case_hypothesis",
+    "get_case_timeline",
+    "close_case",
+    "get_case_knowledge",
 ]

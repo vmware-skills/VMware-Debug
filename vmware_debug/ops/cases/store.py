@@ -42,7 +42,7 @@ _SKELETON_MD = {
     "conclusion.md": (
         "# Conclusion\n\n"
         "_Not graded yet._\n\n"
-        "The grade is computed from the ledger by `case_grade`; it is not "
+        "The grade is computed from the ledger by `grade_case`; it is not "
         "written here by hand. Grade history, including any demotion, is "
         "appended below and never rewritten.\n"
     ),
@@ -132,8 +132,8 @@ def _acquire(path: Path, case_id: str) -> str:
             fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileNotFoundError:
             raise CaseNotFound(
-                f"No case {case_id!r} under {cases_root()}. Run case_list to see "
-                f"the ids that exist, or case_open to start one."
+                f"No case {case_id!r} under {cases_root()}. Run list_cases to see "
+                f"the ids that exist, or open_case to start one."
             ) from None
         except (FileExistsError, PermissionError) as exc:
             # Windows answers O_EXCL on a lock that is being deleted with
@@ -327,7 +327,7 @@ def create_case(scope: Scope, at: str) -> Case:
             f"second whose summaries reduce to the same slug collide — the "
             f"summaries need not be identical, and saying they were sent one "
             f"reporter looking for a duplicate that did not exist. Run "
-            f"case_get {case_id} to see which case is already there; if it is "
+            f"get_case {case_id} to see which case is already there; if it is "
             f"a different incident, open this one with a summary that names "
             f"what makes it different."
         )
@@ -353,8 +353,8 @@ def load_case(case_id: str) -> Case:
     d = case_dir(case_id)
     if not d.is_dir():
         raise CaseNotFound(
-            f"No case {case_id!r} under {cases_root()}. Run case_list to see "
-            f"the ids that exist, or case_open to start one. (If you expected "
+            f"No case {case_id!r} under {cases_root()}. Run list_cases to see "
+            f"the ids that exist, or open_case to start one. (If you expected "
             f"it here, check OPS_HOME — cases follow it.)"
         )
     scope = Scope.from_json(_read_json(d / "scope.json", "scope.json"))

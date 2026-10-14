@@ -1,9 +1,9 @@
-"""What `payload` has to be for case_timeline to see it, said at the time.
+"""What `payload` has to be for get_case_timeline to see it, said at the time.
 
 The tester submitted the summary dict from a get_events call — ``{"total": 3818,
 "by_type": {...}}`` — as the payload. It was accepted, recorded, and reported
 back a grade, and nothing anywhere said the timeline would never see it.
-case_timeline then answered zero events with the hint "submit the get_events
+get_case_timeline then answered zero events with the hint "submit the get_events
 result with `payload`", which is what they had just done.
 
 Two things were missing and both are pinned here. The contract was undocumented
@@ -36,11 +36,11 @@ def isolated_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def case():
-    return t.case_open(summary="four hosts down", determined_by="alarm 42", at=AT)["case_id"]
+    return t.open_case(summary="four hosts down", determined_by="alarm 42", at=AT)["case_id"]
 
 
 def submit(case, payload, skill="vmware-monitor"):
-    return t.case_submit_evidence(
+    return t.submit_case_evidence(
         case_id=case,
         source_skill=skill,
         source_tool="get_events",
@@ -84,7 +84,7 @@ class TestTheAcceptedShapes:
         before any of this code ran."""
         server = build_server()
         schema = {tool.name: tool.inputSchema for tool in asyncio.run(server.list_tools())}
-        payload = schema["case_submit_evidence"]["properties"]["payload"]
+        payload = schema["submit_case_evidence"]["properties"]["payload"]
         allowed = {
             entry.get("type") for entry in payload.get("anyOf", [payload]) if isinstance(entry, dict)
         }
@@ -109,16 +109,16 @@ class TestControls:
 
     def test_the_timeline_still_builds_from_a_real_payload(self, case):
         submit(case, {"items": [EVENT]})
-        assert t.case_timeline(case_id=case)["event_count"] == 1
+        assert t.get_case_timeline(case_id=case)["event_count"] == 1
 
 
 class TestTheTimelineSaysWhichItemsCarriedNothing:
     def test_it_names_the_items_and_what_they_held(self, case):
         submit(case, {"total": 3818, "by_type": {}})
-        note = t.case_timeline(case_id=case)["note"]
+        note = t.get_case_timeline(case_id=case)["note"]
         assert "E001" in note
         assert "total" in note
 
     def test_control_a_populated_timeline_does_not_carry_the_complaint(self, case):
         submit(case, {"items": [EVENT]})
-        assert "E001" not in t.case_timeline(case_id=case)["note"]
+        assert "E001" not in t.get_case_timeline(case_id=case)["note"]

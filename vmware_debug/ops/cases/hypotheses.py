@@ -51,8 +51,8 @@ def _path(case_id: str):
     d = case_dir(case_id)
     if not d.is_dir():
         raise CaseError(
-            f"No case {case_id!r} under {cases_root()}. Open it with case_open, "
-            f"or run case_list to find the right id."
+            f"No case {case_id!r} under {cases_root()}. Open it with open_case, "
+            f"or run list_cases to find the right id."
         )
     return d / _FILE
 
@@ -138,7 +138,7 @@ def require_hypotheses(case_id: str, ids: tuple[str, ...] | list[str]) -> None:
     have = ", ".join(sorted(known)) if known else "none registered yet"
     raise HypothesisNotFound(
         f"Unknown hypothesis id(s): {', '.join(unknown)}. This case has: {have}. "
-        f"Register one with case_hypotheses(statement=...) before referring to "
+        f"Register one with record_case_hypothesis(statement=...) before referring to "
         f"it — an id nothing recognises would silently block and falsify "
         f"nothing, which reads as a stronger case than you have."
     )
@@ -150,7 +150,7 @@ def hypothesis_ledger(case_id: str) -> list[dict[str, Any]]:
     Status is derived: an observation that rules a hypothesis out settles it, so
     ``refuted`` outranks ``blocked`` — once the answer is known, a missing
     measurement no longer matters. Whether it is ruled out is decided by the
-    same rule ``case_grade`` uses (by default two independent sources against
+    same rule ``grade_case`` uses (by default two independent sources against
     that hypothesis; a site rules file can change it); a single falsifier marked it refuted
     here while the grade kept it open (independent review, 2026-09-15).
     ``refuted_by`` lists every falsifying item, enough or not.
@@ -181,7 +181,7 @@ def hypothesis_ledger(case_id: str) -> list[dict[str, Any]]:
         else:
             status = "open"
             steps = [
-                "Nothing is blocking this one. Run case_plan for the next "
+                "Nothing is blocking this one. Run plan_case for the next "
                 "evidence to fetch, and record what you cannot get as a gap."
             ]
         if verdict.evidence_ids and not verdict.excluded:

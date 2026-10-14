@@ -1,6 +1,6 @@
 """One skill, two spellings, and nothing reconciling them.
 
-``case_readiness(available_skills=["monitor", "aria"])`` reported every evidence
+``get_case_readiness(available_skills=["monitor", "aria"])`` reported every evidence
 class unavailable and advised installing vmware-monitor — which was installed.
 The names come from this repo's own documents: references/event-envelope.md
 spells the sources ``monitor`` / ``aria`` / ``loginsight``, while

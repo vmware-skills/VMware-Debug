@@ -9,7 +9,7 @@ Two of them matter most:
 * **A failed call never comes back looking like an empty success.** A tool that
   returns ``{"items": []}`` when it actually failed is the family's costliest
   shape, wearing an envelope.
-* **``case_grade`` still cannot be told an answer.** The ops function refuses
+* **``grade_case`` still cannot be told an answer.** The ops function refuses
   one; so must the tool wrapping it, which is the surface a model can reach.
 """
 
@@ -31,15 +31,15 @@ def isolated_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def case():
-    cid = t.case_open(summary="vsan latency on cluster-01", determined_by="alarm 42", at=AT)[
+    cid = t.open_case(summary="vsan latency on cluster-01", determined_by="alarm 42", at=AT)[
         "case_id"
     ]
-    t.case_hypotheses(case_id=cid, statement="failing device")
+    t.record_case_hypothesis(case_id=cid, statement="failing device")
     return cid
 
 
 def submit(case, skill="vmware-monitor", **kw):
-    return t.case_submit_evidence(
+    return t.submit_case_evidence(
         case_id=case,
         source_skill=skill,
         source_tool="list_events",
@@ -55,38 +55,38 @@ class TestOpen:
         assert case.startswith("20260828-091500-vsan-latency")
 
     def test_tells_the_agent_what_to_do_next(self):
-        r = t.case_open(summary="x", determined_by="y", at=AT)
-        assert "case_submit_evidence" in r["next"]
+        r = t.open_case(summary="x", determined_by="y", at=AT)
+        assert "submit_case_evidence" in r["next"]
 
     def test_states_the_reachable_ceiling_up_front(self):
         """Design section 5: say what grade this environment can reach before
         the investigation starts, not after it stalls."""
-        r = t.case_open(summary="x", determined_by="y", at=AT)
+        r = t.open_case(summary="x", determined_by="y", at=AT)
         assert r["ceiling"] == "probable"
 
     def test_a_scope_with_no_basis_is_refused_with_a_usable_message(self):
         with pytest.raises(ValueError, match="determined_by"):
-            t.case_open(summary="x", determined_by="", at=AT)
+            t.open_case(summary="x", determined_by="", at=AT)
 
 
 class TestListAndGet:
     def test_list_uses_the_family_envelope(self, case):
-        r = t.case_list()
+        r = t.list_cases()
         assert set(r) >= {"items", "returned", "limit", "total", "truncated", "hint"}
         assert r["total"] == 1
 
     def test_list_is_empty_before_anything_is_opened(self):
-        assert t.case_list()["items"] == []
+        assert t.list_cases()["items"] == []
 
     def test_get_returns_the_ledger_counts_not_the_whole_ledger(self, case):
         submit(case)
-        r = t.case_get(case_id=case)
+        r = t.get_case(case_id=case)
         assert r["evidence_count"] == 1
         assert r["scope"]["summary"] == "vsan latency on cluster-01"
 
     def test_get_on_a_missing_case_raises_a_teaching_error(self):
-        with pytest.raises(Exception, match="case_list"):
-            t.case_get(case_id="20260828-091500-nope")
+        with pytest.raises(Exception, match="list_cases"):
+            t.get_case(case_id="20260828-091500-nope")
 
 
 class TestSubmitEvidence:
@@ -104,7 +104,7 @@ class TestSubmitEvidence:
 
     def test_evidence_with_no_source_is_refused(self, case):
         with pytest.raises(ValueError, match="source_skill"):
-            t.case_submit_evidence(
+            t.submit_case_evidence(
                 case_id=case,
                 source_skill="",
                 source_tool="x",
@@ -118,7 +118,7 @@ class TestRecordGap:
     def test_returns_the_assigned_id_and_the_resulting_grade(self, case):
         submit(case)
         submit(case, skill="vmware-log-insight")
-        r = t.case_record_gap(
+        r = t.record_case_gap(
             case_id=case,
             what="SMART counters",
             why="no BMC path",
@@ -131,7 +131,7 @@ class TestRecordGap:
     def test_a_gap_that_could_overturn_the_hypothesis_lowers_the_grade(self, case):
         submit(case)
         submit(case, skill="vmware-log-insight")
-        r = t.case_record_gap(
+        r = t.record_case_gap(
             case_id=case,
             what="firmware change log",
             why="no access",
@@ -144,21 +144,21 @@ class TestRecordGap:
 
 class TestGrade:
     def test_the_tool_cannot_be_told_the_answer(self):
-        params = set(inspect.signature(t.case_grade).parameters)
+        params = set(inspect.signature(t.grade_case).parameters)
         assert not params & {"grade", "level", "conclusion", "verdict", "rca"}
 
     def test_returns_the_grade_the_ceiling_and_the_reasoning(self, case):
-        r = t.case_grade(case_id=case, at="2026-08-28T09:30:00Z")
+        r = t.grade_case(case_id=case, at="2026-08-28T09:30:00Z")
         assert r["grade"] == "candidate"
         assert r["ceiling"] == "probable"
         assert r["reasons"] and r["ceiling_reasons"]
 
     def test_grading_is_recorded_so_the_history_survives(self, case):
-        t.case_grade(case_id=case, at="2026-08-28T09:30:00Z")
+        t.grade_case(case_id=case, at="2026-08-28T09:30:00Z")
         submit(case)
         submit(case, skill="vmware-log-insight")
-        t.case_grade(case_id=case, at="2026-08-28T10:00:00Z")
-        assert [h["grade"] for h in t.case_get(case_id=case)["grade_history"]] == [
+        t.grade_case(case_id=case, at="2026-08-28T10:00:00Z")
+        assert [h["grade"] for h in t.get_case(case_id=case)["grade_history"]] == [
             "candidate",
             "probable",
         ]
@@ -166,8 +166,8 @@ class TestGrade:
     def test_a_demotion_comes_back_labelled_as_one(self, case):
         submit(case)
         submit(case, skill="vmware-log-insight")
-        t.case_grade(case_id=case, at="2026-08-28T10:00:00Z")
-        t.case_record_gap(
+        t.grade_case(case_id=case, at="2026-08-28T10:00:00Z")
+        t.record_case_gap(
             case_id=case,
             what="firmware log",
             why="no access",
@@ -175,6 +175,6 @@ class TestGrade:
             how_to_close="ask",
             could_falsify=True,
         )
-        r = t.case_grade(case_id=case, at="2026-08-28T10:30:00Z")
+        r = t.grade_case(case_id=case, at="2026-08-28T10:30:00Z")
         assert r["direction"] == "down"
         assert r["previous"] == "probable"

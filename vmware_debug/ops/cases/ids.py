@@ -37,20 +37,20 @@ def validate_case_id(case_id: str) -> str:
     """
     if not isinstance(case_id, str) or not case_id.strip():
         raise CaseIdError(
-            "Case id is empty. Pass the id returned by case_open, or run "
-            "case_list to see the open cases."
+            "Case id is empty. Pass the id returned by open_case, or run "
+            "list_cases to see the open cases."
         )
     if len(case_id) > MAX_LEN:
         raise CaseIdError(
             f"Case id is {len(case_id)} characters, over the {MAX_LEN} limit. "
-            f"Pass the id returned by case_open, or run case_list to see it."
+            f"Pass the id returned by open_case, or run list_cases to see it."
         )
     if not _VALID.match(case_id):
         raise CaseIdError(
             f"Case id {case_id!r} is not a valid id: ids are lowercase letters, "
             f"digits and hyphens only (no slashes, dots or spaces), as produced "
-            f"by case_open — for example "
-            f"'20260828-091500-vsan-latency-on-cluster-01'. Run case_list to "
+            f"by open_case — for example "
+            f"'20260828-091500-vsan-latency-on-cluster-01'. Run list_cases to "
             f"see the ids that exist."
         )
     return case_id

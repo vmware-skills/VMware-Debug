@@ -20,11 +20,11 @@ classes:
     tools:
       - {tool: get_events, gives: "vCenter event stream for a window"}
       - {tool: get_alarms, gives: "active and recent alarms"}
-      - {tool: host_investigation_bundle, gives: "one host's correlated state"}
-      - {tool: vm_investigation_bundle, gives: "one VM's correlated state"}
-      - {tool: cluster_health_summary, gives: "cluster-wide health rollup"}
-      - {tool: vm_performance, gives: "per-VM counters over a window"}
-      - {tool: host_performance, gives: "per-host counters over a window"}
+      - {tool: investigate_host, gives: "one host's correlated state"}
+      - {tool: investigate_vm, gives: "one VM's correlated state"}
+      - {tool: get_cluster_health_summary, gives: "cluster-wide health rollup"}
+      - {tool: get_vm_performance, gives: "per-VM counters over a window"}
+      - {tool: get_host_performance, gives: "per-host counters over a window"}
 
   logs:
     label: Centralised logs
@@ -32,15 +32,15 @@ classes:
     decisive: false
     degraded_alternative:
       skill: vmware-monitor
-      tool: host_log_scan
+      tool: scan_host_logs
       note: >
         Without Log Insight, scan hosts one at a time. Slower and narrower —
         no cross-host correlation — but it is the difference between a thin
         answer and none.
     tools:
-      - {tool: log_search, gives: "raw log lines matching a query in a window"}
-      - {tool: log_aggregate, gives: "counts grouped by field, for spotting bursts"}
-      - {tool: alert_list, gives: "configured alerts and their state"}
+      - {tool: search_logs, gives: "raw log lines matching a query in a window"}
+      - {tool: aggregate_logs, gives: "counts grouped by field, for spotting bursts"}
+      - {tool: list_log_alerts, gives: "configured alerts and their state"}
 
   metrics_and_anomalies:
     label: Metrics, anomalies and capacity
@@ -58,9 +58,9 @@ classes:
     skill: vmware-storage
     decisive: false
     tools:
-      - {tool: vsan_health, gives: "vSAN health checks"}
-      - {tool: vsan_capacity, gives: "vSAN capacity and slack"}
-      - {tool: vsan_efficiency, gives: "dedup/compression ratios"}
+      - {tool: get_vsan_health, gives: "vSAN health checks"}
+      - {tool: get_vsan_capacity, gives: "vSAN capacity and slack"}
+      - {tool: get_vsan_efficiency, gives: "dedup/compression ratios"}
       - {tool: list_all_datastores, gives: "datastore capacity and accessibility"}
 
   network:
@@ -96,9 +96,9 @@ classes:
     skill: vmware-privateai
     decisive: false
     tools:
-      - {tool: gpu_host_list, gives: "hosts with GPUs and their devices"}
-      - {tool: gpu_utilization, gives: "GPU utilisation counters"}
-      - {tool: gpu_consumer_list, gives: "which VMs hold which vGPU profiles"}
+      - {tool: list_gpu_hosts, gives: "hosts with GPUs and their devices"}
+      - {tool: get_gpu_utilization, gives: "GPU utilisation counters"}
+      - {tool: list_gpu_consumers, gives: "which VMs hold which vGPU profiles"}
 
   kubernetes:
     label: Supervisor and Tanzu cluster state
@@ -110,14 +110,14 @@ classes:
       - {tool: list_namespace_storage_usage, gives: "namespace storage pressure"}
 
   # Same skill as virtualization_state, so never a second source for a monitor
-  # case. Separate only so a licensing plan asks for license_status and not
+  # case. Separate only so a licensing plan asks for get_license_status and not
   # for seven unrelated tools.
   license_state:
     label: License inventory and which asset holds which license
     skill: vmware-monitor
     decisive: false
     tools:
-      - {tool: license_status, gives: "license expiry, and the license assigned to each vCenter and host"}
+      - {tool: get_license_status, gives: "license expiry, and the license assigned to each vCenter and host"}
       - {tool: get_alarms, gives: "whether the license alarm is active, and whether its condition still holds"}
 
   collection_pipeline:
@@ -141,11 +141,11 @@ classes:
       - {tool: get_host_sensors, gives: "sensor readings per host, and hosts reporting none with their CIM Server state"}
       - {tool: get_host_services, gives: "whether sfcbd-watchdog (CIM Server) is running on the host"}
 
-  # Only reads vmware-aiops performs itself. Its cluster_health_summary,
-  # cross_vcenter_attention and *_investigation_bundle tools call
+  # Only reads vmware-aiops performs itself. Its get_cluster_health_summary,
+  # get_cross_vcenter_attention and investigate_* tools call
   # vmware-monitor's code; listed here they would be monitor's data counted as
   # a second, independent source.
-  # vm_task_status is left out on purpose: it takes a task id, a plan only has
+  # get_vm_task_status is left out on purpose: it takes a task id, a plan only has
   # VM names, and called with a name it answers "gone" with no error — a reply
   # that would count as a second source while saying nothing.
   vm_operations:
@@ -153,11 +153,11 @@ classes:
     skill: vmware-aiops
     decisive: false
     tools:
-      - {tool: vm_list_snapshots, gives: "the VM's snapshot tree"}
+      - {tool: list_vm_snapshots, gives: "the VM's snapshot tree"}
 
   # ── The two that do not exist ──────────────────────────────────────────
   # Both are decisive: either one can take a conclusion to Confirmed. Neither
-  # has a tool. Listing them empty is what lets case_readiness report an honest
+  # has a tool. Listing them empty is what lets get_case_readiness report an honest
   # ceiling instead of a ceiling nobody explained.
 
   hardware:

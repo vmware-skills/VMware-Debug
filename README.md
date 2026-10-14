@@ -27,25 +27,25 @@ The seven writes go to the local case ledger only; none reaches a VMware system.
 
 | Tool | What |
 |---|---|
-| `incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
+| `build_incident_timeline` | [READ] Correlate pre-fetched events → timeline + spikes + ranked hypotheses + next-check ideas |
 | `list_symptom_categories` | [READ] List recognised symptom categories + what to check for each |
 
 **Investigation ledger** — for an incident you will reason about over time:
 
 | Tool | What |
 |---|---|
-| `case_open` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
-| `case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
-| `case_knowledge` | [READ] Which knowledge formats are accepted, what is mounted, and which entries apply to a case |
-| `case_plan` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
-| `case_list` | [READ] Cases, newest first |
-| `case_get` | [READ] One case: scope, ledger sizes, grade history |
-| `case_hypotheses` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
-| `case_submit_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
-| `case_record_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
-| `case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
-| `case_grade` | [WRITE] Recompute the conclusion grade from the ledger and record it |
-| `case_close` | [WRITE] Record the final grade, archive, and name what was left open |
+| `open_case` | [WRITE] Define the event; returns a case id and the grade this environment can reach |
+| `get_case_readiness` | [READ] What grade this environment can reach, per symptom category, **before** you start |
+| `get_case_knowledge` | [READ] Which knowledge formats are accepted, what is mounted, and which entries apply to a case |
+| `plan_case` | [READ] What to fetch next — skill, tool and purpose per step; recomputed from the case's current state |
+| `list_cases` | [READ] Cases, newest first |
+| `get_case` | [READ] One case: scope, ledger sizes, grade history |
+| `record_case_hypothesis` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
+| `submit_case_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
+| `record_case_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
+| `get_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
+| `grade_case` | [WRITE] Recompute the conclusion grade from the ledger and record it |
+| `close_case` | [WRITE] Record the final grade, archive, and name what was left open |
 
 ## Offline / Air-Gapped Install (from source)
 

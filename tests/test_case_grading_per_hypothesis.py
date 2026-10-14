@@ -2,7 +2,7 @@
 
 2026-09-15, a real investigation of a vCenter app-health alert: two sources
 ruled out H2 (host memory reclaim) while the leading H1 stayed open behind three
-gaps. ``case_grade`` graded the whole case Excluded, which reads as "the answer
+gaps. ``grade_case`` graded the whole case Excluded, which reads as "the answer
 was ruled out". The investigator had to explain in prose that only H2 was.
 
 The first version of the fix over-corrected, and an independent review caught

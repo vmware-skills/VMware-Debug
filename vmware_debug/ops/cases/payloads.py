@@ -1,10 +1,10 @@
 """What counts as an event payload, and saying so where it is submitted.
 
-``case_submit_evidence`` took ``payload: Any`` and documented it as "the raw
+``submit_case_evidence`` took ``payload: Any`` and documented it as "the raw
 result". A tester submitted the summary dict from a get_events call —
 ``{"total": 3818, "by_type": {...}}`` — and it was accepted, recorded, and
 answered with a grade. Nothing said the timeline would never see it.
-``case_timeline`` then reported zero events and advised submitting the
+``get_case_timeline`` then reported zero events and advised submitting the
 get_events result with ``payload``, which is what they had just done.
 
 Two things were wrong and this module fixes the second, which is the one that
@@ -72,7 +72,7 @@ def payload_note(shape: PayloadShape) -> str:
     if shape.absent:
         return (
             "No payload was submitted, so this item adds nothing to "
-            "case_timeline. That is correct for evidence that is not an event "
+            "get_case_timeline. That is correct for evidence that is not an event "
             "stream — a knowledge citation, a configuration dump — and the item "
             "still counts as a source. Pass the read tool's raw result as "
             "`payload` if it returned events."
@@ -81,22 +81,22 @@ def payload_note(shape: PayloadShape) -> str:
         return (
             f"{len(shape.rows)} event row(s) read from "
             f"{'a bare list' if shape.carrier == 'list' else '`' + shape.carrier + '`'}; "
-            f"they will appear in case_timeline."
+            f"they will appear in get_case_timeline."
         )
     if shape.carrier:
         return (
             f"`{shape.carrier}` was present but held nothing, so this item adds "
-            f"no events to case_timeline. An empty result is a finding rather "
+            f"no events to get_case_timeline. An empty result is a finding rather "
             f"than a payload problem — if the query genuinely returned nothing, "
-            f"record it with case_record_gap so the grade reflects it."
+            f"record it with record_case_gap so the grade reflects it."
         )
     return (
         "payload carried no event rows, so this item adds nothing to "
-        "case_timeline — it is recorded and still counts as a source. Events "
+        "get_case_timeline — it is recorded and still counts as a source. Events "
         "are read from a bare list, or from `items` (the family list envelope), "
         "`events` or `rows`; this payload's top-level keys are "
         f"{', '.join(shape.keys) or '(none — it is not a mapping)'}. If this was "
-        "a get_events or log_search result, submit the tool's raw result rather "
+        "a get_events or search_logs result, submit the tool's raw result rather "
         "than a summary of it."
     )
 

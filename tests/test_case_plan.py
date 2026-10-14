@@ -119,7 +119,7 @@ class TestItRespondsToWhatIsAlreadyIn:
             submitted(case, skill)
         r = plan_next(case)
         assert r["steps"] == []
-        assert "grade" in r["note"].lower() or "case_grade" in r["note"]
+        assert "grade" in r["note"].lower() or "grade_case" in r["note"]
 
 
 class TestUnavailableSourcesAreNamedNotOmitted:

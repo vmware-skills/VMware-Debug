@@ -1,3 +1,42 @@
+## v2.0.0 — MCP tools renamed verb-first
+
+Every MCP tool in the VMware skill family now follows one naming convention: the verb comes first
+(`open_…`, `get_…`, `record_…`, `build_…`), followed by what it acts on. Where two skills would
+otherwise expose the same name, the tool carries a domain word — here `case`, so the ledger tools read
+`open_case`, `grade_case`, `record_case_gap`. 13 of this skill's 14 tools are renamed;
+`list_symptom_categories` already led with its verb. Parameters, annotations, the `sensitive_params` /
+`sensitive_result` declarations and behaviour are unchanged; only the names move.
+`record_case_hypothesis` still reads the hypothesis ledger, writing nothing, when called without a
+`statement` — its description now says so in its first sentence.
+
+| Old name | New name |
+|---|---|
+| `case_close` | `close_case` |
+| `case_get` | `get_case` |
+| `case_grade` | `grade_case` |
+| `case_hypotheses` | `record_case_hypothesis` |
+| `case_knowledge` | `get_case_knowledge` |
+| `case_list` | `list_cases` |
+| `case_open` | `open_case` |
+| `case_plan` | `plan_case` |
+| `case_readiness` | `get_case_readiness` |
+| `case_record_gap` | `record_case_gap` |
+| `case_submit_evidence` | `submit_case_evidence` |
+| `case_timeline` | `get_case_timeline` |
+| `incident_timeline` | `build_incident_timeline` |
+
+**Sibling tools are cited by their 2.0 names.** The evidence-source catalogue
+(`rules/evidence_sources.yaml`), the symptom routing table, `plan_case` steps, teaching errors, and the
+docs now name the other skills' tools by their new names (`get_events` → unchanged, `log_search` →
+`search_logs`, `vsan_health` → `get_vsan_health`, `host_investigation_bundle` → `investigate_host`, …),
+so a plan step is a tool the 2.0 servers actually register.
+
+**CLI commands are unchanged** (`vmware-debug triage`, `vmware-debug categories`). `triage`'s audit row
+records its MCP twin's name, so those rows now carry `build_incident_timeline`.
+
+**Deny rules** in `~/.vmware/rules.yaml` written with old names keep working with vmware-policy ≥ 1.18.0
+(it matches both names); `vmware-audit policy` lists any rule that now matches more.
+
 ## v1.13.2 — auth diagnosis never reads or records a secret
 
 Docs only; no code change.

@@ -1,8 +1,8 @@
 """The last two steps: build the timeline from the ledger, and close the case.
 
-`case_timeline` (steps 04/05) reuses the correlation engine this skill already
+`get_case_timeline` (steps 04/05) reuses the correlation engine this skill already
 had — the difference is that it reads the evidence a case has collected instead
-of taking a payload the caller assembled. `case_close` (step 08) archives.
+of taking a payload the caller assembled. `close_case` (step 08) archives.
 
 The properties that matter are about honesty at the boundaries:
 

@@ -127,7 +127,7 @@ def parse_timestamp(raw: object) -> float:
             f"unparseable timestamp: {raw!r} — a bool is not a time. Set the event's "
             "'ts' field to an ISO-8601 string, epoch seconds, or epoch millis "
             "(e.g. '2026-07-20T14:03:00Z' or 1784908980), then re-run "
-            "incident_timeline."
+            "build_incident_timeline."
         )
     if isinstance(raw, (int, float)):
         value = float(raw)
@@ -140,7 +140,7 @@ def parse_timestamp(raw: object) -> float:
                 "usually means a bare year (2020) or a truncated value was passed "
                 "instead of a real epoch. Set 'ts' to full epoch seconds/millis or "
                 "an ISO-8601 string (e.g. '2026-07-20T14:03:00Z'), then re-run "
-                "incident_timeline."
+                "build_incident_timeline."
             )
         return value
     if isinstance(raw, str):
@@ -151,7 +151,7 @@ def parse_timestamp(raw: object) -> float:
                 "ISO-8601 string, epoch seconds, or epoch millis (e.g. "
                 "'2026-07-20T14:03:00Z'). Copy 'ts' from the source event as the "
                 "producing skill returned it — vmware-monitor, vmware-aria and "
-                "vmware-log-insight all carry one — then re-run incident_timeline."
+                "vmware-log-insight all carry one — then re-run build_incident_timeline."
             )
         # ISO-8601 first (so "2020-..." is a date, not epoch 2020).
         try:
@@ -181,7 +181,7 @@ def parse_timestamp(raw: object) -> float:
         f"unparseable timestamp of type {type(raw).__name__}. 'ts' must be "
         "an ISO-8601 string, epoch seconds, or epoch millis — e.g. "
         "'2026-07-20T14:03:00Z' or 1784908980. Convert that value before passing "
-        f"the event to incident_timeline. Got: {_short_repr(raw)}"
+        f"the event to build_incident_timeline. Got: {_short_repr(raw)}"
     )
 
 
@@ -204,7 +204,7 @@ def normalize_event(raw: dict, source: str | None = None) -> Event:
     if ts_raw is None:
         # Remedy before evidence: `raw` is a whole caller-supplied event, the
         # one part of this message whose length this code does not control.
-        # No "re-run incident_timeline" here — normalize_events always wraps
+        # No "re-run build_incident_timeline" here — normalize_events always wraps
         # this text and says it, and saying it twice is what pushed the
         # composed message past the cap.
         raise ValueError(
@@ -254,7 +254,7 @@ def normalize_events(raw_events: list[dict], source: str | None = None) -> list[
             # takes evidence rather than instructions.
             raise ValueError(
                 f"event[{i}] could not be normalised — fix or remove that entry "
-                "and call incident_timeline again. Normalisation stops at the "
+                "and call build_incident_timeline again. Normalisation stops at the "
                 f"first bad event, so later entries are unchecked. Cause: {exc}"
             ) from exc
     return out

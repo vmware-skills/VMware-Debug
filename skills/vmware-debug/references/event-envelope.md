@@ -2,7 +2,7 @@
 
 This is the contract between `vmware-debug` and every data-source skill. The
 orchestrating agent fetches events with each skill's own read tools, normalises
-each into this shape, and passes the list to `incident_timeline`. Debug has **no
+each into this shape, and passes the list to `build_incident_timeline`. Debug has **no
 runtime dependency** on the other packages (no version lockstep, no heavy install).
 
 ## Shape
@@ -22,7 +22,7 @@ runtime dependency** on the other packages (no version lockstep, no heavy instal
 | Field | Type | Notes |
 |---|---|---|
 | `ts` | string \| number | ISO-8601, epoch **seconds**, or epoch **millis** (auto-detected). Required. |
-| `source` | string | `monitor` \| `aria` \| `loginsight` \| `nsx` \| `nsx-security` \| `storage` \| ... The catalogue in `rules/evidence_sources.yaml` spells the same skills `vmware-monitor`, `vmware-aria`, `vmware-log-insight`. Both spellings are understood wherever a skill is named — `case_readiness(available_skills=...)`, and the grader's count of independent sources, which treats two spellings of one skill as one source. |
+| `source` | string | `monitor` \| `aria` \| `loginsight` \| `nsx` \| `nsx-security` \| `storage` \| ... The catalogue in `rules/evidence_sources.yaml` spells the same skills `vmware-monitor`, `vmware-aria`, `vmware-log-insight`. Both spellings are understood wherever a skill is named — `get_case_readiness(available_skills=...)`, and the grader's count of independent sources, which treats two spellings of one skill as one source. |
 | `severity` | string | Free text; normalised to `critical`/`error`/`warning`/`info`/`unknown`. |
 | `entity` | string | The object the event is about (VM/host/datastore). May be empty. |
 | `text` | string | Human-readable message. Matched by the symptom classifier. |
@@ -55,7 +55,7 @@ sources map with little or no adaptation.
 | vmware-monitor `event_list` | `createdTime` | `severity` | `vm`/`host` | `fullFormattedMessage` |
 | vmware-aria `alert_query` | `startTimeUTC` | `criticality` | `resourceName` | `alertDefinitionName` |
 | vmware-aria `anomaly` | `timestamp` | (derive) | `resourceName` | stat + value |
-| vmware-log-insight `log_search` | `timestamp` | `severity`/derive | `hostname` | `text` |
+| vmware-log-insight `search_logs` | `timestamp` | `severity`/derive | `hostname` | `text` |
 | vmware-nsx (firewall/traceflow) | `time` | (derive) | src/dst | rule/verdict |
 
 ## Why this design

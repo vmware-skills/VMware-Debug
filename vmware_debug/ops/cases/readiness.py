@@ -97,7 +97,7 @@ def _class_state(name: str, spec: dict, installed: set[str] | None) -> dict[str,
         "backed_by": None,
         "decisive": bool(spec.get("decisive")),
         "absent_because": f"{skill} is not among the available skills.",
-        "how_to_supply": f"Install and configure {skill}, then re-run case_readiness.",
+        "how_to_supply": f"Install and configure {skill}, then re-run get_case_readiness.",
     }
 
 

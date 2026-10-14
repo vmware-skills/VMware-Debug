@@ -1,7 +1,7 @@
 """Steps 04/05 and 08 — build the timeline from the ledger, and close the case.
 
 ``build_case_timeline`` reuses the correlation engine this skill already had.
-The difference from ``incident_timeline`` is where the events come from: a case
+The difference from ``build_incident_timeline`` is where the events come from: a case
 has already collected them, each stamped with the tool and query that produced
 it, so the timeline can be rebuilt from the folder alone months later.
 
@@ -95,7 +95,7 @@ def _note(evidence_count: int, event_count: int, without: list[str], rejected: l
     if evidence_count == 0:
         return (
             "No evidence has been submitted, so there is no timeline to build. "
-            "Run case_plan for what to fetch, then case_submit_evidence with the "
+            "Run plan_case for what to fetch, then submit_case_evidence with the "
             "results — pass the raw result as `payload` for it to appear here."
         )
     if event_count == 0:
@@ -106,7 +106,7 @@ def _note(evidence_count: int, event_count: int, without: list[str], rejected: l
             f"list, or from `items` (the family list envelope), `events` or "
             f"`rows` in the submitted payload — submit the read tool's raw "
             f"result rather than a summary of it. A query that genuinely "
-            f"returned nothing belongs in case_record_gap, not here."
+            f"returned nothing belongs in record_case_gap, not here."
         )
     tail = ""
     if without:

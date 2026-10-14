@@ -276,7 +276,7 @@ def _artifact_matcher(tools, cli_commands=_UNSET) -> Callable[[str], bool]:
     messages against.
 
     Tool names match on word boundaries rather than as substrings. Plain
-    ``in`` would credit ``cluster_infos`` because ``cluster_info`` is a prefix
+    ``in`` would credit ``get_cluster_infos`` because ``get_cluster_info`` is a prefix
     of it, which reintroduces the phantom-tool hole this function exists to
     close — the same defect wearing a different name. Static markers stay
     substring-matched: ``--``, ``.env`` and ``config.yaml`` have no word

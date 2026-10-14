@@ -5,12 +5,12 @@
       "detail": {
         "broken_chains": [],
         "entry_points": [
-          "incident_timeline",
+          "build_incident_timeline",
           "list_symptom_categories",
-          "case_open",
-          "case_list",
-          "case_readiness",
-          "case_knowledge"
+          "open_case",
+          "list_cases",
+          "get_case_readiness",
+          "get_case_knowledge"
         ],
         "reachable_on_surface": 8,
         "reachable_only_via_description": 0,
@@ -27,7 +27,7 @@
       "detail": {
         "broken_chains": [],
         "entry_points": [
-          "incident_timeline",
+          "build_incident_timeline",
           "list_symptom_categories"
         ],
         "reachable_on_surface": 0,
@@ -193,11 +193,11 @@
     "manifest_context_headroom": {
       "detail": {
         "heaviest_tools": {
-          "case_open": 521,
-          "case_plan": 502,
-          "case_record_gap": 410,
-          "case_submit_evidence": 971,
-          "incident_timeline": 521
+          "open_case": 521,
+          "plan_case": 502,
+          "record_case_gap": 410,
+          "submit_case_evidence": 971,
+          "build_incident_timeline": 521
         },
         "manifest_tokens": 5215,
         "mean_tokens_per_tool": 372.5,
@@ -213,25 +213,25 @@
       "detail": {
         "undocumented_by_tool": {},
         "value_set_candidates": {
-          "case_open.objects": [
+          "open_case.objects": [
             "host-12",
             "vm-web01"
           ],
-          "case_plan.available_skills": [
+          "plan_case.available_skills": [
             "monitor",
             "vmware-monitor"
           ],
-          "case_readiness.available_skills": [
+          "get_case_readiness.available_skills": [
             "monitor",
             "unrecognised_skills",
             "vmware-monitor"
           ],
-          "case_submit_evidence.payload": [
+          "submit_case_evidence.payload": [
             "events",
             "items",
             "rows"
           ],
-          "case_submit_evidence.time_source": [
+          "submit_case_evidence.time_source": [
             "client",
             "host",
             "vcenter"
@@ -247,12 +247,12 @@
       "detail": {
         "ceiling": 350,
         "over_ceiling": {
-          "case_open": 521,
-          "case_plan": 502,
-          "case_record_gap": 410,
-          "case_submit_evidence": 971,
-          "case_timeline": 393,
-          "incident_timeline": 521
+          "open_case": 521,
+          "plan_case": 502,
+          "record_case_gap": 410,
+          "submit_case_evidence": 971,
+          "get_case_timeline": 393,
+          "build_incident_timeline": 521
         }
       },
       "maximum": 14,
@@ -324,27 +324,27 @@
         },
         "tools_graded": 14,
         "weakest_tools": {
-          "case_close": [
+          "close_case": [
             "next_hop"
           ],
-          "case_get": [
+          "get_case": [
             "gotcha"
           ],
-          "case_grade": [
+          "grade_case": [
             "next_hop"
           ],
-          "case_hypotheses": [],
-          "case_knowledge": [
+          "record_case_hypothesis": [],
+          "get_case_knowledge": [
             "next_hop"
           ],
-          "case_list": [
+          "list_cases": [
             "gotcha",
             "next_hop"
           ],
-          "case_readiness": [
+          "get_case_readiness": [
             "next_hop"
           ],
-          "case_record_gap": [
+          "record_case_gap": [
             "next_hop",
             "when"
           ]

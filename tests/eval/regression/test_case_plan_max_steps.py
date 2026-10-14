@@ -1,4 +1,4 @@
-"""``case_plan(max_steps=...)`` has to reach the planner that implements it.
+"""``plan_case(max_steps=...)`` has to reach the planner that implements it.
 
 The MCP tool declared the parameter, validated nothing, and then called
 ``api.plan()`` without it. Every plan came back at the ops layer's default of 6
@@ -44,8 +44,8 @@ def case_id():
 
 
 @pytest.fixture
-def case_plan(mcp_tool):
-    return mcp_tool("case_plan")
+def plan_case(mcp_tool):
+    return mcp_tool("plan_case")
 
 
 @pytest.fixture
@@ -65,28 +65,28 @@ def mcp_tool():
 
 
 class TestMaxStepsReachesThePlanner:
-    def test_the_fixture_has_more_steps_than_the_default_shows(self, case_id, case_plan):
+    def test_the_fixture_has_more_steps_than_the_default_shows(self, case_id, plan_case):
         """Positive control. Without this the two tests below are vacuous."""
-        default = case_plan(case_id=case_id)
+        default = plan_case(case_id=case_id)
         assert len(default["steps"]) == DEFAULT_MAX_STEPS
         assert default["held_back"] > 0, (
             "this case has nothing held back, so raising the cap could not "
             "change the answer and the tests below would pass on broken wiring"
         )
 
-    def test_raising_the_cap_returns_more_steps(self, case_id, case_plan):
-        raised = case_plan(case_id=case_id, max_steps=50)
+    def test_raising_the_cap_returns_more_steps(self, case_id, plan_case):
+        raised = plan_case(case_id=case_id, max_steps=50)
         assert len(raised["steps"]) > DEFAULT_MAX_STEPS
         assert raised["held_back"] == 0
 
-    def test_omitting_it_still_gets_the_default(self, case_id, case_plan):
+    def test_omitting_it_still_gets_the_default(self, case_id, plan_case):
         """Control: the default is the default, not 'whatever was passed last'."""
-        assert len(case_plan(case_id=case_id)["steps"]) == DEFAULT_MAX_STEPS
+        assert len(plan_case(case_id=case_id)["steps"]) == DEFAULT_MAX_STEPS
 
-    def test_lowering_the_cap_holds_more_back(self, case_id, case_plan):
-        lowered = case_plan(case_id=case_id, max_steps=2)
+    def test_lowering_the_cap_holds_more_back(self, case_id, plan_case):
+        lowered = plan_case(case_id=case_id, max_steps=2)
         assert len(lowered["steps"]) == 2
-        assert lowered["held_back"] > case_plan(case_id=case_id)["held_back"]
+        assert lowered["held_back"] > plan_case(case_id=case_id)["held_back"]
 
 
 class TestTheDefaultIsOneNumberInOnePlace:
@@ -100,7 +100,7 @@ class TestTheDefaultIsOneNumberInOnePlace:
     def test_the_mcp_tool_default_is_the_planner_constant(self, mcp_tool):
         import inspect
 
-        default = inspect.signature(mcp_tool("case_plan")).parameters["max_steps"].default
+        default = inspect.signature(mcp_tool("plan_case")).parameters["max_steps"].default
         assert default == DEFAULT_MAX_STEPS
 
     def test_the_api_layer_default_is_the_planner_constant(self, case_id):
@@ -113,13 +113,13 @@ class TestTheDefaultIsOneNumberInOnePlace:
 
 class TestTheNoteTellsTheTruth:
     def test_the_note_advises_raising_the_cap_only_when_that_would_help(
-        self, case_id, case_plan
+        self, case_id, plan_case
     ):
-        held = case_plan(case_id=case_id)
+        held = plan_case(case_id=case_id)
         assert held["held_back"] > 0
         assert "max_steps" in held["note"]
 
-        exhausted = case_plan(case_id=case_id, max_steps=50)
+        exhausted = plan_case(case_id=case_id, max_steps=50)
         assert exhausted["held_back"] == 0
         assert "max_steps" not in exhausted["note"], (
             "the note offers a cap raise on a plan that is already complete"
@@ -132,24 +132,24 @@ class TestTheNoteTellsTheTruth:
         so a stale "HAS NO EFFECT" sentence is not a comment — it is shipped
         instruction, and a model that reads it will never raise the cap.
         """
-        doc = mcp_tool("case_plan").__doc__
+        doc = mcp_tool("plan_case").__doc__
         assert "HAS NO EFFECT" not in doc
         assert "never forwarded" not in doc
 
 
 class TestOutOfRangeIsRefusedNotSilentlyObeyed:
-    def test_zero_is_refused_rather_than_returning_an_empty_plan(self, case_id, case_plan):
+    def test_zero_is_refused_rather_than_returning_an_empty_plan(self, case_id, plan_case):
         """An empty plan means "nothing left to fetch". It must not also mean
         "you passed a nonsense cap", because those need opposite responses."""
-        result = case_plan(case_id=case_id, max_steps=0)
+        result = plan_case(case_id=case_id, max_steps=0)
         assert "error" in result
         assert "max_steps" in result["error"]
 
-    def test_negative_is_refused(self, case_id, case_plan):
+    def test_negative_is_refused(self, case_id, plan_case):
         """``ordered[:-3]`` silently drops the last three steps — a plausible
         list, wrong contents, no error anywhere."""
-        assert "error" in case_plan(case_id=case_id, max_steps=-3)
+        assert "error" in plan_case(case_id=case_id, max_steps=-3)
 
-    def test_the_refusal_names_the_range(self, case_id, case_plan):
-        error = case_plan(case_id=case_id, max_steps=0)["error"]
+    def test_the_refusal_names_the_range(self, case_id, plan_case):
+        error = plan_case(case_id=case_id, max_steps=0)["error"]
         assert "1" in error
