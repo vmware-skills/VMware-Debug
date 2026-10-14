@@ -10,6 +10,13 @@ VMware skill 家族的**诊断大脑**。你给出症状（报错、日志、变
 它**从不触碰 vSphere**——不连接任何东西，也从不执行修复；唯一的写入是 `$OPS_HOME` 下的本地案卷。修复一律路由给 vmware-aiops（单步）或
 vmware-pilot（多步、带审批门控），完全复刻 vmware-harden → vmware-pilot 的「顾问/执行」分工。
 
+## 升级到 2.0
+
+2.0 把 13 个 MCP 工具改成动词在前（例如 `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`），完整的新旧名对照表见
+[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。其他都不变：工具、参数、安全确认门和 CLI 命令都一样。
+如果 agent 提示词、脚本或 `~/.vmware/rules.yaml` 里写了工具名，请改成新名——不过用旧名写的 deny 规则在
+vmware-policy ≥ 1.18 下仍然生效（`vmware-audit policy` 会列出因改名而多匹配的规则），vmware-pilot ≥ 1.13 也会自动转换已保存工作流里的旧名。
+
 ## 配套 Skill
 
 | 需求 | Skill |
