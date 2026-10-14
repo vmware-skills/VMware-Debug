@@ -34,7 +34,7 @@ so a plan step is a tool the 2.0 servers actually register.
 **CLI commands are unchanged** (`vmware-debug triage`, `vmware-debug categories`). `triage`'s audit row
 records its MCP twin's name, so those rows now carry `build_incident_timeline`.
 
-**Deny rules** in `~/.vmware/rules.yaml` written with old names keep working with vmware-policy ≥ 1.18.0
+**Deny rules** in `~/.vmware/rules.yaml` written with old names keep working with vmware-policy ≥ 1.18.1 (1.18.1 carries `case_timeline` → `record_case_timeline`)
 (it matches both names); `vmware-audit policy` lists any rule that now matches more.
 
 ## v1.13.2 — auth diagnosis never reads or records a secret

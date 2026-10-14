@@ -82,7 +82,7 @@ a recommended plan.
 ## Common Workflows
 
 ### 1. "Here's a pile of logs / alarms — what broke?"
-1. Collect events with the data-source skills (e.g. `vmware-monitor get_events --vm web01 --since 1h`, `vmware-log-insight search_logs ...`, `vmware-aria list_alerts ...`).
+1. Collect events with the data-source skills (e.g. MCP tools vmware-monitor `get_events`, vmware-log-insight `search_logs`, vmware-aria `list_alerts`).
 2. Pass them all to **`build_incident_timeline`** (envelope below). Read the top hypothesis + `next_checks`.
 3. Follow `next_checks` to pull more targeted data; re-run `build_incident_timeline` to confirm.
 4. **Failure branch — no events come back:** the affected target may be unreachable. Run the source skill's `doctor`/health first; a 503/timeout is a *signal* (platform not ready), not a dead end.

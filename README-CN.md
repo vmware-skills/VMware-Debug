@@ -15,7 +15,7 @@ vmware-pilot（多步、带审批门控），完全复刻 vmware-harden → vmwa
 2.0 把 13 个 MCP 工具改成动词在前（例如 `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`），完整的新旧名对照表见
 [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。其他都不变：工具、参数、安全确认门和 CLI 命令都一样。
 如果 agent 提示词、脚本或 `~/.vmware/rules.yaml` 里写了工具名，请改成新名——不过用旧名写的 deny 规则在
-vmware-policy ≥ 1.18 下仍然生效（`vmware-audit policy` 会列出因改名而多匹配的规则），vmware-pilot ≥ 1.13 也会自动转换已保存工作流里的旧名。
+vmware-policy ≥ 1.18.1 下仍然生效（`vmware-audit policy` 会列出因改名而多匹配的规则），vmware-pilot ≥ 1.13 也会自动转换已保存工作流里的旧名。
 
 ## 配套 Skill
 

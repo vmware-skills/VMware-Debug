@@ -24,7 +24,7 @@ methodology, the event-envelope contract, and symptom routing.
 2.0 renames 13 MCP tools so every name starts with a verb (e.g. `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`). The full old → new table is in
 [RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first). Nothing else changes: same tools, parameters,
 safety gates and CLI commands. If an agent prompt, script or `~/.vmware/rules.yaml` names a tool, update it — though deny
-rules written with the old names keep working with vmware-policy ≥ 1.18 (`vmware-audit policy` lists any rule the
+rules written with the old names keep working with vmware-policy ≥ 1.18.1 (`vmware-audit policy` lists any rule the
 renames widened), and vmware-pilot ≥ 1.13 translates old names in saved workflows.
 
 ## MCP tools (14 — 7 read, 7 write)
