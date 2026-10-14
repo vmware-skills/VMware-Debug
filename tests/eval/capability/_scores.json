@@ -251,7 +251,7 @@
           "plan_case": 502,
           "record_case_gap": 410,
           "submit_case_evidence": 971,
-          "get_case_timeline": 393,
+          "record_case_timeline": 393,
           "build_incident_timeline": 521
         }
       },

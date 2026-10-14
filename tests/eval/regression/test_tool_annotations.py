@@ -28,7 +28,7 @@ _LEDGER_WRITERS = {
     "record_case_gap",
     "grade_case",
     "record_case_hypothesis",
-    "get_case_timeline",
+    "record_case_timeline",
     "close_case",
 }
 

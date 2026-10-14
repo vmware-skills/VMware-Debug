@@ -14,7 +14,7 @@ when the calls had really been made or which had failed. Large data the caller
 hands over (``payload``, ``events``) is kept out of the row via
 ``sensitive_params``; it lives in the ledger or with the caller. The two tools
 whose *result* quotes that event text — ``build_incident_timeline`` and
-``get_case_timeline`` (``hypotheses[].sample_text``, ``unmatched_samples``,
+``record_case_timeline`` (``hypotheses[].sample_text``, ``unmatched_samples``,
 ``rejected``) — declare ``sensitive_result``, so their row keeps the call, the
 arguments and the status but not the result body: event text fetched from
 vCenter or a log can carry anything, credentials included (review D3,
@@ -436,7 +436,7 @@ def build_server() -> FastMCP:
         reasons} — the resulting grade, so you need no second call to see
         whether this changed anything, and what the payload was read as, so a
         summary submitted in place of a result is visible here rather than as a
-        zero from get_case_timeline later.
+        zero from record_case_timeline later.
 
         GOTCHAS: a fetch that failed or came back empty goes to record_case_gap,
         not here.
@@ -479,7 +479,7 @@ def build_server() -> FastMCP:
                 counts as ordinary support and can never make the case
                 Confirmed. get_case_knowledge lists what is mounted.
             payload: The read tool's RAW result, not a summary. For its events
-                to reach get_case_timeline it must be a list of event dicts, or
+                to reach record_case_timeline it must be a list of event dicts, or
                 carry them under 'items', 'events' or 'rows'. What was found
                 comes back as payload_events/payload_note.
         """
@@ -741,9 +741,9 @@ def build_server() -> FastMCP:
         except Exception as exc:
             return _case_error(exc, "record_case_hypothesis")
 
-    @server.tool(name="get_case_timeline", annotations=_WRITE_LOCAL)
+    @server.tool(name="record_case_timeline", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low", sensitive_result=True)
-    def get_case_timeline(
+    def record_case_timeline(
         case_id: str,
         bin_seconds: Optional[float] = None,
         z_threshold: float = 2.0,
@@ -783,14 +783,14 @@ def build_server() -> FastMCP:
                 capped separately at 20, true count in 'spikes_total'.
         """
         try:
-            return t.get_case_timeline(
+            return t.record_case_timeline(
                 case_id=case_id,
                 bin_seconds=bin_seconds,
                 z_threshold=z_threshold,
                 top_n=top_n,
             )
         except Exception as exc:
-            return _case_error(exc, "get_case_timeline")
+            return _case_error(exc, "record_case_timeline")
 
     @server.tool(name="close_case", annotations=_WRITE_LOCAL)
     @vmware_tool(risk_level="low")

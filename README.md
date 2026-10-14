@@ -43,7 +43,7 @@ The seven writes go to the local case ledger only; none reaches a VMware system.
 | `record_case_hypothesis` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
 | `submit_case_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
 | `record_case_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
-| `get_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
+| `record_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
 | `grade_case` | [WRITE] Recompute the conclusion grade from the ledger and record it |
 | `close_case` | [WRITE] Record the final grade, archive, and name what was left open |
 

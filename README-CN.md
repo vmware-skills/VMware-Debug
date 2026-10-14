@@ -47,7 +47,7 @@ vmware-debug categories          # 看它能诊断哪些症状类别
 - `record_case_hypothesis`：[WRITE] 登记一个候选解释，或读取各假设的支持/反驳账本
 - `submit_case_evidence`：[WRITE] 记录一条取到的事实，连同来源、查询和时间基准
 - `record_case_gap`：[WRITE] 记录**没能**取到的东西，以及如何补上
-- `get_case_timeline`：[WRITE] 把案卷收集到的一切关联成一条时间线
+- `record_case_timeline`：[WRITE] 把案卷收集到的一切关联成一条时间线
 - `grade_case`：[WRITE] 从账本重算结论等级并记录
 - `close_case`：[WRITE] 记录最终等级、归档，并写明留下了哪些未决项
 

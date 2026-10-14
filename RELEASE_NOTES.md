@@ -22,7 +22,7 @@ otherwise expose the same name, the tool carries a domain word — here `case`, 
 | `case_readiness` | `get_case_readiness` |
 | `case_record_gap` | `record_case_gap` |
 | `case_submit_evidence` | `submit_case_evidence` |
-| `case_timeline` | `get_case_timeline` |
+| `case_timeline` | `record_case_timeline` |
 | `incident_timeline` | `build_incident_timeline` |
 
 **Sibling tools are cited by their 2.0 names.** The evidence-source catalogue

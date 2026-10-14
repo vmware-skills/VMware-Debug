@@ -75,7 +75,7 @@ routes fixes to (vmware-aiops, vmware-pilot).
 7. **Audit row contents** — one row per call in `~/.vmware/audit.db`: tool,
    time, OS user, detected agent, arguments, status and result. `payload` and
    `events` are stored as `***`. The results of `build_incident_timeline` and
-   `get_case_timeline` are not stored (`[redacted: return value declared
+   `record_case_timeline` are not stored (`[redacted: return value declared
    sensitive]`) because they quote event text; other results are stored after
    credential scrubbing. The status is still truthful — a call that returns
    `{"error": …}` is `error`.

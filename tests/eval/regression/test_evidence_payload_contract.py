@@ -1,9 +1,9 @@
-"""What `payload` has to be for get_case_timeline to see it, said at the time.
+"""What `payload` has to be for record_case_timeline to see it, said at the time.
 
 The tester submitted the summary dict from a get_events call — ``{"total": 3818,
 "by_type": {...}}`` — as the payload. It was accepted, recorded, and reported
 back a grade, and nothing anywhere said the timeline would never see it.
-get_case_timeline then answered zero events with the hint "submit the get_events
+record_case_timeline then answered zero events with the hint "submit the get_events
 result with `payload`", which is what they had just done.
 
 Two things were missing and both are pinned here. The contract was undocumented
@@ -109,16 +109,16 @@ class TestControls:
 
     def test_the_timeline_still_builds_from_a_real_payload(self, case):
         submit(case, {"items": [EVENT]})
-        assert t.get_case_timeline(case_id=case)["event_count"] == 1
+        assert t.record_case_timeline(case_id=case)["event_count"] == 1
 
 
 class TestTheTimelineSaysWhichItemsCarriedNothing:
     def test_it_names_the_items_and_what_they_held(self, case):
         submit(case, {"total": 3818, "by_type": {}})
-        note = t.get_case_timeline(case_id=case)["note"]
+        note = t.record_case_timeline(case_id=case)["note"]
         assert "E001" in note
         assert "total" in note
 
     def test_control_a_populated_timeline_does_not_carry_the_complaint(self, case):
         submit(case, {"items": [EVENT]})
-        assert "E001" not in t.get_case_timeline(case_id=case)["note"]
+        assert "E001" not in t.record_case_timeline(case_id=case)["note"]

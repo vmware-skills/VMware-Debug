@@ -140,12 +140,12 @@ def submit_evidence(
     """Step 02/03. Record one retrieved fact and report where that leaves the case.
 
     ``payload`` is the read tool's raw result. For its events to reach
-    get_case_timeline it has to be a list of event dicts, or a mapping carrying them
+    record_case_timeline it has to be a list of event dicts, or a mapping carrying them
     under ``items`` (the family list envelope), ``events`` or ``rows``; what was
     found is reported back as ``payload_events`` and ``payload_note``. This is
     the only moment at which a summary submitted in place of a result is
     knowable, and it used to pass unremarked — the mismatch then surfaced at
-    get_case_timeline as a zero, advising the caller to do what they had just done.
+    record_case_timeline as a zero, advising the caller to do what they had just done.
     """
     shape = inspect_payload(payload)
     item = Evidence(

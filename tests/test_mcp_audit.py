@@ -39,7 +39,7 @@ EXPECTED_TOOLS = {
     "get_case_readiness",
     "plan_case",
     "record_case_hypothesis",
-    "get_case_timeline",
+    "record_case_timeline",
     "close_case",
     "get_case_knowledge",
 }
@@ -199,12 +199,12 @@ EVENT_MARKER = "EVENT-TEXT-MARKER-7d21"
 #: Tools whose result quotes event text the caller fetched from another system —
 #: vCenter event messages, log lines — which can carry anything, credentials
 #: included. build_incident_timeline returns it as hypotheses[].sample_text and
-#: classification.unmatched_samples; get_case_timeline returns the same structure
+#: classification.unmatched_samples; record_case_timeline returns the same structure
 #: rebuilt from the ledger, plus `rejected` entries that quote the offending row.
 #: Every other tool returns ids, counts, grades and text the caller wrote as an
 #: argument (a summary, a hypothesis statement, a gap's how_to_close), which the
 #: row already holds in `params`.
-SENSITIVE_RESULT_TOOLS = {"build_incident_timeline", "get_case_timeline"}
+SENSITIVE_RESULT_TOOLS = {"build_incident_timeline", "record_case_timeline"}
 
 
 def _events(text: str) -> list[dict]:
@@ -256,10 +256,10 @@ def test_case_timeline_result_body_is_not_copied(server) -> None:
         },
     )
 
-    returned = _structured(call(server, "get_case_timeline", {"case_id": case_id}))
+    returned = _structured(call(server, "record_case_timeline", {"case_id": case_id}))
 
     assert returned["event_count"] == 1
-    found = rows("get_case_timeline")
+    found = rows("record_case_timeline")
     assert len(found) == 1
     assert found[0]["status"] == "ok"
     assert EVENT_MARKER not in found[0]["result"], "event text was copied into audit.db"
@@ -267,8 +267,8 @@ def test_case_timeline_result_body_is_not_copied(server) -> None:
 
 
 def test_case_timeline_returned_error_is_still_recorded_as_error(server) -> None:
-    call(server, "get_case_timeline", {"case_id": "20990101-000000-no-such-case"})
+    call(server, "record_case_timeline", {"case_id": "20990101-000000-no-such-case"})
 
-    found = rows("get_case_timeline")
+    found = rows("record_case_timeline")
     assert len(found) == 1
     assert found[0]["status"] == "error"

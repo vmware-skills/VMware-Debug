@@ -126,7 +126,7 @@ a recommended plan.
 | `record_case_hypothesis` | [WRITE] Register a candidate explanation, or read the ledger of what supports and refutes each |
 | `submit_case_evidence` | [WRITE] Record one retrieved fact, with its source, query and time basis |
 | `record_case_gap` | [WRITE] Record what could **not** be retrieved, and how to close it |
-| `get_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
+| `record_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
 | `grade_case` | [WRITE] Recompute the conclusion grade from the ledger and record it |
 | `close_case` | [WRITE] Record the final grade, archive, and name what was left open |
 
@@ -275,7 +275,7 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 - **`build_incident_timeline` raises "event[N] could not be normalised"** — event N is missing a timestamp or has an unparseable one. Every event needs `ts` (ISO-8601, epoch seconds, or millis).
 - **Most events come back "uncategorized"** — read `classification` in the result: it says how many, what share, and quotes the texts that matched nothing. Do **not** widen the window; a wider window adds baseline, not signal. The spikes still tell you *when*, which is answerable without a category. If the samples name a subsystem the taxonomy does not know, add a signature (see `references/routing.md`).
 - **No spikes detected on an obvious burst** — check `binning` for the resolution you were given. The width is chosen from event density so that bins average ≥4 events; a burst shorter than one bin can still be flattened by it. Pass `bin_seconds` to narrow. Below three bins there is no baseline at all and nothing is reported.
-- **`get_case_timeline` says zero events after you submitted results** — check `payload_events` in each `submit_case_evidence` reply. Events are read from a bare list, or from `items`/`events`/`rows`; a *summary* of a tool's result carries none. `note` names which items carried nothing and what keys they held instead.
+- **`record_case_timeline` says zero events after you submitted results** — check `payload_events` in each `submit_case_evidence` reply. Events are read from a bare list, or from `items`/`events`/`rows`; a *summary* of a tool's result carries none. `note` names which items carried nothing and what keys they held instead.
 - **`get_case_readiness` says a skill you have is not installed** — both spellings are accepted (`monitor` and `vmware-monitor`). A name it did not recognise comes back in `unrecognised_skills` rather than being read as missing.
 - **It won't execute the fix** — by design. Route to vmware-aiops or vmware-pilot.
 
@@ -293,7 +293,7 @@ CLI commands under their MCP tools' names. The row records the tool, time, OS us
 detected agent, arguments, status (`ok`, `error`, `denied`, `budget_exceeded`,
 `interrupted`) and a result. Two arguments are stored as `***`: evidence `payload` and
 `build_incident_timeline` `events`. Two results are not stored at all — `build_incident_timeline` and
-`get_case_timeline` quote event text (`sample_text`, `unmatched_samples`, `rejected`), which
+`record_case_timeline` quote event text (`sample_text`, `unmatched_samples`, `rejected`), which
 can carry anything the source logged, so their row says
 `[redacted: return value declared sensitive]`. Every other result (ids, counts, grades,
 your own summaries and statements) is stored after credential scrubbing. The data itself
