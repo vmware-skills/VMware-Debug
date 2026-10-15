@@ -10,6 +10,8 @@ VMware skill 家族的**诊断大脑**。你给出症状（报错、日志、变
 它**从不触碰 vSphere**——不连接任何东西，也从不执行修复；唯一的写入是 `$OPS_HOME` 下的本地案卷。修复一律路由给 vmware-aiops（单步）或
 vmware-pilot（多步、带审批门控），完全复刻 vmware-harden → vmware-pilot 的「顾问/执行」分工。
 
+完整的方法论、事件信封约定和症状路由见 [`skills/vmware-debug/SKILL.md`](skills/vmware-debug/SKILL.md)。
+
 ## 升级到 2.0
 
 2.0 把 14 个 MCP 工具中的 13 个改成动词在前（例如 `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`），完整的新旧名对照表见
@@ -42,7 +44,7 @@ vmware-debug categories          # 看它能诊断哪些症状类别
 **关联**——无状态，看一眼用：
 
 - `build_incident_timeline`：[READ] 把已取到的事件关联成 时间线 + 突刺 + 排序后的根因假设 + 下一步检查建议
-- `list_symptom_categories`：[READ] 症状类别及对应的排查路由（不知道查什么时用它）
+- `list_symptom_categories`：[READ] 列出能识别的症状类别 + 每类该查什么
 
 **调查案卷**——需要持续推理的事件：
 
@@ -74,6 +76,31 @@ debug；debug 因此与其它包零运行时依赖。**请把每条事件的 `ev
 仍然绝不覆盖，但可能被读到写了一半）。崩溃进程留下的锁会连同持有者一起报告，从不自动删除；
 确认没有进程在写该案卷后再手动删除。已发布的 1.11.3 及更早版本不拿这个锁，共享案卷目录的每台机器都要升级。
 详见 [SECURITY.md](SECURITY.md)。
+
+## 离线 / 隔离网络安装（从源码）
+
+本项目使用现代 PEP 517 构建系统（hatchling），所以**按设计就没有 `setup.py`**——这是预期行为，不是缺文件。
+如果你克隆了源码后遇到 `ERROR: File "setup.py" or "setup.cfg" not found ... editable mode
+currently requires a setuptools-based build`，说明你的 `pip` 低于 21.3，无法对非 setuptools 后端做*可编辑*（`-e`）安装。
+可编辑模式只是开发便利，运行这个工具并不需要——任选其一：
+
+```bash
+# 在源码目录里——普通（非可编辑）安装会构建 wheel：
+pip install .              # 不是  pip install -e .
+
+# ……或者先升级 pip，可编辑安装也能用：
+pip install --upgrade pip && pip install -e .
+```
+
+对于**真正隔离网络的主机**，在联网机器上构建 wheel 再拷过去——目标主机就不需要网络：
+
+```bash
+# 在联网机器上，把本包及其依赖收集成 wheel：
+pip wheel . -w dist        # → dist/*.whl   （或：uv build，只构建本包）
+
+# 把 dist/ 拷到隔离主机，然后离线安装：
+pip install --no-index --find-links dist vmware-debug
+```
 
 ## 许可证
 

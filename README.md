@@ -29,6 +29,23 @@ renames widened), and vmware-pilot ≥ 1.13 translates old names in saved workfl
 If an install older than 2.0 shares that `rules.yaml`, give it vmware-policy ≥ 1.18.2 too: it matches each rule
 against both the old and the new name, so one file serves both.
 
+## Companion Skills
+
+| Need | Skill |
+|---|---|
+| Incident correlation / root cause | **vmware-debug** (this project) |
+| Centralized log search | vmware-log-insight (feed its `search_logs` results here) |
+| vCenter events and alarms | vmware-monitor |
+| Metrics / anomalies | vmware-aria |
+| Executing a fix | vmware-aiops (single op) / vmware-pilot (multi-step, gated) |
+
+## Install
+
+```bash
+uv tool install vmware-debug
+vmware-debug categories          # see which symptom categories it can diagnose
+```
+
 ## MCP tools (14 — 7 read, 7 write)
 
 The seven writes go to the local case ledger only; none reaches a VMware system.
@@ -56,6 +73,26 @@ The seven writes go to the local case ledger only; none reaches a VMware system.
 | `record_case_timeline` | [WRITE] Correlate everything the case has collected into one timeline |
 | `grade_case` | [WRITE] Recompute the conclusion grade from the ledger and record it |
 | `close_case` | [WRITE] Record the final grade, archive, and name what was left open |
+
+**Event envelope**: `{ts, source, severity, entity, text, fields}`. The agent normalizes events from each source
+into this shape before handing them to debug, so debug has zero runtime dependency on the other packages.
+**Keep each event's `event_type` in `fields`** — the classifier matches it as well as the text, and most modern
+vSphere events are `EventEx`: the text is a generic boilerplate sentence, and only `eventTypeId` says what the
+event actually is.
+
+## Security
+
+Offline and credential-free by construction: it connects to no vCenter/NSX/Aria, has no destructive surface on
+VMware, and holds no secret to leak. The only writes are the local case ledger: evidence, gaps, hypotheses and
+grade history are append-only; `timeline.md` is regenerated from the evidence, and `case.json` holds the current
+grade and status. The same holds with several writers: every write to a case first takes that case's lock file
+(`.ledger.lock`, exclusive create), so two processes writing the same case in a shared `$OPS_HOME` are serialized
+instead of dropping each other's entries; every file is written under a temporary name and then moved into place,
+so a reader never sees a half-written file (on a file system without hard links, a new evidence file is instead
+created in place: still never overwritten, but it can be read half-written). A lock left behind by a crashed
+process is reported together with its holder and never deleted automatically; delete it by hand once you have
+confirmed no process is writing that case. Released versions 1.11.3 and earlier do not take this lock, so every
+machine sharing a case directory must upgrade. See [SECURITY.md](SECURITY.md).
 
 ## Offline / Air-Gapped Install (from source)
 
