@@ -104,11 +104,23 @@ def triage(
 
 @app.command()
 @cli_local("starts the MCP server; its tools audit themselves")
-def mcp() -> None:
+def mcp(
+    expose: Optional[str] = typer.Option(
+        None,
+        "--expose",
+        help="Which tools to offer: all (default) or read. Limits what clients see; "
+        "not authorization: the account's permissions still decide.",
+    ),
+    allow_write: Optional[str] = typer.Option(
+        None,
+        "--allow-write",
+        help="With --expose read: comma-separated write tools to offer as well.",
+    ),
+) -> None:
     """Start the stdio MCP server (no network access; proxy-safe)."""
     from vmware_debug.mcp_server.server import main as _main
 
-    _main()
+    _main(expose=expose, allow_write=allow_write)
 
 
 if __name__ == "__main__":

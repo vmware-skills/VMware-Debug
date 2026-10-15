@@ -6,7 +6,7 @@ is a pure, offline correlation engine. There is no `config.yaml` and no `.env`.
 ## Install
 
 ```bash
-uv tool install vmware-debug==2.0.0
+uv tool install vmware-debug==2.1.0
 vmware-debug categories      # verify it runs
 ```
 
@@ -15,7 +15,7 @@ vmware-debug categories      # verify it runs
 ```json
 {
   "command": "uvx",
-  "args": ["--from", "vmware-debug==2.0.0", "vmware-debug-mcp"]
+  "args": ["--from", "vmware-debug==2.1.0", "vmware-debug-mcp"]
 }
 ```
 
@@ -25,6 +25,31 @@ If installed with `uv tool install`, prefer the entry point `vmware-debug mcp`
 For full cross-skill diagnosis, also install the data-source skills it correlates
 (vmware-monitor, vmware-log-insight, vmware-aria, vmware-nsx) and the executors it
 routes fixes to (vmware-aiops, vmware-pilot).
+
+## Limiting which tools are offered
+
+By default the MCP server offers every tool. To offer only read tools, start it with `--expose read`, or set
+`VMWARE_DEBUG_MCP_EXPOSE=read` in the MCP client's `env` block (useful when the client launches `vmware-debug mcp` itself). To offer
+chosen write tools as well, add `--allow-write` with a comma-separated list (or `VMWARE_DEBUG_MCP_ALLOW_WRITE`):
+
+```bash
+vmware-debug mcp --expose read --allow-write close_case
+```
+
+- A read tool is one annotated `readOnlyHint: true`; every other tool counts as a write.
+- An unknown setting, or a name that is not a write tool of this server, stops the server before it serves (exit
+  code 2), so it never offers more than you asked for. Pre-2.0 tool names are accepted.
+- With `--expose read`, the server prints one line to stderr saying what it exposes.
+- Flags and environment variables are not mixed: if either flag is given, both environment variables are
+  ignored, so a leftover `_ALLOW_WRITE` in the shell cannot widen `--expose read`. A blank flag value counts as
+  not given.
+- A tool that runs other steps (a plan, workflow or batch tool) carries every write it can execute, including
+  writes this setting hides. Expose such a tool only if you would expose those writes too.
+- A launcher that imports the server object can call
+  `vmware_policy.exposure.restrict_tools(mcp, skill="debug", expose="read", allow_write=[...])` before running it,
+  instead of editing the SDK's tool registry.
+- This limits what clients are offered. It is **not** authorization. This server's write tools change case records on this machine;
+  deny rules in `~/.vmware/rules.yaml` still apply to every exposed tool.
 
 ## Security
 
