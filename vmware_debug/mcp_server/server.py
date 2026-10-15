@@ -862,7 +862,17 @@ def build_server() -> FastMCP:
 
 
     return server
-def main(expose: Optional[str] = None, allow_write: Optional[str] = None) -> None:
+def main(
+    expose: Optional[str] = None,
+    allow_write: Optional[str] = None,
+    transport: Optional[str] = None,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+    cert: Optional[str] = None,
+    key: Optional[str] = None,
+    public_name: Optional[str] = None,
+    token_file: Optional[str] = None,
+) -> None:
     """Entry point for `vmware-debug-mcp` (stdio transport)."""
     # Floor is 3.10, matching `requires-python` and the other eleven skills.
     # This guard used to demand 3.11 on the grounds that FastMCP schema
@@ -878,10 +888,14 @@ def main(expose: Optional[str] = None, allow_write: Optional[str] = None) -> Non
             "Reinstall on a newer interpreter: "
             "uv tool install --python 3.12 --force vmware-debug"
         )
-    from vmware_policy.exposure import apply_or_exit
+    from vmware_policy.serve import run_server
     server = build_server()
-    apply_or_exit(server, skill="debug", expose=expose, allow_write=allow_write)
-    server.run()
+    run_server(
+        server,
+        skill="debug",
+        expose=expose, allow_write=allow_write, transport=transport, host=host, port=port,
+        cert=cert, key=key, public_name=public_name, token_file=token_file,
+    )
 
 
 if __name__ == "__main__":
