@@ -2,6 +2,8 @@
 
 # VMware Debug
 
+For a read-only check of this skill with your model and agent host, use the shared [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md) in the marketplace root.
+
 > **Disclaimer**: Community-maintained open-source project, **not affiliated with,
 > endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and
 > "vSphere" are trademarks of Broadcom. Source is publicly auditable under the MIT
