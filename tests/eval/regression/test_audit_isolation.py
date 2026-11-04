@@ -62,6 +62,11 @@ def test_an_audited_write_lands_in_the_sandbox_and_not_in_the_real_db() -> None:
     real_db = REAL_HOME / ".vmware" / "audit.db"
     if not real_db.exists():
         pytest.skip("no production audit database on this machine to check against")
-    with sqlite3.connect(f"file:{real_db}?mode=ro", uri=True) as con:
-        leaked = con.execute("SELECT count(*) FROM audit_log WHERE tool = ?", (marker,)).fetchone()[0]
+    try:
+        with sqlite3.connect(f"file:{real_db}?mode=ro", uri=True) as con:
+            leaked = con.execute("SELECT count(*) FROM audit_log WHERE tool = ?", (marker,)).fetchone()[0]
+    except sqlite3.OperationalError as exc:
+        if "unable to open database file" not in str(exc):
+            raise
+        pytest.skip("production audit DB is inaccessible from this sandbox")
     assert leaked == 0, f"{leaked} row(s) from this test reached {real_db}"

@@ -1,3 +1,8 @@
+## Unreleased — dependency security and sandbox test stability
+
+* Require certifi 2026.10.19 or later for MCP's HTTP/TLS dependencies (GHSA-6q48-6c7w-9gw2); the lock resolves 2026.10.23.
+* The audit-isolation regression still proves its write reached only the sandbox DB; it skips the production-DB comparison when the host sandbox denies even read-only access to that DB.
+
 ## v2.3.0 — roles for network callers (HLD §18)
 
 * Declares the role metadata vmware-policy ≥ 1.24.0 needs to apply **roles** to this server over HTTPS
