@@ -21,6 +21,7 @@ dependencies = [
     "typer>=0.12,<1.0",
     "rich>=13.0,<15.0",
     "mcp[cli]>=1.30,<2.0",
+    "certifi>=2026.10.19",  # GHSA-6q48-6c7w-9gw2 via MCP/httpx
     "vmware-policy>=1.21.0,<2.0",
     # Imported directly by ops/cases/grading.py for the rules file. It has
     # always arrived transitively via vmware-policy; a package should
