@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sys
+from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -20,7 +21,7 @@ from rich.table import Table
 
 from vmware_debug import __version__
 from vmware_debug.mcp.tools import build_incident_timeline, list_symptom_categories
-from vmware_policy import audited, cli_local
+from vmware_policy import PolicyDenied, audited, cli_local, sanitize
 
 
 def _harden_console_encoding() -> None:
@@ -53,6 +54,19 @@ app = typer.Typer(
 console = Console()
 
 
+def handle_cli_errors(func):
+    """Render policy refusals after the audited wrapper has recorded the denial."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except PolicyDenied as exc:
+            rule = f" (rule: {sanitize(exc.result.rule, 100)})" if exc.result.rule else ""
+            typer.echo(f"Denied by policy: {sanitize(exc.result.reason, 500)}{rule}", err=True)
+            raise typer.Exit(1) from None
+    return wrapper
+
+
 @app.command()
 @cli_local("prints the installed version")
 def version() -> None:
@@ -61,6 +75,7 @@ def version() -> None:
 
 
 @app.command()
+@handle_cli_errors
 @audited(tool="list_symptom_categories")
 def categories() -> None:
     """List the symptom categories debug recognises and what to check for each."""
@@ -74,6 +89,7 @@ def categories() -> None:
 
 
 @app.command()
+@handle_cli_errors
 @audited(tool="build_incident_timeline")
 def triage(
     events_file: Optional[Path] = typer.Option(

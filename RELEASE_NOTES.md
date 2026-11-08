@@ -2,6 +2,7 @@
 
 * Require certifi 2026.10.19 or later for MCP's HTTP/TLS dependencies (GHSA-6q48-6c7w-9gw2); the lock resolves 2026.10.23.
 * The audit-isolation regression still proves its write reached only the sandbox DB; it skips the production-DB comparison when the host sandbox denies even read-only access to that DB.
+* CLI policy refusals now print their reason and rule without a traceback. The audited wrapper still records exactly one `denied` row before the CLI exits with code 1.
 
 ## v2.3.0 — roles for network callers (HLD §18)
 

@@ -84,6 +84,8 @@ event actually is.
 
 ## Security
 
+CLI policy refusals print the reason and rule, exit with code 1, and retain one `denied` audit row.
+
 Offline and credential-free by construction: it connects to no vCenter/NSX/Aria, has no destructive surface on
 VMware, and holds no secret to leak. The only writes are the local case ledger: evidence, gaps, hypotheses and
 grade history are append-only; `timeline.md` is regenerated from the evidence, and `case.json` holds the current
