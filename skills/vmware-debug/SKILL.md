@@ -53,7 +53,7 @@ write tools touch only the local case ledger.
 ## Quick Install
 
 ```bash
-uv tool install vmware-debug==2.3.0
+uv tool install vmware-debug==2.3.1
 vmware-debug categories          # see what it can diagnose
 ```
 
