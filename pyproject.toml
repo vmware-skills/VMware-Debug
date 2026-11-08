@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vmware-debug"
-version = "2.3.0"
+version = "2.3.1"
 description = "VMware diagnostic brain — offline incident triage, log/event correlation, and root-cause routing across the VMware skill family"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-authors = [{ name = "Wei Zhou", email = "wei-wz.zhou@broadcom.com" }]
+authors = [{ name = "Wei Zhou", email = "zhouwei008@gmail.com" }]
 keywords = ["vmware", "vsphere", "debug", "troubleshooting", "diagnostics", "rca", "mcp", "ai-ops"]
 classifiers = [
     "Development Status :: 4 - Beta",
