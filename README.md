@@ -104,11 +104,7 @@ Copy this configuration into your MCP client's local stdio settings. The client 
   "mcpServers": {
     "vmware-debug": {
       "command": "uvx",
-      "args": [
-        "--from",
-        "vmware-debug==2.3.1",
-        "vmware-debug-mcp"
-      ]
+      "args": ["--from", "vmware-debug==2.3.1", "vmware-debug-mcp"]
     }
   }
 }

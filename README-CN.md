@@ -93,11 +93,7 @@ pip install --no-index --find-links dist vmware-debug
   "mcpServers": {
     "vmware-debug": {
       "command": "uvx",
-      "args": [
-        "--from",
-        "vmware-debug==2.3.1",
-        "vmware-debug-mcp"
-      ]
+      "args": ["--from", "vmware-debug==2.3.1", "vmware-debug-mcp"]
     }
   }
 }
