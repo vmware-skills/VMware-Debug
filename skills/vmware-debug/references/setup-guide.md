@@ -10,7 +10,7 @@ ledger; every tool also writes the separate `~/.vmware/audit.db` audit trail.
 ## Install
 
 ```bash
-uv tool install vmware-debug==2.3.1
+uv tool install vmware-debug==2.3.2
 vmware-debug categories      # verify it runs
 ```
 
@@ -19,7 +19,7 @@ vmware-debug categories      # verify it runs
 ```json
 {
   "command": "uvx",
-  "args": ["--from", "vmware-debug==2.3.1", "vmware-debug-mcp"]
+  "args": ["--from", "vmware-debug==2.3.2", "vmware-debug-mcp"]
 }
 ```
 
