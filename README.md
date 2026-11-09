@@ -12,9 +12,10 @@ For a read-only check of this skill with your model and agent host, use the shar
 The diagnostic brain of the VMware skill family. You bring the symptom (an error,
 a log dump, a slow VM); this skill runs a systematic investigation, correlates
 events from the other skills into one timeline, ranks root-cause hypotheses, and
-tells you what to check next. It **never touches vSphere** — it connects to
-nothing and never executes fixes; its only writes are to a local case ledger
-under `$OPS_HOME`. Remediation is routed to `vmware-aiops` (single op) or
+tells you what to check next. It makes **no VMware API calls** and never executes
+fixes; case operations write a local ledger under `$OPS_HOME`, and every tool also
+writes a separate audit trail. Default stdio has no listener; optional authenticated
+HTTPS uses caller tokens and TLS certificate/key files. Remediation is routed to `vmware-aiops` (single op) or
 `vmware-pilot` (multi-step, gated), mirroring the `vmware-harden → vmware-pilot`
 advisor/executor split.
 
@@ -44,7 +45,7 @@ against both the old and the new name, so one file serves both.
 ## Install
 
 ```bash
-uv tool install vmware-debug
+uv tool install vmware-debug==2.3.1
 vmware-debug categories          # see which symptom categories it can diagnose
 ```
 
@@ -86,8 +87,9 @@ event actually is.
 
 CLI policy refusals print the reason and rule, exit with code 1, and retain one `denied` audit row.
 
-Offline and credential-free by construction: it connects to no vCenter/NSX/Aria, has no destructive surface on
-VMware, and holds no secret to leak. The only writes are the local case ledger: evidence, gaps, hypotheses and
+The diagnostic engine connects to no vCenter/NSX/Aria and needs no VMware account credentials.
+Default stdio has no listener; optional HTTPS requires caller tokens and TLS files. Every tool writes
+a separate audit row in `~/.vmware/audit.db`. Case tools also write the local ledger: evidence, gaps, hypotheses and
 grade history are append-only; `timeline.md` is regenerated from the evidence, and `case.json` holds the current
 grade and status. The same holds with several writers: every write to a case first takes that case's lock file
 (`.ledger.lock`, exclusive create), so two processes writing the same case in a shared `$OPS_HOME` are serialized

@@ -7,6 +7,13 @@
 * The audit-isolation regression still proves its write reached only the sandbox DB; it skips the production-DB comparison when the host sandbox denies even read-only access to that DB.
 * CLI policy refusals now print their reason and rule without a traceback. The audited wrapper still records exactly one `denied` row before the CLI exits with code 1.
 
+## Unreleased — security documentation corrections
+
+Clarify actual capability, credential, local-write and transport boundaries where applicable.
+Pin documented setup/fallback tools and make credential examples owner-only before writing,
+without overwriting existing files. Runtime permissions, TLS defaults and approval behavior are unchanged.
+These edits do not establish a new ClawHub scan verdict.
+
 ## v2.3.0 — roles for network callers (HLD §18)
 
 * Declares the role metadata vmware-policy ≥ 1.24.0 needs to apply **roles** to this server over HTTPS

@@ -15,24 +15,13 @@ or by email to the maintainer. Please do not open public issues for security bug
 
 ## Security Design
 
-### Offline by construction; writes only its own ledger
-vmware-debug has **no network access and no credentials**. It does not connect to
-vCenter, NSX, Aria, or any appliance. Its tools work over event data the
-orchestrating agent has already fetched with the other skills' read tools. Seven
-of its fourteen MCP tools write — only to the local investigation ledger under
-`$OPS_HOME` (default `~/.vmware/cases`). Evidence, gaps, hypotheses and grade
-history are only ever added to; `timeline.md` is regenerated from the evidence
-and `case.json` holds the current grade and state. That holds with several writers
-too: every write to a case takes that case's lock file (`.ledger.lock`, created
-exclusively), so two processes working one case in a shared `$OPS_HOME` are
-serialised rather than losing each other's entries, and every file is written to
-a temporary name and moved into place, so a reader never sees half of one (on a
-filesystem without hard links, a new evidence file is created in place instead:
-still never overwritten, but readable half-written). A lock left by a crashed
-process is reported with its holder and never removed automatically; delete it
-once nothing is writing the case. Released versions up to and including 1.11.3
-do not take the lock, so upgrade every machine that shares a cases folder. There
-is no destructive surface against any VMware system and no secret to leak.
+### No VMware API access; local ledger and audit writes
+The diagnostic tools make no VMware API calls and need no VMware account credentials.
+Case operations write a local ledger under `$OPS_HOME`; every tool also records a
+separate audit row in `~/.vmware/audit.db`. Default stdio starts no listener.
+Opt-in authenticated HTTPS opens the configured listener and requires caller tokens
+and TLS certificate/key files, which must be protected as secrets. Case records may
+contain sensitive operational data; redact input and apply a local retention policy.
 
 ### No remediation execution
 debug only *diagnoses* and *recommends*. Any fix is routed to vmware-aiops
@@ -51,7 +40,7 @@ anything based on event content.
 ## Static Analysis
 
 ```bash
-uvx bandit -r vmware_debug/
+uvx bandit==1.9.4 -r vmware_debug/
 ```
 
 Release bar: 0 Medium-or-higher severity findings.

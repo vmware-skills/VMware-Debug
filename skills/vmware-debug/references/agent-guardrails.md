@@ -14,8 +14,8 @@ vmware-monitor and vmware-aria against a production vSphere estate with Llama
 cross-skill rules are identical across this family; the parts below marked
 vmware-debug are specific to this skill.
 
-vmware-debug exposes 14 MCP tools: 7 reads and 7 writes. It connects to nothing
-and holds no credentials — the calling agent gathers events from the other
+vmware-debug exposes 14 MCP tools: 7 reads and 7 writes. It makes no VMware API calls
+and needs no VMware account credentials — the calling agent gathers events from the other
 skills, normalises them, and hands them over. The seven writes go to the local
 investigation ledger under `~/.vmware/cases/`, never to a VMware system. That
 makes it the safest skill in the family to point a small model at — and the one
@@ -42,7 +42,7 @@ These are structural, so it cannot.
 | Guardrail you would otherwise prompt for | Now enforced by |
 |---|---|
 | "Work read-only and never modify anything" | **The tool surface itself.** No tool reaches a VMware system. The seven [WRITE] tools write only to this skill's own local case ledger, so there is nothing in vSphere to withhold and nothing to switch off. |
-| "Diagnose only — never apply the fix you propose" | **Structural.** This skill has no tool that changes anything outside its own ledger, and it holds no connection to vCenter, NSX or anything else. Remediation is routed to vmware-aiops or vmware-pilot by the calling agent. |
+| "Diagnose only — never apply the fix you propose" | **Structural.** This skill has no remediation tool or VMware API connection. Case tools update the local ledger and every tool writes a separate audit trail. Optional HTTPS serving uses caller tokens and TLS files. Remediation is routed to vmware-aiops or vmware-pilot by the calling agent. |
 | "Do not fabricate a timeline — build it from the events I gave you" | **`build_incident_timeline` correlates only its input.** It is source-agnostic and has no way to fetch anything, so the timeline cannot contain an event the agent did not supply. |
 | "Tell me when the symptom is outside what you can recognise" | **`list_symptom_categories`** states the catalogue, and unmatched symptoms come back as `uncategorized` rather than being forced into the nearest signature. |
 | "Use explicit limits for queries that may return large amounts of data" | **The list envelope.** `list_symptom_categories` returns `{items, returned, limit, total, truncated, hint}` with `truncated` always `false` — which is the point: it states that the catalogue is complete instead of leaving you to infer it. |
