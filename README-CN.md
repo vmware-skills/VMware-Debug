@@ -9,7 +9,7 @@
 
 VMware skill 家族的**诊断大脑**。你给出症状（报错、日志、变慢的 VM），它来跑系统化排查：
 把其它 skill 取到的事件关联成一条时间线、检测突刺、给根因假设排序，并告诉你下一步该查什么。
-它**从不触碰 vSphere**——不连接任何东西，也从不执行修复；唯一的写入是 `$OPS_HOME` 下的本地案卷。修复一律路由给 vmware-aiops（单步）或
+它**不调用 VMware API**，也不执行修复；案卷操作写入 `$OPS_HOME` 下的本地案卷，每个工具还会单独记录审计。默认 stdio 不监听端口；可选的认证 HTTPS 使用调用者 token 和 TLS 证书/私钥。修复一律路由给 vmware-aiops（单步）或
 vmware-pilot（多步、带审批门控），完全复刻 vmware-harden → vmware-pilot 的「顾问/执行」分工。
 
 完整的方法论、事件信封约定和症状路由见 [`skills/vmware-debug/SKILL.md`](skills/vmware-debug/SKILL.md)。
@@ -35,7 +35,7 @@ vmware-policy ≥ 1.18.1 下仍然生效（`vmware-audit policy` 会列出因改
 ## 安装
 
 ```bash
-uv tool install vmware-debug
+uv tool install vmware-debug==2.3.1
 vmware-debug categories          # 看它能诊断哪些症状类别
 ```
 
@@ -72,8 +72,7 @@ debug；debug 因此与其它包零运行时依赖。**请把每条事件的 `ev
 
 CLI 被策略拒绝时会显示原因和规则，以退出码 1 结束，并保留一条 `denied` 审计记录。
 
-结构上离线、无凭据：不连任何 vCenter/NSX/Aria，对 VMware 没有可破坏面，也没有秘密可泄露。
-唯一的写入是本地案卷：证据、缺口、假设和等级历史只增不改；`timeline.md` 由证据重新生成，
+诊断引擎不连接 vCenter/NSX/Aria，也不需要 VMware 账号凭据。默认 stdio 不监听端口；可选 HTTPS 需要调用者 token 和 TLS 文件。每个工具都会单独写入 `~/.vmware/audit.db` 审计记录。案卷工具还会写本地案卷：证据、缺口、假设和等级历史只增不改；`timeline.md` 由证据重新生成，
 `case.json` 保存当前等级和状态。多个写入者同样成立：每次写案卷都要先拿该案卷的锁文件（`.ledger.lock`，
 独占创建），所以两个进程在共享的 `$OPS_HOME` 里写同一个案卷会被串行化，而不是互相丢条目；每个文件都先写到
 临时文件名再移到位，读者不会读到写了一半的文件（在不支持硬链接的文件系统上，新的证据文件改为原地创建：

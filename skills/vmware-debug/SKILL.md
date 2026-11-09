@@ -1,20 +1,13 @@
 ---
 name: vmware-debug
 description: >
-  Use this skill whenever the user is troubleshooting a VMware/vSphere problem —
-  a reported error, an exception, a log dump, a slow or failed VM, a host that
-  went sideways — and needs help locating the root cause. It is the diagnostic
-  brain of the VMware family: it drives a systematic investigation, pulls the
-  right signals from the other skills, correlates events into one timeline,
-  ranks root-cause hypotheses, and tells you what to check next even when you
-  don't know where to start. Always use this skill for "diagnose this VMware
-  issue", "why is my VM slow", "troubleshoot this vSphere error", "what does
-  this log mean", "help me figure out what broke" when the context is explicitly
-  VMware/vSphere/ESXi/NSX. It never touches vSphere: its only writes are to a
-  local case ledger. Do NOT
-  use it to execute fixes — single fixes go to vmware-aiops, multi-step gated
-  remediation goes to vmware-pilot. Do NOT use it for routine inventory or
-  health checks with no problem to solve — use vmware-monitor.
+  Use to diagnose VMware/vSphere/ESXi/NSX incidents: errors, log dumps, slow VMs, disconnected hosts,
+  or an unexplained failure. Correlates companion-skill evidence into a timeline, ranks root-cause
+  hypotheses, and recommends the next check. Trigger on "diagnose this VMware issue", "why is my VM
+  slow", "troubleshoot this vSphere error" or "what does this log mean". Makes no VMware API calls or
+  repairs; writes local case records and a separate audit trail. Default stdio is local; optional
+  authenticated HTTPS uses caller tokens and TLS files. Route fixes to vmware-aiops (single action) or
+  vmware-pilot (gated workflow), and routine inventory/health without an incident to vmware-monitor.
 installer:
   kind: uv
   package: vmware-debug
@@ -33,7 +26,7 @@ metadata: {"openclaw":{"requires":{"anyBins":["vmware-debug","uvx"]},"optional":
 
 The diagnostic brain of the VMware skill family. You bring the symptom; this skill
 runs the investigation and points at the root cause. It **reads and reasons** — it
-never writes to vSphere; its only writes go to its own local case ledger.
+never writes to vSphere; it writes local case records and a separate audit trail.
 Companion skills do the data collection and the fixing.
 
 ## What This Skill Does
@@ -46,9 +39,10 @@ Companion skills do the data collection and the fixing.
 | Remediation routing | Hand the fix to vmware-aiops (single) or vmware-pilot (gated, multi-step) | Read (routes only) |
 | Investigation ledger | Open a case; record evidence, gaps and hypotheses; grade and close it | Write (local ledger only) |
 
-**No network access of its own, and no write to any VMware system.** It correlates
-data the agent has already gathered with the other skills' read tools; its seven
-write tools touch only the local case ledger.
+**No VMware API client and no write to any VMware system.** It correlates data
+the agent gathered with companion read tools. Case tools write a local ledger;
+every tool is also audited in `~/.vmware/audit.db`. Default stdio has no listener;
+optional HTTPS requires caller tokens and TLS files (see `references/setup-guide.md`).
 
 ## Quick Install
 
@@ -251,11 +245,13 @@ Recording a gap is meant to be free: a missing confirmation caps the grade, it
 does not demote it. Only a gap that could *overturn* the hypothesis holds a case
 at Candidate.
 
-## No Network, By Design
+## VMware access and local side effects
 
-vmware-debug connects to nothing and holds no credentials. The calling agent
-fetches with the other skills' read tools and submits the results here. Its only
-writes are to the local case ledger. Running with local or small models? See
+vmware-debug does not connect to VMware APIs or require VMware account credentials.
+The calling agent fetches with companion read tools and submits results here.
+Case tools write the local ledger, and every call writes a separate local audit row.
+Default stdio has no listener; opt-in HTTPS opens the configured listener using
+caller tokens and TLS certificate/key files. Treat those files as secrets. Running with local or small models? See
 [`references/agent-guardrails.md`](references/agent-guardrails.md).
 
 **Never put a secret into a case.** For an auth symptom, record *that* a credential is
@@ -283,7 +279,7 @@ vmware-debug mcp                                # start stdio MCP server (proxy-
 
 ## Audit & Safety
 
-No network, nothing executed. The seven [WRITE] tools write only to the local case
+No VMware API call or remediation is executed. Every tool is audited locally. The seven [WRITE] tools update the local case
 ledger under `$OPS_HOME`; nothing here touches a remote VMware estate. Evidence, gaps,
 hypotheses and grade history are only ever added to — `timeline.md` is regenerated from
 the evidence and `case.json` holds the current grade and state. Remediation is always routed to

@@ -1,7 +1,11 @@
 # vmware-debug Setup Guide
 
-vmware-debug has **no configuration, no credentials, and no network access** — it
+vmware-debug needs **no VMware endpoint configuration or VMware credentials** — it
 is a pure, offline correlation engine. There is no `config.yaml` and no `.env`.
+
+Default stdio has no listener. Opt-in HTTPS uses caller bearer tokens and TLS
+certificate/key files and opens the configured listener. Case tools write a local
+ledger; every tool also writes the separate `~/.vmware/audit.db` audit trail.
 
 ## Install
 
@@ -93,10 +97,11 @@ vmware-debug mcp --transport https --host 0.0.0.0 --port 8443 \
 > endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.**
 
 1. **Source Code** — https://github.com/vmware-skills/VMware-Debug (MIT).
-2. **Credentials** — none. debug holds no secrets and connects to nothing.
-3. **Network** — none. The correlation tools are local pure functions over
-   event data the agent supplies; the case tools read and write local files.
-4. **Writes** — only to the local investigation ledger under `$OPS_HOME`
+2. **Credentials** — no VMware account credentials. Optional HTTPS uses caller
+   bearer tokens and TLS certificate/key files; protect them as secrets.
+3. **Network** — the correlation tools make no VMware API calls. Default stdio has
+   no listener; optional HTTPS opens the configured listener. The case tools write local files.
+4. **Writes** — case operations update the local investigation ledger under `$OPS_HOME`; every tool also writes the separate audit database
    (the seven [WRITE] case tools). Evidence, gaps, hypotheses and grade
    history are only ever added to; `timeline.md` is regenerated from the evidence and
    `case.json` holds the current grade and state. Nothing is written to any
@@ -140,5 +145,5 @@ vmware-debug mcp --transport https --host 0.0.0.0 --port 8443 \
    sensitive]`) because they quote event text; other results are stored after
    credential scrubbing. The status is still truthful — a call that returns
    `{"error": …}` is `error`.
-8. **Static analysis** — `uvx bandit -r vmware_debug/` (release bar:
+8. **Static analysis** — `uvx bandit==1.9.4 -r vmware_debug/` (release bar:
    0 Medium+).
