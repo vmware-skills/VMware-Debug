@@ -1,3 +1,16 @@
+## v2.3.2 — Security documentation and Gemini extension packaging
+
+Released 2026-11-09.
+
+Clarify actual capability, credential, local-write and transport boundaries where applicable.
+Pin documented setup/fallback tools and make credential examples owner-only before writing,
+without overwriting existing files. Runtime permissions, TLS defaults and approval behavior are unchanged.
+These edits do not establish a new ClawHub scan verdict.
+
+Add the root Gemini CLI extension manifest and discovery metadata, using the existing canonical skill and exact MCP package version. No duplicate skill entrypoint is introduced.
+
+Runtime infrastructure operations, permissions, TLS defaults and confirmation behavior are unchanged. No new vSphere/VCF 9.x or live product compatibility is claimed. ClawHub skill and bundle verdicts are checked separately after publication; documentation corrections are not a clean-scan claim.
+
 ## v2.3.1 — readable Policy refusals and dependency security (2026-11-08)
 
 * Update public author/project contact metadata to `zhouwei008@gmail.com`.
@@ -7,12 +20,6 @@
 * The audit-isolation regression still proves its write reached only the sandbox DB; it skips the production-DB comparison when the host sandbox denies even read-only access to that DB.
 * CLI policy refusals now print their reason and rule without a traceback. The audited wrapper still records exactly one `denied` row before the CLI exits with code 1.
 
-## Unreleased — security documentation corrections
-
-Clarify actual capability, credential, local-write and transport boundaries where applicable.
-Pin documented setup/fallback tools and make credential examples owner-only before writing,
-without overwriting existing files. Runtime permissions, TLS defaults and approval behavior are unchanged.
-These edits do not establish a new ClawHub scan verdict.
 
 ## v2.3.0 — roles for network callers (HLD §18)
 

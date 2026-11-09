@@ -35,7 +35,7 @@ vmware-pilot（多步、带审批门控），完全复刻 vmware-harden → vmwa
 需要 Python `>=3.10` 和 `uv`。
 
 ```bash
-uv tool install vmware-debug==2.3.1
+uv tool install vmware-debug==2.3.2
 vmware-debug --help
 ```
 
@@ -47,7 +47,7 @@ vmware-debug --help
 ### 安装
 
 ```bash
-uv tool install vmware-debug==2.3.1
+uv tool install vmware-debug==2.3.2
 vmware-debug categories          # 看它能诊断哪些症状类别
 ```
 
@@ -93,7 +93,7 @@ pip install --no-index --find-links dist vmware-debug
   "mcpServers": {
     "vmware-debug": {
       "command": "uvx",
-      "args": ["--from", "vmware-debug==2.3.1", "vmware-debug-mcp"]
+      "args": ["--from", "vmware-debug==2.3.2", "vmware-debug-mcp"]
     }
   }
 }
