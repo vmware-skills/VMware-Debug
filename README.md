@@ -2,7 +2,21 @@
 
 # VMware Debug
 
-For a read-only check of this skill with your model and agent host, use the shared [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md) in the marketplace root.
+[![PyPI](https://img.shields.io/pypi/v/vmware-debug)](https://pypi.org/project/vmware-debug/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#readme-license)
+
+English | [中文](README-CN.md)
+
+Maintainer: Wei Zhou · [zhouwei008@gmail.com](mailto:zhouwei008@gmail.com)
+
+Community-maintained open-source project; not an official VMware or Broadcom product.
+
+[Overview](#readme-overview) · [Quick Start](#readme-quick-start) · [MCP Configuration](#readme-mcp-configuration) · [Capabilities and Workflows](#readme-capabilities-and-workflows) · [Safety and Audit](#readme-safety-and-audit) · [Troubleshooting](#readme-troubleshooting) · [Companion Skills](#readme-companion-skills) · [Reference](#readme-reference) · [License](#readme-license)
+
+<a id="readme-overview"></a>
+
+## Overview
+
+Runs locally over stdio by default; see below for data sources and execution boundaries.
 
 > **Disclaimer**: Community-maintained open-source project, **not affiliated with,
 > endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and
@@ -22,34 +36,87 @@ advisor/executor split.
 See [`skills/vmware-debug/SKILL.md`](skills/vmware-debug/SKILL.md) for the full
 methodology, the event-envelope contract, and symptom routing.
 
-## Upgrading to 2.0
+<a id="readme-quick-start"></a>
 
-2.0 renames 13 of its 14 MCP tools so every name starts with a verb (e.g. `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`). The full old → new table is in
-[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first). Nothing else changes: same tools, parameters,
-safety gates and CLI commands. If an agent prompt, script or `~/.vmware/rules.yaml` names a tool, update it — though deny
-rules written with the old names keep working with vmware-policy ≥ 1.18.1 (`vmware-audit policy` lists any rule the
-renames widened), and vmware-pilot ≥ 1.13 translates old names in saved workflows.
-If an install older than 2.0 shares that `rules.yaml`, give it vmware-policy ≥ 1.18.2 too: it matches each rule
-against both the old and the new name, so one file serves both.
+## Quick Start
 
-## Companion Skills
+Requires Python `>=3.10` and `uv`.
 
-| Need | Skill |
-|---|---|
-| Incident correlation / root cause | **vmware-debug** (this project) |
-| Centralized log search | vmware-log-insight (feed its `search_logs` results here) |
-| vCenter events and alarms | vmware-monitor |
-| Metrics / anomalies | vmware-aria |
-| Executing a fix | vmware-aiops (single op) / vmware-pilot (multi-step, gated) |
+```bash
+uv tool install vmware-debug==2.3.1
+vmware-debug --help
+```
 
-## Install
+Target, credential and local data setup: [setup guide](skills/vmware-debug/references/setup-guide.md).
+
+<details>
+<summary>Installation and configuration details (including offline setup)</summary>
+
+### Install
 
 ```bash
 uv tool install vmware-debug==2.3.1
 vmware-debug categories          # see which symptom categories it can diagnose
 ```
 
-## MCP tools (14 — 7 read, 7 write)
+
+### Offline / Air-Gapped Install (from source)
+
+This project uses the modern PEP 517 build system (hatchling), so there is **no
+`setup.py`** by design — that is expected, not a missing file. If you cloned the
+source and hit `ERROR: File "setup.py" or "setup.cfg" not found ... editable mode
+currently requires a setuptools-based build`, your `pip` is older than 21.3 and
+cannot do an *editable* (`-e`) install with a non-setuptools backend. Editable
+mode is a developer convenience, not needed to run the tool — do one of:
+
+```bash
+# From the source tree — a normal (non-editable) install builds a wheel:
+pip install .              # NOT  pip install -e .
+
+# ...or upgrade pip first, and editable works too:
+pip install --upgrade pip && pip install -e .
+```
+
+For a **truly air-gapped host**, build the wheels on a connected machine and copy
+them over — the target then needs no network:
+
+```bash
+# On a connected machine, collect this package + its dependencies as wheels:
+pip wheel . -w dist        # → dist/*.whl   (or: uv build, for just this package)
+
+# Copy dist/ to the air-gapped host, then install offline:
+pip install --no-index --find-links dist vmware-debug
+```
+
+<!-- usage: remote-and-exposure -->
+
+
+</details>
+
+<a id="readme-mcp-configuration"></a>
+
+## MCP Configuration
+
+Copy this configuration into your MCP client's local stdio settings. The client must be able to find `uvx`; the initial package installation requires access to a package index.
+
+```json
+{
+  "mcpServers": {
+    "vmware-debug": {
+      "command": "uvx",
+      "args": ["--from", "vmware-debug==2.3.1", "vmware-debug-mcp"]
+    }
+  }
+}
+```
+
+Debug needs no vCenter target configuration or VMware account credentials; case operations write a local ledger and tool calls have a separate audit trail.
+
+<a id="readme-capabilities-and-workflows"></a>
+
+## Capabilities and Workflows
+
+### MCP tools (14 — 7 read, 7 write)
 
 The seven writes go to the local case ledger only; none reaches a VMware system.
 
@@ -83,7 +150,19 @@ into this shape before handing them to debug, so debug has zero runtime dependen
 vSphere events are `EventEx`: the text is a generic boilerplate sentence, and only `eventTypeId` says what the
 event actually is.
 
-## Security
+### Common Workflows
+
+1. Use `vmware-debug categories` to select a symptom category.
+2. Collect relevant evidence with Monitor, Aria or Log Insight and normalize it into `events.json` using the event envelope; Debug itself does not connect to those systems.
+3. Run `vmware-debug triage --events events.json` and inspect the timeline, hypotheses and next checks.
+4. If there are no events or a source is unreachable, check the source tool's configuration and connectivity and retain the evidence gap; missing data is not a healthy result.
+5. Hand an evidence-backed fix to AIops or Pilot under that tool's execution gates.
+
+<a id="readme-safety-and-audit"></a>
+
+## Safety and Audit
+
+### Security
 
 CLI policy refusals print the reason and rule, exit with code 1, and retain one `denied` audit row.
 
@@ -100,36 +179,7 @@ process is reported together with its holder and never deleted automatically; de
 confirmed no process is writing that case. Released versions 1.11.3 and earlier do not take this lock, so every
 machine sharing a case directory must upgrade. See [SECURITY.md](SECURITY.md).
 
-## Offline / Air-Gapped Install (from source)
-
-This project uses the modern PEP 517 build system (hatchling), so there is **no
-`setup.py`** by design — that is expected, not a missing file. If you cloned the
-source and hit `ERROR: File "setup.py" or "setup.cfg" not found ... editable mode
-currently requires a setuptools-based build`, your `pip` is older than 21.3 and
-cannot do an *editable* (`-e`) install with a non-setuptools backend. Editable
-mode is a developer convenience, not needed to run the tool — do one of:
-
-```bash
-# From the source tree — a normal (non-editable) install builds a wheel:
-pip install .              # NOT  pip install -e .
-
-# ...or upgrade pip first, and editable works too:
-pip install --upgrade pip && pip install -e .
-```
-
-For a **truly air-gapped host**, build the wheels on a connected machine and copy
-them over — the target then needs no network:
-
-```bash
-# On a connected machine, collect this package + its dependencies as wheels:
-pip wheel . -w dist        # → dist/*.whl   (or: uv build, for just this package)
-
-# Copy dist/ to the air-gapped host, then install offline:
-pip install --no-index --find-links dist vmware-debug
-```
-
-<!-- usage: remote-and-exposure -->
-## Remote access (HTTPS) and limiting tools
+### Remote access (HTTPS) and limiting tools
 
 By default `vmware-debug mcp` speaks stdio to one local client and offers every tool. Two options change that
 (vmware-policy ≥ 1.21.0).
@@ -192,6 +242,48 @@ Tools not offered do not appear in the client's tool list. A bad value or an unk
 least-privilege.
 
 Details: `skills/vmware-debug/references/setup-guide.md` ("Serving MCP over HTTPS", "Limiting which tools are offered").
+
+<a id="readme-troubleshooting"></a>
+
+## Troubleshooting
+
+For installation issues, see the installation instructions on this page. Check CLI arguments with `--help` before operating. Include only a minimal, redacted example when reporting a problem.
+
+<a id="readme-companion-skills"></a>
+
+## Companion Skills
+
+The VMware Skills family contains 14 MCP servers and the shared Policy library. Choose tools by responsibility: [vmware-skills](https://github.com/vmware-skills).
+
+### Companion Skills
+
+| Need | Skill |
+|---|---|
+| Incident correlation / root cause | **vmware-debug** (this project) |
+| Centralized log search | vmware-log-insight (feed its `search_logs` results here) |
+| vCenter events and alarms | vmware-monitor |
+| Metrics / anomalies | vmware-aria |
+| Executing a fix | vmware-aiops (single op) / vmware-pilot (multi-step, gated) |
+
+<a id="readme-reference"></a>
+
+## Reference
+
+Release history: [RELEASE_NOTES.md](RELEASE_NOTES.md).
+
+Read-only self-test with your own model and agent host: [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md).
+
+### Upgrading to 2.0
+
+2.0 renames 13 of its 14 MCP tools so every name starts with a verb (e.g. `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`). The full old → new table is in
+[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first). Nothing else changes: same tools, parameters,
+safety gates and CLI commands. If an agent prompt, script or `~/.vmware/rules.yaml` names a tool, update it — though deny
+rules written with the old names keep working with vmware-policy ≥ 1.18.1 (`vmware-audit policy` lists any rule the
+renames widened), and vmware-pilot ≥ 1.13 translates old names in saved workflows.
+If an install older than 2.0 shares that `rules.yaml`, give it vmware-policy ≥ 1.18.2 too: it matches each rule
+against both the old and the new name, so one file serves both.
+
+<a id="readme-license"></a>
 
 ## License
 
