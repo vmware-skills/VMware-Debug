@@ -1,8 +1,22 @@
 <!-- mcp-name: io.github.vmware-skills/vmware-debug -->
 
-# VMware Debug（中文）
+# VMware Debug
 
-要用自己的模型和 Agent 平台进行只读自测，请看 marketplace 根目录的[共享模型适配自测任务](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md)。
+[![PyPI](https://img.shields.io/pypi/v/vmware-debug)](https://pypi.org/project/vmware-debug/) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#readme-license)
+
+[English](README.md) | 中文
+
+维护者: Wei Zhou · [zhouwei008@gmail.com](mailto:zhouwei008@gmail.com)
+
+社区维护的开源项目，非 VMware 或 Broadcom 官方产品。
+
+[概述](#readme-overview) · [快速开始](#readme-quick-start) · [MCP 配置](#readme-mcp-configuration) · [能力与工作流](#readme-capabilities-and-workflows) · [安全与审计](#readme-safety-and-audit) · [故障排查](#readme-troubleshooting) · [配套 Skills](#readme-companion-skills) · [参考资料](#readme-reference) · [许可证](#readme-license)
+
+<a id="readme-overview"></a>
+
+## 概述
+
+默认通过本地 Stdio 运行；具体数据来源和执行边界见下文。
 
 > **声明**：本项目为社区维护的开源项目，**与 VMware, Inc. 或 Broadcom Inc. 无任何隶属、
 > 背书或赞助关系。** "VMware"、"vSphere" 为 Broadcom 商标。源码以 MIT 许可证公开可审计。
@@ -14,32 +28,88 @@ vmware-pilot（多步、带审批门控），完全复刻 vmware-harden → vmwa
 
 完整的方法论、事件信封约定和症状路由见 [`skills/vmware-debug/SKILL.md`](skills/vmware-debug/SKILL.md)。
 
-## 升级到 2.0
+<a id="readme-quick-start"></a>
 
-2.0 把 14 个 MCP 工具中的 13 个改成动词在前（例如 `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`），完整的新旧名对照表见
-[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。其他都不变：工具、参数、安全确认门和 CLI 命令都一样。
-如果 agent 提示词、脚本或 `~/.vmware/rules.yaml` 里写了工具名，请改成新名——不过用旧名写的 deny 规则在
-vmware-policy ≥ 1.18.1 下仍然生效（`vmware-audit policy` 会列出因改名而多匹配的规则），vmware-pilot ≥ 1.13 也会自动转换已保存工作流里的旧名。
-如果还有 2.0 之前的安装共用这个 `rules.yaml`，请把它的 vmware-policy 也升到 ≥ 1.18.2：它会按新旧两个名字匹配每条规则，一份文件两边都管用。
+## 快速开始
 
-## 配套 Skill
+需要 Python `>=3.10` 和 `uv`。
 
-| 需求 | Skill |
-|---|---|
-| 故障关联 / 根因 | **vmware-debug**（本项目） |
-| 集中日志检索 | vmware-log-insight（把 `search_logs` 结果喂给它） |
-| vCenter 事件与告警 | vmware-monitor |
-| 指标 / 异常 | vmware-aria |
-| 执行修复 | vmware-aiops（单步）/ vmware-pilot（多步门控） |
+```bash
+uv tool install vmware-debug==2.3.1
+vmware-debug --help
+```
 
-## 安装
+目标、凭据和本地数据目录设置见 [setup guide](skills/vmware-debug/references/setup-guide.md).
+
+<details>
+<summary>安装与配置详情（含离线安装）</summary>
+
+### 安装
 
 ```bash
 uv tool install vmware-debug==2.3.1
 vmware-debug categories          # 看它能诊断哪些症状类别
 ```
 
-## MCP 工具（14 个：7 读、7 写）
+
+### 离线 / 隔离网络安装（从源码）
+
+本项目使用现代 PEP 517 构建系统（hatchling），所以**按设计就没有 `setup.py`**——这是预期行为，不是缺文件。
+如果你克隆了源码后遇到 `ERROR: File "setup.py" or "setup.cfg" not found ... editable mode
+currently requires a setuptools-based build`，说明你的 `pip` 低于 21.3，无法对非 setuptools 后端做*可编辑*（`-e`）安装。
+可编辑模式只是开发便利，运行这个工具并不需要——任选其一：
+
+```bash
+# 在源码目录里——普通（非可编辑）安装会构建 wheel：
+pip install .              # 不是  pip install -e .
+
+# ……或者先升级 pip，可编辑安装也能用：
+pip install --upgrade pip && pip install -e .
+```
+
+对于**真正隔离网络的主机**，在联网机器上构建 wheel 再拷过去——目标主机就不需要网络：
+
+```bash
+# 在联网机器上，把本包及其依赖收集成 wheel：
+pip wheel . -w dist        # → dist/*.whl   （或：uv build，只构建本包）
+
+# 把 dist/ 拷到隔离主机，然后离线安装：
+pip install --no-index --find-links dist vmware-debug
+```
+
+<!-- usage: remote-and-exposure -->
+
+
+</details>
+
+<a id="readme-mcp-configuration"></a>
+
+## MCP 配置
+
+将以下配置复制到 MCP 客户端的本地 Stdio 配置中。客户端需要能找到 `uvx`；首次安装所需包时需要访问包源。
+
+```json
+{
+  "mcpServers": {
+    "vmware-debug": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "vmware-debug==2.3.1",
+        "vmware-debug-mcp"
+      ]
+    }
+  }
+}
+```
+
+Debug 不需要 vCenter 目标配置或 VMware 账号凭据；案卷操作写入本地账本，工具调用另有审计记录。
+
+<a id="readme-capabilities-and-workflows"></a>
+
+## 能力与工作流
+
+### MCP 工具（14 个：7 读、7 写）
 
 7 个写工具只写本地案卷，没有一个触及任何 VMware 系统。
 
@@ -68,7 +138,19 @@ debug；debug 因此与其它包零运行时依赖。**请把每条事件的 `ev
 分类器除了正文之外也匹配它，而现代 vSphere 多数事件是 `EventEx`：正文是一句通用套话，
 真正说明「这是什么事件」的只有 `eventTypeId`。
 
-## 安全
+### 常用工作流
+
+1. 用 `vmware-debug categories` 选择症状类别。
+2. 由 Monitor、Aria 或 Log Insight 收集相关证据，按事件信封整理为 `events.json`；Debug 自身不连接这些系统。
+3. 执行 `vmware-debug triage --events events.json`，检查时间线、假设及下一步调查建议。
+4. 如果没有事件或数据源不可达，先检查数据源工具的配置与连通性，并保留证据缺口；不要把缺失数据视为正常。
+5. 有依据的修复交给 AIops 或 Pilot 按各自门禁执行。
+
+<a id="readme-safety-and-audit"></a>
+
+## 安全与审计
+
+### 安全
 
 CLI 被策略拒绝时会显示原因和规则，以退出码 1 结束，并保留一条 `denied` 审计记录。
 
@@ -80,33 +162,7 @@ CLI 被策略拒绝时会显示原因和规则，以退出码 1 结束，并保�
 确认没有进程在写该案卷后再手动删除。已发布的 1.11.3 及更早版本不拿这个锁，共享案卷目录的每台机器都要升级。
 详见 [SECURITY.md](SECURITY.md)。
 
-## 离线 / 隔离网络安装（从源码）
-
-本项目使用现代 PEP 517 构建系统（hatchling），所以**按设计就没有 `setup.py`**——这是预期行为，不是缺文件。
-如果你克隆了源码后遇到 `ERROR: File "setup.py" or "setup.cfg" not found ... editable mode
-currently requires a setuptools-based build`，说明你的 `pip` 低于 21.3，无法对非 setuptools 后端做*可编辑*（`-e`）安装。
-可编辑模式只是开发便利，运行这个工具并不需要——任选其一：
-
-```bash
-# 在源码目录里——普通（非可编辑）安装会构建 wheel：
-pip install .              # 不是  pip install -e .
-
-# ……或者先升级 pip，可编辑安装也能用：
-pip install --upgrade pip && pip install -e .
-```
-
-对于**真正隔离网络的主机**，在联网机器上构建 wheel 再拷过去——目标主机就不需要网络：
-
-```bash
-# 在联网机器上，把本包及其依赖收集成 wheel：
-pip wheel . -w dist        # → dist/*.whl   （或：uv build，只构建本包）
-
-# 把 dist/ 拷到隔离主机，然后离线安装：
-pip install --no-index --find-links dist vmware-debug
-```
-
-<!-- usage: remote-and-exposure -->
-## 远程访问（HTTPS）与限制工具
+### 远程访问（HTTPS）与限制工具
 
 默认情况下 `vmware-debug mcp` 通过 stdio 服务一个本地客户端，并提供全部工具。以下两个选项可以改变这一点
 （需 vmware-policy ≥ 1.21.0）。
@@ -167,6 +223,46 @@ vmware-debug mcp --expose read --allow-write close_case
 这只限制提供给客户端的工具，不是授权；账号本身仍应遵循最小权限。
 
 详见 `skills/vmware-debug/references/setup-guide.md`（"Serving MCP over HTTPS"、"Limiting which tools are offered"）。
+
+<a id="readme-troubleshooting"></a>
+
+## 故障排查
+
+安装问题请查看本页安装说明；操作前先用 CLI 的 `--help` 核对参数。反馈问题时仅提供经过脱敏的最小示例。
+
+<a id="readme-companion-skills"></a>
+
+## 配套 Skills
+
+VMware Skills 家族包含 14 个 MCP Server 和共享 Policy 库。按职责选择工具： [vmware-skills](https://github.com/vmware-skills).
+
+### 配套 Skill
+
+| 需求 | Skill |
+|---|---|
+| 故障关联 / 根因 | **vmware-debug**（本项目） |
+| 集中日志检索 | vmware-log-insight（把 `search_logs` 结果喂给它） |
+| vCenter 事件与告警 | vmware-monitor |
+| 指标 / 异常 | vmware-aria |
+| 执行修复 | vmware-aiops（单步）/ vmware-pilot（多步门控） |
+
+<a id="readme-reference"></a>
+
+## 参考资料
+
+变更记录： [RELEASE_NOTES.md](RELEASE_NOTES.md).
+
+使用自己的模型和 Agent 宿主进行只读自测： [model-fit self-test](https://github.com/vmware-skills/marketplace/blob/main/MODEL_FIT_SELF_TEST.md).
+
+### 升级到 2.0
+
+2.0 把 14 个 MCP 工具中的 13 个改成动词在前（例如 `case_close` → `close_case`, `case_get` → `get_case`, `case_grade` → `grade_case`），完整的新旧名对照表见
+[RELEASE_NOTES.md](RELEASE_NOTES.md#v200--mcp-tools-renamed-verb-first)。其他都不变：工具、参数、安全确认门和 CLI 命令都一样。
+如果 agent 提示词、脚本或 `~/.vmware/rules.yaml` 里写了工具名，请改成新名——不过用旧名写的 deny 规则在
+vmware-policy ≥ 1.18.1 下仍然生效（`vmware-audit policy` 会列出因改名而多匹配的规则），vmware-pilot ≥ 1.13 也会自动转换已保存工作流里的旧名。
+如果还有 2.0 之前的安装共用这个 `rules.yaml`，请把它的 vmware-policy 也升到 ≥ 1.18.2：它会按新旧两个名字匹配每条规则，一份文件两边都管用。
+
+<a id="readme-license"></a>
 
 ## 许可证
 
