@@ -11,6 +11,14 @@ Add the root Gemini CLI extension manifest and discovery metadata, using the exi
 
 Runtime infrastructure operations, permissions, TLS defaults and confirmation behavior are unchanged. No new vSphere/VCF 9.x or live product compatibility is claimed. ClawHub skill and bundle verdicts are checked separately after publication; documentation corrections are not a clean-scan claim.
 
+## v2.3.3 (2026-11-10) — Split case MCP registrations
+
+Separate case/read and evidence/run registration groups. Keep the existing server factory, per-server case-error closure, one Policy path, tool metadata/order and offline processing semantics.
+
+Validation: existing suites, complete CLI/MCP surface comparison, structural guard checks and security scanning; exact results are retained in the private release record. Live 9.1/Supervisor, PAIS, NSX and Horizon validation is not established by synthetic tests.
+
+中文：本轮修复和重构范围见上述说明；保留既有 Policy、审计及确认门。合成测试不代表 9.1/Supervisor、PAIS、NSX 或 Horizon 正向真机验证。
+
 ## v2.3.1 — readable Policy refusals and dependency security (2026-11-08)
 
 * Update public author/project contact metadata to `zhouwei008@gmail.com`.

@@ -1,6 +1,6 @@
 {
   "name": "vmware-debug",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "VMware diagnostic brain — offline incident triage, log/event correlation, and root-cause routing across the VMware skill family",
   "mcpServers": {
     "vmware-debug": {
@@ -8,7 +8,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "vmware-debug==2.3.2",
+        "vmware-debug==2.3.3",
         "vmware-debug-mcp"
       ]
     }

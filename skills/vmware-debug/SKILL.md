@@ -47,7 +47,7 @@ optional HTTPS requires caller tokens and TLS files (see `references/setup-guide
 ## Quick Install
 
 ```bash
-uv tool install vmware-debug==2.3.2
+uv tool install vmware-debug==2.3.3
 vmware-debug categories          # see what it can diagnose
 ```
 
