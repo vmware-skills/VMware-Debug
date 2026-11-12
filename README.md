@@ -10,7 +10,7 @@ Community-maintained · MIT · Not an official VMware/Broadcom product.
 
 [![18-second illustrative investigation demo](https://raw.githubusercontent.com/vmware-skills/marketplace/main/assets/demos/vmware-skills-en.gif)](https://github.com/vmware-skills/marketplace/blob/main/assets/demos/vmware-skills-en.mp4)
 
-Synthetic-data animation, not a live recording. [Watch the narrated family introduction (~2 min)](https://github.com/vmware-skills/marketplace/blob/main/assets/demos/vmware-skills-en.mp4)
+Synthetic-data animation, not a live recording. [Watch the AI-narrated family introduction (~2 min)](https://github.com/vmware-skills/marketplace/blob/main/assets/demos/vmware-skills-en.mp4)
 
 ## Why use it?
 
@@ -27,7 +27,7 @@ uv tool install vmware-debug==2.3.3
 vmware-debug --help
 ```
 
-Requires uv and Python >=3.10. Configure targets and credentials locally before remote queries. [Setup guide](skills/vmware-debug/references/setup-guide.md).
+Requires uv and Python >=3.10. Keep case evidence and audit data locally; no VMware API connection is needed. [Setup guide](skills/vmware-debug/references/setup-guide.md).
 
 For Claude Code and other host installation paths, see the [family portal](https://github.com/vmware-skills/marketplace).
 
@@ -45,4 +45,4 @@ Offline analysis: no VMware API connection or remediation execution. Case record
 
 Part of [VMware Skills](https://github.com/vmware-skills/marketplace): 15 skills, 14 MCP servers and one shared Policy library. If it helps your work, star the family portal.
 
-[Issues and feedback](https://github.com/vmware-skills/VMware-Debug/issues) · [MIT](LICENSE)
+[Issues and feedback](https://github.com/vmware-skills/VMware-Debug/issues) · [MIT](https://opensource.org/license/mit/)
