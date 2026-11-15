@@ -1,0 +1,6 @@
+[project]
+name = "vmware-debug-mcpb"
+version = "2.3.3"
+description = "Claude Desktop extension shim that runs the published vmware-debug MCP server"
+requires-python = ">=3.10"
+dependencies = ["vmware-debug==2.3.3"]
