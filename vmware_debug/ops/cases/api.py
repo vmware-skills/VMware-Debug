@@ -83,12 +83,12 @@ def open_case(
     }
 
 
-def get_case(case_id: str) -> dict[str, Any]:
+def get_case(case_id: str, report_view: str | None = None) -> dict[str, Any]:
     """One case: its scope, its ledger sizes, and how it has been graded."""
     case = load_case(case_id)
     evidence = load_evidence(case_id)
     gaps = load_gaps(case_id)
-    return {
+    result = {
         "case_id": case.case_id,
         "path": str(case_dir(case_id)),
         "state": case.state,
@@ -104,6 +104,12 @@ def get_case(case_id: str) -> dict[str, Any]:
             for h in grade_history(case_id)
         ],
     }
+
+    if report_view is not None:
+        from vmware_debug.ops.cases.report import build_report
+
+        result["report"] = build_report(case_id, report_view)
+    return result
 
 
 def list_open_cases(limit: int = 50) -> dict[str, Any]:

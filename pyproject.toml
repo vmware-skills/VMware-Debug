@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vmware-debug"
-version = "2.3.3"
+version = "2.4.0"
 description = "VMware diagnostic brain — offline incident triage, log/event correlation, and root-cause routing across the VMware skill family"
 readme = "README.md"
 license = "MIT"
@@ -21,8 +21,9 @@ dependencies = [
     "typer>=0.12,<1.0",
     "rich>=13.0,<15.0",
     "mcp[cli]>=1.30,<2.0",
+    "jsonschema>=4.20,<5.0",  # Validate selected live MCP schemas before host dispatch.
     "certifi>=2026.10.19",  # GHSA-6q48-6c7w-9gw2 via MCP/httpx
-    "vmware-policy>=1.21.0,<2.0",
+    "vmware-policy>=1.26.0,<2.0",
     # Imported directly by ops/cases/grading.py for the rules file. It has
     # always arrived transitively via vmware-policy; a package should
     # declare what it imports rather than rely on a dependency's dependency.

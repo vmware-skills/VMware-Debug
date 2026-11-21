@@ -29,13 +29,13 @@ Synthetic-data GIF; video includes redacted historical screenshots. [Download th
 Install the published CLI and inspect its commands:
 
 ```sh
-uv tool install vmware-debug==2.3.3
+uv tool install vmware-debug==2.4.0
 vmware-debug --help
 ```
 
 Requires uv and Python >=3.10. Keep case evidence and audit data locally; no VMware API connection is needed. [Setup guide](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/setup-guide.md).
 
-One-click installs, after local setup: [Claude Desktop extension (.mcpb)](https://github.com/vmware-skills/VMware-Debug/releases/download/v2.3.3/vmware-debug-2.3.3.mcpb) · [Install in VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=vmware-debug&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22vmware-debug%3D%3D2.3.3%22%2C%22vmware-debug-mcp%22%5D%7D). Both run the same pinned 2.3.3 server. The desktop extension starts with read-only tools; change *Tools to offer* to `all` for writes.
+One-click installs, after local setup: [Claude Desktop extension (.mcpb)](https://github.com/vmware-skills/VMware-Debug/releases/download/v2.4.0/vmware-debug-2.4.0.mcpb) · [Install in VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=vmware-debug&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22vmware-debug%3D%3D2.4.0%22%2C%22vmware-debug-mcp%22%5D%7D). Both run the same pinned 2.4.0 server. The desktop extension starts with read-only tools; change *Tools to offer* to `all` for writes.
 
 For agent-host installation, use the [setup guide](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/setup-guide.md) and [Cursor, Codex, Gemini CLI, Cline and local-model examples](https://github.com/vmware-skills/marketplace/blob/main/docs/agent-hosts.md).
 
@@ -45,7 +45,7 @@ Choose a model with the [shared model-fit workflow](https://github.com/vmware-sk
 
 ## Know the boundaries
 
-Offline analysis: no VMware API connection or remediation execution. Case records and audit data are stored locally; hypotheses are not established root causes.
+The CLI/MCP analysis tools make no VMware API connection and execute no remediation. Case records and audit data are stored locally; hypotheses are not established root causes. Optional Python host helpers call explicitly supplied companion MCP sessions through their existing guards; they do not manage endpoint credentials or bypass backend audit.
 
 <a id="readme-mcp-configuration"></a> <a id="readme-troubleshooting"></a> <a id="readme-reference"></a>
 
@@ -65,3 +65,10 @@ Part of [VMware Skills](https://github.com/vmware-skills/marketplace): 15 skills
 <a id="readme-license"></a>
 
 [Issues and feedback](https://github.com/vmware-skills/VMware-Debug/issues) · [MIT](https://opensource.org/license/mit/)
+
+## Scenario investigations and reports
+
+Opt-in Python host helpers select live scenario schemas, bind connected read-only MCP sessions and share an in-process call budget. See [host integration and limitations](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/scenario-host.md). No official AI Hub compatibility or token savings are claimed.
+
+
+Read-only [VM performance](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/vm-performance.md) and [host alarm](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/host-alarms.md) procedures define evidence, branches and stops. Optional get_case report_view selects brief/operator/investigation projections of the existing ledger. Bounded lab read/report checks have passed; full autonomous collection, controlled token comparisons and official MCP environment validation remain follow-up work.

@@ -29,13 +29,13 @@ GIF 使用合成数据；视频包含脱敏的历史截图。[下载家族 AI �
 安装已发布 CLI，并查看可用命令：
 
 ```sh
-uv tool install vmware-debug==2.3.3
+uv tool install vmware-debug==2.4.0
 vmware-debug --help
 ```
 
 需要 uv 与 Python >=3.10。案例证据与审计数据保存在本机，无需连接 VMware API。[配置指南](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/setup-guide.md)。
 
-完成本地配置后可一键安装：[Claude Desktop 扩展（.mcpb）](https://github.com/vmware-skills/VMware-Debug/releases/download/v2.3.3/vmware-debug-2.3.3.mcpb) · [在 VS Code 中安装](https://insiders.vscode.dev/redirect/mcp/install?name=vmware-debug&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22vmware-debug%3D%3D2.3.3%22%2C%22vmware-debug-mcp%22%5D%7D)。两者运行同一个固定的 2.3.3 版本。桌面扩展默认只提供只读工具，需要写操作时把“Tools to offer”改为 `all`。
+完成本地配置后可一键安装：[Claude Desktop 扩展（.mcpb）](https://github.com/vmware-skills/VMware-Debug/releases/download/v2.4.0/vmware-debug-2.4.0.mcpb) · [在 VS Code 中安装](https://insiders.vscode.dev/redirect/mcp/install?name=vmware-debug&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22vmware-debug%3D%3D2.4.0%22%2C%22vmware-debug-mcp%22%5D%7D)。两者运行同一个固定的 2.4.0 版本。桌面扩展默认只提供只读工具，需要写操作时把“Tools to offer”改为 `all`。
 
 Agent 宿主安装见本模块的[配置指南](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/setup-guide.md)，以及 [Cursor、Codex、Gemini CLI、Cline 与本地模型示例](https://github.com/vmware-skills/marketplace/blob/main/docs/agent-hosts-CN.md)。WorkBuddy 用户可在 [SkillHub](https://skillhub.cn) 搜索 `vmware-debug` 安装技能，并按 [WorkBuddy 说明](https://github.com/vmware-skills/marketplace/blob/main/docs/agent-hosts-CN.md#workbuddy) 注册 MCP。
 
@@ -45,7 +45,7 @@ Agent 宿主安装见本模块的[配置指南](https://github.com/vmware-skills
 
 ## 使用边界
 
-离线分析，不连接 VMware API，也不执行修复。本地保存案例与审计数据；假设不等于已证实根因。
+CLI/MCP 分析工具不连接 VMware API，也不执行修复。本地保存案例与审计数据；假设不等于已证实根因。可选 Python 宿主辅助模块通过已有守卫调用显式提供的 companion MCP 会话，不管理端点凭据，也不绕过后端审计。
 
 <a id="readme-mcp-configuration"></a> <a id="readme-troubleshooting"></a> <a id="readme-reference"></a>
 
@@ -65,3 +65,10 @@ Agent 宿主安装见本模块的[配置指南](https://github.com/vmware-skills
 <a id="readme-license"></a>
 
 [问题与反馈](https://github.com/vmware-skills/VMware-Debug/issues) · [MIT](https://opensource.org/license/mit/)
+
+## 场景调查与报告
+
+可选 Python 宿主辅助模块可选择实时场景 schema、绑定已连接的只读 MCP 会话并共享单进程调用预算。见[宿主集成与限制](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/scenario-host-CN.md)。不宣称官方 AI Hub 兼容或 token 节省。
+
+
+只读[VM 性能异常](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/vm-performance-CN.md)与[主机告警](https://github.com/vmware-skills/VMware-Debug/blob/main/skills/vmware-debug/references/host-alarms-CN.md)流程定义证据、分支和停止条件。get_case 的可选 report_view 提供简报/运维详情/调查记录，复用现有账本。已通过有限实验室只读/报告检查；完整自主采集、受控 token 对照和官方 MCP 环境验证仍为后续待办。

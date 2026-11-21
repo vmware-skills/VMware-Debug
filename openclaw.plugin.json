@@ -1,7 +1,7 @@
 {
   "id": "vmware-debug",
   "name": "VMware Debug",
-  "description": "VMware incident timeline, root-cause routing, local case ledger; no vSphere access. 14 MCP tools.",
+  "description": "VMware case reports and incident correlation. 14 MCP tools; opt-in host read bindings.",
   "skills": [
     "./skills"
   ],
@@ -11,7 +11,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "vmware-debug==2.3.3",
+        "vmware-debug==2.4.0",
         "vmware-debug-mcp"
       ]
     }

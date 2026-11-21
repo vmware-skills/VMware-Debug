@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.vmware-skills/vmware-debug",
   "title": "VMware Debug",
-  "description": "VMware incident timeline, root-cause routing, local case ledger; no vSphere access. 14 MCP tools.",
+  "description": "VMware case reports and incident correlation. 14 MCP tools; opt-in host read bindings.",
   "repository": {
     "url": "https://github.com/vmware-skills/VMware-Debug",
     "source": "github"
   },
-  "version": "2.3.3",
+  "version": "2.4.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "vmware-debug",
-      "version": "2.3.3",
+      "version": "2.4.0",
       "runtimeHint": "uvx",
       "packageArguments": [
         {

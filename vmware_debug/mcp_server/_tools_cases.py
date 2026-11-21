@@ -157,7 +157,7 @@ def register_callbacks(server, runtime, _case_error):
 
     @server.tool(name="get_case", annotations=runtime._READ)
     @runtime.vmware_tool(risk_level="low")
-    def get_case(case_id: str) -> dict:
+    def get_case(case_id: str, report_view: Optional[str] = None) -> dict:
         """[READ] One case: its scope, its ledger sizes, and its grade history.
 
         WHEN: to pick up an investigation, or to see why a case sits at the
@@ -171,11 +171,13 @@ def register_callbacks(server, runtime, _case_error):
         counted in.
 
         Args:
+            report_view: Optional brief, operator or investigation report. Adds report;
+                omission preserves existing fields. Depth is not access control.
             case_id: The case id returned by open_case, or listed by list_cases.
                 An unknown id is an error, never an empty case.
         """
         try:
-            return runtime.t.get_case(case_id=case_id)
+            return runtime.t.get_case(case_id=case_id, report_view=report_view)
         except Exception as exc:
             return _case_error(exc, "get_case")
 

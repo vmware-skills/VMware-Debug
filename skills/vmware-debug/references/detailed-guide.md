@@ -44,7 +44,7 @@ methodology, the event-envelope contract, and symptom routing.
 Requires Python `>=3.10` and `uv`.
 
 ```bash
-uv tool install vmware-debug==2.3.3
+uv tool install vmware-debug==2.4.0
 vmware-debug --help
 ```
 
@@ -56,7 +56,7 @@ Target, credential and local data setup: [setup guide](../../../skills/vmware-de
 ### Install
 
 ```bash
-uv tool install vmware-debug==2.3.3
+uv tool install vmware-debug==2.4.0
 vmware-debug categories          # see which symptom categories it can diagnose
 ```
 
@@ -105,7 +105,7 @@ Copy this configuration into your MCP client's local stdio settings. The client 
   "mcpServers": {
     "vmware-debug": {
       "command": "uvx",
-      "args": ["--from", "vmware-debug==2.3.3", "vmware-debug-mcp"]
+      "args": ["--from", "vmware-debug==2.4.0", "vmware-debug-mcp"]
     }
   }
 }

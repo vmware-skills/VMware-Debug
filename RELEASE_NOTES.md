@@ -1,3 +1,11 @@
+## v2.4.0 — Scenario investigations, case reports and host helpers (2026-11-21)
+
+Add two host-operated read-only investigation procedures and bilingual report guidance. Optional get_case report_view adds a sanitized ledger projection; omission preserves the old response. Report generation does not collect remote data, mutate the case, or promote its recorded grade. Bounded real read/report checks were performed; autonomous acceptance and broader failure validation remain separate. Add opt-in Python context selection, explicit connected-MCP read bindings and metadata-only in-process task accounting. These do not add MCP tools, official compatibility, distributed enforcement or measured token savings.
+
+Validation: 543 Debug tests and 158 family smoke checks passed before release preparation. Bounded real read/report checks and in-memory failure controls are separate from autonomous collection, context/token comparisons and official MCP validation, which remain follow-up work.
+
+中文：新增两个由宿主执行的只读调查流程及双语报告指南；get_case 可选报告视图复用账本，省略参数保持原格式。不采集远端数据、不修改案件或提升已保存等级；已做有限真机只读/报告检查，自主验收和更广失败验证分开记录。新增可选 Python 上下文选择、显式 MCP 只读绑定及仅元数据的单进程任务计数；未增加 MCP 工具，不代表官方兼容、分布式强制或已测 token 收益。
+
 ## v2.3.2 — Security documentation and Gemini extension packaging
 
 Released 2026-11-09.
